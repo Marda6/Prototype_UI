@@ -23,6 +23,9 @@
   ];
 
   var APP = window.ENCY_APP || {};
+  // область приложения: 'home' — разделы вне проекта (Home нажат, вкладка проекта
+  // не активна), 'project' — экраны внутри открытого проекта
+  var AREA = APP.area || 'home';
   // из packages/<id>/ до packages/shared-ui/ ровно один уровень вверх
   var BASE = '../shared-ui/assets/';
 
@@ -51,7 +54,8 @@
       '<div class="hbtn" title="Меню"><img class="hicn-act hicn-logo" src="' + BASE + 'hdr-logo.svg" alt=""></div>' +
       '<div class="hdiv"></div>' +
       '<div class="hgroup-left">' +
-        '<div class="hbtn" title="Домой"><img class="hicn-act" src="' + BASE + 'hdr-home.svg" alt=""></div>' +
+        '<div class="hbtn' + (AREA === 'home' ? ' on' : '') + '" title="Домой">' +
+          '<img class="hicn-act" src="' + BASE + 'hdr-home.svg" alt=""></div>' +
         '<div class="hbtn" title="Список"><img class="hicn-act" src="' + BASE + 'hdr-list.svg" alt=""></div>' +
         '<div class="hbtn" title="Новый файл"><img class="hicn-act" src="' + BASE + 'hdr-file.svg" alt=""></div>' +
         '<div class="hbtn" title="Открыть"><img class="hicn-act" src="' + BASE + 'hdr-folder.svg" alt=""></div>' +
@@ -59,7 +63,9 @@
       '</div>' +
       '<div class="hdiv"></div>' +
       '<div class="htabs">' +
-        '<div class="htab active"><span class="htab-t">Turn part probing 2</span>' +
+        // в домашней области ни одна вкладка проекта не активна — активен Home
+        '<div class="htab' + (AREA === 'project' ? ' active' : '') + '">' +
+          '<span class="htab-t">Turn part probing 2</span>' +
           '<img class="htab-x" src="' + BASE + 'hdr-tabclose.svg" alt=""></div>' +
         '<div class="htab"><span class="htab-t">New project 2</span></div>' +
         '<div class="htab"><span class="htab-t">New project 3</span></div>' +

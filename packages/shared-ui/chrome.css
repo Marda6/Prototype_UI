@@ -6,6 +6,9 @@
   .hbtn{width:32px;height:32px;flex:0 0 32px;display:flex;align-items:center;justify-content:center;
     border-radius:4px;cursor:pointer;}
   .hbtn:hover{background:var(--ec-fg-12);}
+  /* нажатое состояние: например, Home, пока открыт раздел домашней области */
+  .hbtn.on{background:var(--ec-fg-16);}
+  .hbtn.on:hover{background:var(--ec-fg-24);}
   .hgroup-left{display:flex;align-items:center;gap:4px;}
   .hgroup-right{display:flex;align-items:center;gap:12px;}
   .hicn32{width:32px;height:32px;}
