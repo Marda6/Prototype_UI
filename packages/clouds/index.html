@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENCY Core — Clouds</title>
+<!-- Целевой экран прототипа: 1920×1080 при системном масштабе 125%
+     → рабочая CSS-область 1536×864 логических px. -->
+<meta name="ency-target-viewport" content="1536x864">
+<link rel="stylesheet" href="../shared-ui/tokens.css">
+<link rel="stylesheet" href="../shared-ui/chrome.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<!-- id раздела: по нему оболочка подсвечивает активный пункт сайдбара -->
+<script>window.ENCY_APP = {id: "clouds"};</script>
+<div class="app" id="app">
+  <div class="workspace">
+    <main class="content">
+
+      <div class="page-head">
+        <div class="ph-title">
+          <span class="ph-icn"><img src="assets/icn-clouds-20.svg" alt=""></span>
+          <h1 class="page-title">Clouds</h1>
+        </div>
+        <div class="ph-div"></div>
+        <div class="ph-tabs" id="areaTabs">
+          <span class="ph-tab active" data-area="projects">Projects</span>
+          <span class="ph-tab" data-area="dmc">Digital Machine Center</span>
+        </div>
+        <div class="ph-actions">
+          <button class="btn-upload">Upload project <img src="assets/icn-chev-8x4.svg" alt=""></button>
+        </div>
+      </div>
+
+      <div class="area" id="area-projects">
+      <div class="toolbar">
+        <div class="tb-left">
+          <!-- как в макете: текстовые чипы в своём подсегменте, архив — отдельным иконным чипом -->
+          <div class="seg">
+            <div class="seg-inner">
+              <span class="chip active">All</span>
+              <span class="chip">My</span>
+              <span class="chip">Shared with me</span>
+              <span class="chip">Public</span>
+            </div>
+            <span class="chip icon" title="Архив"><img src="assets/icn-archive-16.svg" alt=""></span>
+          </div>
+          <div class="tb-group">
+            <span class="chip icon ghost" title="Избранные"><img src="assets/icn-star-16.svg" alt=""></span>
+            <span class="chip ghost">Featured</span>
+          </div>
+          <div class="tb-group" style="gap:8px">
+            <label class="tb-search">
+              <input type="text" placeholder="Search">
+              <img src="assets/icn-search-24.svg" alt="">
+            </label>
+            <span class="btn-funnel" title="Фильтр"><img src="assets/icn-funnel-16.svg" alt=""></span>
+          </div>
+        </div>
+        <div class="tb-right">
+          <button class="dd">Resents <img src="assets/icn-chev-9x4.svg" alt=""></button>
+          <div class="seg" id="viewSeg">
+            <span class="chip active" data-view="compact">Compact</span>
+            <span class="chip" data-view="ext">Extensive</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pagebody" id="pagebody">
+
+        <!-- ——— Pending invites ——— -->
+        <section class="sect" id="sect-invites">
+          <div class="sect-head">
+            <span class="sect-title">Pending invites</span>
+            <img class="arrow" src="assets/icn-arrow-32.svg" alt="">
+            <span class="badge">15</span>
+            <button class="sect-collapse">Collapse</button>
+          </div>
+          <div class="sect-row" id="invites"><!-- карточки строит app.js --></div>
+        </section>
+
+        <!-- ——— Collections ——— -->
+        <section class="sect" id="sect-coll">
+          <div class="sect-head">
+            <span class="sect-title">Collections</span>
+            <img class="arrow" src="assets/icn-arrow-32.svg" alt="">
+            <span class="mini-strip" id="collMini"><!-- мини-превью в свёрнутом виде --></span>
+            <button class="sect-collapse">Collapse</button>
+          </div>
+          <div class="sect-row row-coll" id="collections"><!-- карточки строит app.js --></div>
+        </section>
+
+        <!-- ——— Projects ——— -->
+        <section class="sect sect-proj">
+          <div class="proj-title">Projects</div>
+          <div class="grid" id="projects"><!-- карточки строит app.js --></div>
+        </section>
+
+      </div>
+      </div><!-- /area-projects -->
+
+      <!-- ——— область Digital Machine Center: чипы-фильтры + таблица каталога ——— -->
+      <div class="area" id="area-dmc" hidden>
+        <!-- глифы категорий продуктов — из веб-версии DMC -->
+        <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+          <symbol id="k-post" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 8L4.5 12l4 4M15.5 8l4 4-4 4"/><path d="M13 5.5l-2.5 13"/></symbol>
+          <symbol id="k-interp" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M7 9l3 3-3 3M12.5 15h4.5"/></symbol>
+          <symbol id="k-schema" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3zM12 12v9M12 12L4 7.5M12 12l8-4.5"/></symbol>
+          <symbol id="k-kit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="1" width="8" height="8" rx="1" stroke-width="2" fill="currentColor" fill-opacity=".08"/><rect x="15" y="1" width="8" height="8" rx="1" stroke-width="2" fill="currentColor" fill-opacity=".08"/><rect x="1" y="15" width="8" height="8" rx="1" stroke-width="2" fill="currentColor" fill-opacity=".08"/><path d="M14 19h10M19 14v10" stroke-width="2"/></symbol>
+          <symbol id="i-rows" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></symbol>
+          <symbol id="i-grid-view" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></symbol>
+        </svg>
+        <div class="toolbar">
+          <div class="tb-left">
+            <div class="seg" id="dmcScope">
+              <span class="chip active" data-scope="all">All&nbsp;<span class="cnt"></span></span>
+              <span class="chip" data-scope="post">Post Processors&nbsp;<span class="cnt"></span></span>
+              <span class="chip" data-scope="interp">Interpreters&nbsp;<span class="cnt"></span></span>
+              <span class="chip" data-scope="schema">Machine Schemas&nbsp;<span class="cnt"></span></span>
+              <span class="chip" data-scope="kit">Kits&nbsp;<span class="cnt"></span></span>
+            </div>
+            <div class="tb-group">
+              <span class="chip icon ghost" id="dmcFav" title="Избранные"><img src="assets/icn-star-16.svg" alt=""></span>
+            </div>
+            <div class="tb-group" style="gap:8px">
+              <label class="tb-search">
+                <input type="text" id="dmcSearch" placeholder="Search machines, posts, controls">
+                <img src="assets/icn-search-24.svg" alt="">
+              </label>
+              <span class="btn-funnel" id="dmcFunnel" title="Фильтры"><img src="assets/icn-funnel-16.svg" alt="">
+                <span class="fbadge" id="dmcFunnelCnt" hidden></span></span>
+            </div>
+          </div>
+          <div class="tb-right">
+            <div class="vmode" id="dmcView">
+              <span class="vbtn" data-view="list" title="Таблица"><svg><use href="#i-rows"/></svg></span>
+              <span class="vbtn active" data-view="grid" title="Карточки"><svg><use href="#i-grid-view"/></svg></span>
+            </div>
+            <button class="dd">Resents <img src="assets/icn-chev-9x4.svg" alt=""></button>
+          </div>
+        </div>
+        <div class="dmcbody">
+          <aside class="fpanel" id="dmcPanel">
+            <div class="fp-head"><b>Filters</b>
+              <span class="fgrp-badge" id="dmcSideCnt" hidden></span>
+              <span style="flex:1"></span>
+              <button class="fp-reset" id="dmcReset" disabled>Reset</button></div>
+            <div class="fp-body" id="dmcFilters"><!-- секции строит app.js --></div>
+          </aside>
+          <div class="dmc-main">
+            <div class="pagebody dmc-scroll">
+              <table class="mtable" id="dmcTable">
+                <thead><tr>
+                  <th>Product</th><th class="c-kind">Category</th>
+                  <th class="c-mach">Machine</th><th class="c-type">Type</th>
+                  <th class="c-ctrl">Control</th><th class="c-ax num">Axes</th>
+                  <th class="c-wa num">Work area</th><th class="c-dl num">Downloads</th>
+                  <th class="c-price num">Price</th>
+                </tr></thead>
+                <tbody id="dmcRows"></tbody>
+              </table>
+              <div class="mgrid" id="dmcGrid" hidden></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../shared-ui/chrome.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

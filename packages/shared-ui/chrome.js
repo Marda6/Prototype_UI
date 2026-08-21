@@ -67,8 +67,10 @@
         '<div class="htab' + (AREA === 'project' ? ' active' : '') + '">' +
           '<span class="htab-t">Turn part probing 2</span>' +
           '<img class="htab-x" src="' + BASE + 'hdr-tabclose.svg" alt=""></div>' +
-        '<div class="htab"><span class="htab-t">New project 2</span></div>' +
-        '<div class="htab"><span class="htab-t">New project 3</span></div>' +
+        '<div class="htab"><span class="htab-t">New project 2</span>' +
+          '<img class="htab-x" src="' + BASE + 'hdr-tabclose.svg" alt=""></div>' +
+        '<div class="htab"><span class="htab-t">New project 3</span>' +
+          '<img class="htab-x" src="' + BASE + 'hdr-tabclose.svg" alt=""></div>' +
         '<div class="hbtn" title="Новая вкладка"><img class="hicn-plus" src="' + BASE + 'hdr-plus.svg" alt=""></div>' +
       '</div>' +
       '<div class="hgroup-right">' +
@@ -97,7 +99,10 @@
             '<span class="spin sfade" id="pinBtn" title="Закрепить панель">' +
               '<img src="' + BASE + 'sb-pin.svg" alt=""></span>' +
           '</div>' +
-          '<div class="srow" data-page="clouds">' +
+          // Clouds — обычный раздел packages/clouds, но пункт остаётся здесь:
+          // у него особый порядок (между Recent и Local) и индикатор-точка
+          '<div class="srow' + (APP.id === 'clouds' ? ' active' : '') + '"' +
+            (APP.id === 'clouds' ? '' : ' data-app="../clouds/"') + ' data-page="clouds">' +
             '<span class="icn16"><img src="' + BASE + 'sb-clouds.svg" alt="" style="width:12px;height:12px"></span>' +
             '<span class="t">Clouds</span>' +
             '<img class="sfade" src="' + BASE + 'sb-clouds-dot.svg" alt="" style="width:16px;height:16px">' +
