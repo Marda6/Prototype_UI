@@ -7,6 +7,31 @@ document.querySelectorAll('.cstar').forEach(function(s){
     e.stopPropagation();
     var faved = s.classList.toggle('faved');
     s.querySelector('img').src = faved ? '../shared-ui/assets/st-star16-filled.svg' : '../shared-ui/assets/st-star16.svg';
+    applyFavFilter();
+  });
+});
+
+// Favorites filter in the toolbar: the chip star fills in when active,
+// the grid keeps only favorited cards
+var favChip = document.querySelector('.chip-star');
+function applyFavFilter(){
+  var on = favChip.classList.contains('active');
+  document.querySelectorAll('.storebody .grid .card').forEach(function(card){
+    card.style.display = on && !card.querySelector('.cstar.faved') ? 'none' : '';
+  });
+}
+favChip.addEventListener('click', function(){
+  var on = favChip.classList.toggle('active');
+  favChip.querySelector('img').src = on
+    ? '../shared-ui/assets/st-star16-filled.svg' : '../shared-ui/assets/st-star.svg';
+  applyFavFilter();
+});
+
+// star in the extension details panel — same toggle
+document.querySelectorAll('.dstar').forEach(function(s){
+  s.addEventListener('click', function(){
+    var faved = s.classList.toggle('faved');
+    s.querySelector('img').src = faved ? '../shared-ui/assets/st-star16-filled.svg' : '../shared-ui/assets/st-star16.svg';
   });
 });
 

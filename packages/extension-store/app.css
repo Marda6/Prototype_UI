@@ -8,6 +8,8 @@
   .chip-star{width:28px;height:28px;flex:0 0 28px;border-radius:36px;background:var(--ec-fg-6);
     display:flex;align-items:center;justify-content:center;cursor:pointer;}
   .chip-star:hover{background:var(--ec-fg-12);}
+  .chip-star.active{background:var(--ec-fg-100);}
+  .chip-star.active img{filter:brightness(.15);}
   .chip-star img{width:14px;height:13px;}
   .btn-funnel{width:28px;height:28px;flex:0 0 28px;border-radius:16px;background:var(--ec-fg-6);
     display:flex;align-items:center;justify-content:center;cursor:pointer;}

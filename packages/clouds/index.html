@@ -47,15 +47,16 @@
             <span class="chip icon" title="Archive"><img src="assets/icn-archive-16.svg" alt=""></span>
           </div>
           <div class="tb-group">
-            <span class="chip icon ghost" title="Favorites"><img src="assets/icn-star-16.svg" alt=""></span>
-            <span class="chip ghost">Featured</span>
+            <span class="chip icon ghost" id="projFav" title="Favorites"><img src="assets/icn-star-16.svg" alt=""></span>
+            <span class="chip ghost">Official</span>
           </div>
           <div class="tb-group" style="gap:8px">
             <label class="tb-search">
               <input type="text" placeholder="Search">
               <img src="assets/icn-search-24.svg" alt="">
             </label>
-            <span class="btn-funnel" title="Filter"><img src="assets/icn-funnel-16.svg" alt=""></span>
+            <span class="btn-funnel" id="projFunnel" title="Filters"><img src="assets/icn-funnel-16.svg" alt="">
+              <span class="fbadge" id="projFunnelCnt" hidden></span></span>
           </div>
         </div>
         <div class="tb-right">
@@ -66,6 +67,9 @@
           </div>
         </div>
       </div>
+
+      <!-- horizontal filter row under the toolbar — built by app.js -->
+      <div class="fbar" id="projFbar"></div>
 
       <div class="pagebody" id="pagebody">
 

@@ -4,6 +4,10 @@
   'use strict';
 
   var A = 'assets/';
+  // favorite star: hollow icon in this package, the filled state is shared
+  var STAR = A + 'icn-star-16.svg',
+      STAR_ON = '../shared-ui/assets/st-star16-filled.svg';
+  function starImg(on){ return on ? STAR_ON : STAR; }
   // two real previews from the mockup; alternated so the grid doesn't look cloned
   var PARTS = [A+'part-b.png', A+'part-c.png'];
   var part = function(i){ return PARTS[i % PARTS.length]; };
@@ -75,7 +79,7 @@
     {name:'Part More 4X', loc:'Shared with me'},
     {name:'From Drawing', loc:'My projects', star:true},
     {name:'Turn mill part', loc:'My projects', star:true},
-    {name:'Aerospace part', loc:'C:\\Program Files\\ENCY…'},
+    {name:'Aerospace part', loc:'My projects'},
     {name:'Hellic', loc:'Community', featured:true},
     {name:'From Drawing', loc:'Shared with me'},
     {name:'From Drawing', loc:'Shared with me'},
@@ -85,9 +89,53 @@
     {name:'From Drawing', loc:'Shared with me'},
     {name:'From Drawing', loc:'My projects'},
     {name:'From Drawing', loc:'Shared with me'},
-    {name:'From Drawing', loc:'C:\\Program Files\\ENCY…'},
-    {name:'From Drawing', loc:'Shared with me'}
+    {name:'From Drawing', loc:'Community'},
+    {name:'From Drawing', loc:'Shared with me'},
+    // archived projects only show up in the Archive view
+    {name:'Old bracket rev.2', loc:'My projects', archived:true},
+    {name:'Legacy fixture', loc:'My projects', archived:true}
   ];
+
+  // filterable project attributes — value lists from the web DMC filters
+  var P_MACHINE = ['Milling','Milling 3D','Milling 5D AB','Milling 5D AC','Milling 5D BC',
+    'Robot 6-Axes','Swiss-type','Turn','Turn-mill','Turret Head','Unknown'];
+  var P_TOOLS = ['Custom mill','Cutter','dblradius','Drill','End mill','Face grooving',
+    'Gripper','Grooving tool','ID grooving','Lollipop mill','Reamer','Spot drill',
+    'Tap','Thread mill','Turning tool'];
+  var P_AXES = ['C3','C4','C5','C6','CAS','CBRAKE','CHUCK','CLAMP11','CLAMP12',
+    'HEAD1','HEAD2','LUNETTE','SPINDLE','TAILSTOCK'];
+  var P_TAGS = ['Aerospace','Demo','Training','5-axis','Probing','Fixture',
+    'Multi-part','Optimization'];
+  var P_OPS = ['Milling 3D','Drilling','Turning','Facing','Contouring','Probing','Threading'];
+  var P_PROV = ['ENCY Software Ltd','Andrew Smith','Community','Postworks GmbH'];
+  var P_MODELS = ['DMU 50','DMX 210','CTX 310','NLX 2500','VF-2SS','UMC-750',
+    'INTEGREX i-200','SPRINT 32','C 42 U','a51nx'];
+  // deterministic assignment by index — stable across reloads
+  projects.forEach(function(p, i){
+    p.machine = P_MACHINE[(i * 3) % P_MACHINE.length];
+    p.mmodel = P_MODELS[(i * 5) % P_MODELS.length];
+    p.prov = P_PROV[(i * 7) % P_PROV.length];
+    p.ops = [P_OPS[i % P_OPS.length], P_OPS[(i * 4 + 3) % P_OPS.length]]
+      .filter(function(v, j, a){ return a.indexOf(v) === j; });
+    p.tools = [P_TOOLS[i % P_TOOLS.length], P_TOOLS[(i * 5 + 2) % P_TOOLS.length]]
+      .filter(function(v, j, a){ return a.indexOf(v) === j; });
+    p.axes = [P_AXES[(i * 7) % P_AXES.length], P_AXES[(i * 3 + 1) % P_AXES.length]]
+      .filter(function(v, j, a){ return a.indexOf(v) === j; });
+    p.tags = (i % 2 ? [P_TAGS[i % P_TAGS.length]]
+      : [P_TAGS[i % P_TAGS.length], P_TAGS[(i + 3) % P_TAGS.length]])
+      .filter(function(v, j, a){ return a.indexOf(v) === j; });
+  });
+
+  // status marker next to the name — it tells the project kind apart
+  var LOC_ICON = {
+    'My projects': 'icn-status-my.svg',
+    'Shared with me': 'icn-status-shared-with-me.svg',
+    'Community': 'icn-status-public.svg'
+  };
+  function locIcon(loc){
+    return '<img src="' + A + (LOC_ICON[loc] || 'icn-status-my.svg') +
+      '" alt="" title="' + loc + '">';
+  }
 
   function projectCard(p, i){
     return '<div class="card" data-name="' + p.name + '">' +
@@ -100,13 +148,14 @@
         '<div class="head">' +
           '<div class="txt"><span class="name">' + p.name + '</span>' +
           '<span class="sub">Updated: 29.02.2024 17:35:08</span></div>' +
-          '<img src="' + A + 'icn-access-24.svg" alt="" title="' + p.loc + '">' +
+          locIcon(p.loc) +
         '</div>' +
         '<div class="div"></div>' +
         '<div class="foot">' +
-          '<span class="btn-loc"><img src="' + A + 'icn-clouds-10.svg" alt="">' +
-          '<span>' + p.loc + '</span></span>' +
-          (p.star ? '<span class="btn-star"><img src="' + A + 'icn-star-16.svg" alt=""></span>' : '') +
+          '<span class="btn-loc"><span>ENCY Clouds</span></span>' +
+          // the star shows on hover on every card; a starred one keeps it visible
+          '<span class="btn-star' + (p.star ? ' faved' : '') + '" data-star="' + i + '">' +
+            '<img src="' + starImg(p.star) + '" alt=""></span>' +
           // three dots — the native 16px icon from the mockup, not a text glyph
           '<span class="btn-dots"><svg viewBox="0 0 16 16" width="16" height="16">' +
             '<circle cx="8" cy="3" r="1" fill="currentColor"/>' +
@@ -240,6 +289,8 @@
   for (k = 0; k < 5; k++) CATALOG.push(product('interp'));
   for (k = 0; k < 88; k++) CATALOG.push(product('schema'));
   CATALOG.push(product('kit')); CATALOG.push(product('kit'));
+  // stable id — cards are rendered from a filtered list, favorites toggle by id
+  CATALOG.forEach(function(p, i){ p.id = i; });
 
   var dmc = {scope:'all', q:'', fav:false,
     makers:{}, ctrls:{}, types:{}, axes:{}, price:'', units:'', pub:''};
@@ -310,14 +361,18 @@
         : '—']);
     }
     return '<div class="mcard">' +
-      '<div class="mcard__photo"><svg><use href="#k-' + p.kind + '"/></svg></div>' +
+      '<div class="mcard__photo"><svg><use href="#k-' + p.kind + '"/></svg>' +
+        '<span class="mstar' + (p.fav ? ' faved' : '') + '"' +
+          ' data-id="' + p.id + '" title="Add to favorites">' +
+          '<img src="' + starImg(p.fav) + '" alt=""></span></div>' +
       '<div class="mcard__head"><div class="mcard__name">' + p.name + '</div>' +
       '<div class="mcard__sub">' + p.publisher + '</div></div>' +
       '<div class="mcard__kv">' + kv.map(function(x){
         return '<span>' + x[0] + '</span><b>' + x[1] + '</b>';
       }).join('') + '</div>' +
       '<div class="mcard__foot"><span class="kindtag kindtag--' + p.kind + '">' +
-        KINDS[p.kind] + '</span>' + priceHtml(p) + '</div>' +
+        KINDS[p.kind] + '</span>' +
+        priceHtml(p) + '</div>' +
     '</div>';
   }
 
@@ -396,7 +451,6 @@
       el.hidden = !x[1];
       el.textContent = x[1];
     });
-    document.getElementById('dmcFunnel').classList.toggle('active', total > 0);
     document.getElementById('dmcReset').disabled = !total;
   }
 
@@ -447,6 +501,7 @@
   });
   document.getElementById('dmcFav').addEventListener('click', function(){
     dmc.fav = this.classList.toggle('active');
+    this.querySelector('img').src = starImg(dmc.fav);
     renderDmc();
   });
   document.getElementById('dmcSearch').addEventListener('input', function(){
@@ -456,6 +511,19 @@
   document.getElementById('dmcFunnel').addEventListener('click', function(){
     var panel = document.getElementById('dmcPanel');
     panel.hidden = !panel.hidden;
+    this.classList.toggle('active', !panel.hidden);
+  });
+  // the panel is open by default — the funnel starts pressed (white)
+  document.getElementById('dmcFunnel').classList.add('active');
+  document.getElementById('dmcGrid').addEventListener('click', function(e){
+    var st = e.target.closest('.mstar');
+    if (!st) return;
+    var p = CATALOG[+st.dataset.id];
+    p.fav = !p.fav;
+    st.classList.toggle('faved', p.fav);
+    st.querySelector('img').src = starImg(p.fav);
+    // with the Favorites filter active an unstarred card leaves the list
+    if (dmc.fav) renderDmc();
   });
   document.getElementById('dmcView').addEventListener('click', function(e){
     var b = e.target.closest('.vbtn');
@@ -545,6 +613,184 @@
   document.getElementById('projects').addEventListener('click', function(e){
     if (e.target.hasAttribute && e.target.hasAttribute('data-open')){
       startDownload(e.target.closest('.card'));
+      return;
+    }
+    var st = e.target.closest('.btn-star');
+    if (st){
+      var p = projects[+st.dataset.star];
+      p.star = !p.star;
+      st.classList.toggle('faved', p.star);
+      st.querySelector('img').src = starImg(p.star);
+      applyProjFilters();
     }
   });
+
+  // ——— projects toolbar filters: scope, archive, favorites, Featured and search
+  // are combined; the grid keeps card order, non-matching cards are hidden ———
+  var pf = {scope:'All', fav:false, feat:false, arch:false, q:'', model:'',
+    machine:{}, prov:{}, ops:{}, tools:{}, paxes:{}, tags:{}};
+  var SCOPE_LOC = {'My':'My projects', 'Shared with me':'Shared with me', 'Public':'Community'};
+  // panel facets: a project holds a list of values, a match is any intersection
+  var PFACETS = [
+    {set:'machine', title:'Machine type', vals:P_MACHINE, of:function(p){ return [p.machine]; }},
+    {set:'prov', title:'Provided by', vals:P_PROV, of:function(p){ return [p.prov]; }},
+    {set:'ops', title:'Operations', vals:P_OPS, of:function(p){ return p.ops; }},
+    {set:'tools', title:'Tools', vals:P_TOOLS, of:function(p){ return p.tools; }},
+    {set:'paxes', title:'Axes', vals:P_AXES, of:function(p){ return p.axes; }},
+    {set:'tags', title:'Tags', vals:P_TAGS, of:function(p){ return p.tags; }}
+  ];
+  function projVisible(p, skip){
+    if (pf.arch !== !!p.archived) return false;
+    if (pf.fav && !p.star) return false;
+    if (pf.feat && !p.featured) return false;
+    if (SCOPE_LOC[pf.scope] && p.loc !== SCOPE_LOC[pf.scope]) return false;
+    if (pf.q && p.name.toLowerCase().indexOf(pf.q) < 0) return false;
+    if (pf.model && p.mmodel.toLowerCase().indexOf(pf.model) < 0) return false;
+    for (var i = 0; i < PFACETS.length; i++){
+      var f = PFACETS[i];
+      if (f.set === skip || !some(pf[f.set])) continue;
+      if (!f.of(p).some(function(v){ return pf[f.set][v]; })) return false;
+    }
+    return true;
+  }
+  // count for one option, excluding its own facet — honest numbers like in DMC
+  function countProj(f, v){
+    var n = 0;
+    projects.forEach(function(p){
+      if (projVisible(p, f.set) && f.of(p).indexOf(v) >= 0) n++;
+    });
+    return n;
+  }
+  // ——— horizontal filter row under the toolbar: dropdown buttons per facet,
+  // a text input for the machine model, "Clear all" at the end ———
+  var pfOpen = '';   // which dropdown is open
+  function selKeys(set){
+    return Object.keys(pf[set]).filter(function(k){ return pf[set][k]; });
+  }
+  function totalProjSel(){
+    var total = pf.model ? 1 : 0;
+    PFACETS.forEach(function(f){ total += selKeys(f.set).length; });
+    return total;
+  }
+  function updateProjBadges(){
+    var total = totalProjSel();
+    var el = document.getElementById('projFunnelCnt');
+    el.hidden = !total;
+    el.textContent = total;
+  }
+  var CHEV = '<svg class="chev" viewBox="0 0 10 6" width="10" height="6" fill="none" ' +
+    'stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M1 1l4 4 4-4"/></svg>';
+  function renderFbar(){
+    var html = PFACETS.map(function(f){
+      var sel = selKeys(f.set);
+      // label: value for a single selection, a count for several
+      var lbl = f.title + (sel.length === 1 ? ': <b>' + sel[0] + '</b>'
+        : sel.length > 1 ? ' <b>(' + sel.length + ')</b>' : '');
+      var pop = pfOpen !== f.set ? '' :
+        '<div class="fdd-pop">' + f.vals.map(function(v){
+          var n = countProj(f, v), on = pf[f.set][v];
+          return '<div class="fopt' + (on ? ' on' : '') + (!n && !on ? ' dim' : '') + '"' +
+            ' data-pfacet="' + f.set + '" data-v="' + v + '">' +
+            '<span class="chk' + (on ? ' on' : '') + '"></span>' +
+            '<span class="lb">' + v + '</span><span class="n">' + n + '</span></div>';
+        }).join('') + '</div>';
+      return '<div class="fdd' + (sel.length ? ' is-active' : '') +
+        (pfOpen === f.set ? ' open' : '') + '">' +
+        '<button class="fdd-btn" data-dd="' + f.set + '">' + lbl + CHEV + '</button>' +
+        pop + '</div>';
+    });
+    // the machine model input goes right after Machine type, like in the web version
+    html.splice(1, 0, '<input class="fps fbar-model" id="projModel" ' +
+      'placeholder="Machine model" value="' + pf.model + '">');
+    html.push('<button class="fclear" id="projClearAll"' +
+      (totalProjSel() ? '' : ' disabled') + '>Clear all</button>');
+    document.getElementById('projFbar').innerHTML = html.join('');
+    updateProjBadges();
+  }
+  function applyProjCards(){
+    document.querySelectorAll('#projects .card').forEach(function(c, i){
+      c.style.display = projVisible(projects[i]) ? '' : 'none';
+    });
+  }
+  function applyProjFilters(){
+    applyProjCards();
+    renderFbar();
+  }
+  document.getElementById('projFbar').addEventListener('click', function(e){
+    if (e.target.id === 'projClearAll'){
+      PFACETS.forEach(function(f){ pf[f.set] = {}; });
+      pf.model = '';
+      pfOpen = '';
+      applyProjFilters();
+      return;
+    }
+    var btn = e.target.closest('.fdd-btn');
+    if (btn){
+      pfOpen = pfOpen === btn.dataset.dd ? '' : btn.dataset.dd;
+      renderFbar();
+      return;
+    }
+    var opt = e.target.closest('.fopt');
+    if (opt){
+      pf[opt.dataset.pfacet][opt.dataset.v] = !pf[opt.dataset.pfacet][opt.dataset.v];
+      applyProjFilters();   // the dropdown stays open — pfOpen is unchanged
+    }
+  });
+  // typing in the model input filters live; the row is not rerendered so focus stays
+  document.getElementById('projFbar').addEventListener('input', function(e){
+    if (e.target.id !== 'projModel') return;
+    pf.model = e.target.value.trim().toLowerCase();
+    applyProjCards();
+    updateProjBadges();
+    document.getElementById('projClearAll').disabled = !totalProjSel();
+  });
+  // a click anywhere else closes the open dropdown; a rerender detaches the
+  // clicked node from the document, so a disconnected target is not "outside"
+  document.addEventListener('click', function(e){
+    if (pfOpen && e.target.isConnected && !e.target.closest('#projFbar')){
+      pfOpen = '';
+      renderFbar();
+    }
+  });
+  // the funnel shows/hides the whole filter row; a pressed funnel is the white
+  // pill, same as the favorites star
+  document.getElementById('projFunnel').addEventListener('click', function(){
+    var bar = document.getElementById('projFbar');
+    bar.hidden = !bar.hidden;
+    this.classList.toggle('active', !bar.hidden);
+  });
+  document.getElementById('projFbar').hidden = true;   // closed by default
+  var scopeSeg = document.querySelector('#area-projects .seg-inner');
+  scopeSeg.addEventListener('click', function(e){
+    var chip = e.target.closest('.chip');
+    if (!chip) return;
+    pf.scope = chip.textContent.trim();
+    scopeSeg.querySelectorAll('.chip').forEach(function(c){
+      c.classList.toggle('active', c === chip);
+    });
+    applyProjFilters();
+  });
+  var archChip = document.querySelector('#area-projects .chip.icon[title="Archive"]');
+  archChip.addEventListener('click', function(){
+    pf.arch = this.classList.toggle('active');
+    applyProjFilters();
+  });
+  var projFav = document.getElementById('projFav');
+  projFav.addEventListener('click', function(){
+    pf.fav = this.classList.toggle('active');
+    this.querySelector('img').src = starImg(pf.fav);
+    applyProjFilters();
+  });
+  var featChip = document.querySelector('#area-projects .tb-group .chip.ghost:not(.icon)');
+  featChip.addEventListener('click', function(){
+    pf.feat = this.classList.toggle('active');
+    applyProjFilters();
+  });
+  document.querySelector('#area-projects .tb-search input')
+    .addEventListener('input', function(){
+      pf.q = this.value.trim().toLowerCase();
+      applyProjFilters();
+    });
+  applyProjFilters();   // hide the archived projects on load
 })();
