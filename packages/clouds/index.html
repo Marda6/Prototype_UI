@@ -1,18 +1,18 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ENCY Core — Clouds</title>
-<!-- Целевой экран прототипа: 1920×1080 при системном масштабе 125%
-     → рабочая CSS-область 1536×864 логических px. -->
+<!-- Prototype target screen: 1920×1080 at 125% system scale
+     → working CSS area of 1536×864 logical px. -->
 <meta name="ency-target-viewport" content="1536x864">
 <link rel="stylesheet" href="../shared-ui/tokens.css">
 <link rel="stylesheet" href="../shared-ui/chrome.css">
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
-<!-- id раздела: по нему оболочка подсвечивает активный пункт сайдбара -->
+<!-- section id: the shell uses it to highlight the active sidebar item -->
 <script>window.ENCY_APP = {id: "clouds"};</script>
 <div class="app" id="app">
   <div class="workspace">
@@ -36,7 +36,7 @@
       <div class="area" id="area-projects">
       <div class="toolbar">
         <div class="tb-left">
-          <!-- как в макете: текстовые чипы в своём подсегменте, архив — отдельным иконным чипом -->
+          <!-- as in the mockup: text chips in their own sub-segment, archive as a separate icon chip -->
           <div class="seg">
             <div class="seg-inner">
               <span class="chip active">All</span>
@@ -44,10 +44,10 @@
               <span class="chip">Shared with me</span>
               <span class="chip">Public</span>
             </div>
-            <span class="chip icon" title="Архив"><img src="assets/icn-archive-16.svg" alt=""></span>
+            <span class="chip icon" title="Archive"><img src="assets/icn-archive-16.svg" alt=""></span>
           </div>
           <div class="tb-group">
-            <span class="chip icon ghost" title="Избранные"><img src="assets/icn-star-16.svg" alt=""></span>
+            <span class="chip icon ghost" title="Favorites"><img src="assets/icn-star-16.svg" alt=""></span>
             <span class="chip ghost">Featured</span>
           </div>
           <div class="tb-group" style="gap:8px">
@@ -55,7 +55,7 @@
               <input type="text" placeholder="Search">
               <img src="assets/icn-search-24.svg" alt="">
             </label>
-            <span class="btn-funnel" title="Фильтр"><img src="assets/icn-funnel-16.svg" alt=""></span>
+            <span class="btn-funnel" title="Filter"><img src="assets/icn-funnel-16.svg" alt=""></span>
           </div>
         </div>
         <div class="tb-right">
@@ -77,7 +77,7 @@
             <span class="badge">15</span>
             <button class="sect-collapse">Collapse</button>
           </div>
-          <div class="sect-row" id="invites"><!-- карточки строит app.js --></div>
+          <div class="sect-row" id="invites"><!-- cards are built by app.js --></div>
         </section>
 
         <!-- ——— Collections ——— -->
@@ -85,24 +85,24 @@
           <div class="sect-head">
             <span class="sect-title">Collections</span>
             <img class="arrow" src="assets/icn-arrow-32.svg" alt="">
-            <span class="mini-strip" id="collMini"><!-- мини-превью в свёрнутом виде --></span>
+            <span class="mini-strip" id="collMini"><!-- mini previews when collapsed --></span>
             <button class="sect-collapse">Collapse</button>
           </div>
-          <div class="sect-row row-coll" id="collections"><!-- карточки строит app.js --></div>
+          <div class="sect-row row-coll" id="collections"><!-- cards are built by app.js --></div>
         </section>
 
         <!-- ——— Projects ——— -->
         <section class="sect sect-proj">
           <div class="proj-title">Projects</div>
-          <div class="grid" id="projects"><!-- карточки строит app.js --></div>
+          <div class="grid" id="projects"><!-- cards are built by app.js --></div>
         </section>
 
       </div>
       </div><!-- /area-projects -->
 
-      <!-- ——— область Digital Machine Center: чипы-фильтры + таблица каталога ——— -->
+      <!-- ——— Digital Machine Center area: filter chips + catalog table ——— -->
       <div class="area" id="area-dmc" hidden>
-        <!-- глифы категорий продуктов — из веб-версии DMC -->
+        <!-- product category glyphs — from the DMC web version -->
         <svg width="0" height="0" style="position:absolute" aria-hidden="true">
           <symbol id="k-post" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 8L4.5 12l4 4M15.5 8l4 4-4 4"/><path d="M13 5.5l-2.5 13"/></symbol>
           <symbol id="k-interp" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M7 9l3 3-3 3M12.5 15h4.5"/></symbol>
@@ -121,21 +121,21 @@
               <span class="chip" data-scope="kit">Kits&nbsp;<span class="cnt"></span></span>
             </div>
             <div class="tb-group">
-              <span class="chip icon ghost" id="dmcFav" title="Избранные"><img src="assets/icn-star-16.svg" alt=""></span>
+              <span class="chip icon ghost" id="dmcFav" title="Favorites"><img src="assets/icn-star-16.svg" alt=""></span>
             </div>
             <div class="tb-group" style="gap:8px">
               <label class="tb-search">
                 <input type="text" id="dmcSearch" placeholder="Search machines, posts, controls">
                 <img src="assets/icn-search-24.svg" alt="">
               </label>
-              <span class="btn-funnel" id="dmcFunnel" title="Фильтры"><img src="assets/icn-funnel-16.svg" alt="">
+              <span class="btn-funnel" id="dmcFunnel" title="Filters"><img src="assets/icn-funnel-16.svg" alt="">
                 <span class="fbadge" id="dmcFunnelCnt" hidden></span></span>
             </div>
           </div>
           <div class="tb-right">
             <div class="vmode" id="dmcView">
-              <span class="vbtn" data-view="list" title="Таблица"><svg><use href="#i-rows"/></svg></span>
-              <span class="vbtn active" data-view="grid" title="Карточки"><svg><use href="#i-grid-view"/></svg></span>
+              <span class="vbtn" data-view="list" title="Table view"><svg><use href="#i-rows"/></svg></span>
+              <span class="vbtn active" data-view="grid" title="Cards view"><svg><use href="#i-grid-view"/></svg></span>
             </div>
             <button class="dd">Resents <img src="assets/icn-chev-9x4.svg" alt=""></button>
           </div>
@@ -146,7 +146,7 @@
               <span class="fgrp-badge" id="dmcSideCnt" hidden></span>
               <span style="flex:1"></span>
               <button class="fp-reset" id="dmcReset" disabled>Reset</button></div>
-            <div class="fp-body" id="dmcFilters"><!-- секции строит app.js --></div>
+            <div class="fp-body" id="dmcFilters"><!-- sections are built by app.js --></div>
           </aside>
           <div class="dmc-main">
             <div class="pagebody dmc-scroll">

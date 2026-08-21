@@ -1,7 +1,7 @@
 # Extension Store
 
-Раздел каталога расширений: карточки расширений, панель фильтров, окно расширения
-и вкладка `Manage` (установленные расширения и источники).
+Extension catalog section: extension cards, filter panel, extension window
+and the `Manage` tab (installed extensions and feeds).
 
-Файлы: `index.html` — разметка контента, `app.css` — стили раздела, `app.js` — логика.
-Оболочка окна берётся из `../shared-ui`.
+Files: `index.html` — content markup, `app.css` — section styles, `app.js` — logic.
+The window shell comes from `../shared-ui`.

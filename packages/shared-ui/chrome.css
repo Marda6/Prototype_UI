@@ -1,12 +1,12 @@
-/* ENCY Core — оболочка окна: титлбар, сайдбар, контейнер контента,
-   шапка страницы и общие контролы тулбара. Разделы это не переопределяют. */
-  /* ===== Header / Menu bar (общая обвязка окна ENCY) ===== */
+/* ENCY Core — window shell: title bar, sidebar, content container,
+   page header and shared toolbar controls. Sections do not override this. */
+  /* ===== Header / Menu bar (shared ENCY window chrome) ===== */
   .topbar{flex:0 0 44px;display:flex;align-items:center;gap:4px;
     background:var(--ec-fg-8);border-radius:0;padding:6px 12px 6px 6px;}
   .hbtn{width:32px;height:32px;flex:0 0 32px;display:flex;align-items:center;justify-content:center;
     border-radius:4px;cursor:pointer;}
   .hbtn:hover{background:var(--ec-fg-12);}
-  /* нажатое состояние: например, Home, пока открыт раздел домашней области */
+  /* pressed state: e.g. Home while a home-area section is open */
   .hbtn.on{background:var(--ec-fg-16);}
   .hbtn.on:hover{background:var(--ec-fg-24);}
   .hgroup-left{display:flex;align-items:center;gap:4px;}
@@ -19,8 +19,8 @@
   .hdiv{width:1px;align-self:stretch;margin:0 2px;
     background:linear-gradient(180deg, transparent 0%, var(--ec-fg-8) 50%, transparent 100%);}
   .htabs{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:4px;height:100%;overflow:hidden;}
-  /* без overflow:hidden: разделитель ::before стоит в зазоре между вкладками,
-     то есть за пределами бокса вкладки; текст обрезает сам .htab-t */
+  /* no overflow:hidden: the ::before divider sits in the gap between tabs,
+     i.e. outside the tab box; the text is clipped by .htab-t itself */
   .htab{position:relative;display:flex;align-items:center;gap:8px;height:32px;width:180px;flex:0 1 180px;
     padding:0 11px;border-radius:4px;background:transparent;cursor:pointer;}
   .htab:hover{background:var(--ec-fg-8);}
@@ -31,22 +31,22 @@
   .htab-t{flex:1 1 0;min-width:0;color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .htab.active .htab-t{color:var(--ec-fg-96);}
-  /* крестик виден только на активной вкладке и при ховере */
+  /* the close cross is visible only on the active tab and on hover */
   .htab-x{width:9px;height:9px;flex:0 0 9px;cursor:pointer;border-radius:3px;opacity:0;}
   .htab.active .htab-x,.htab:hover .htab-x{opacity:.7;}
   .htab-x:hover{opacity:1;}
 
-  /* ===== Сайдбар ===== */
+  /* ===== Sidebar ===== */
   .sidebar{flex:0 0 40px;position:relative;transition:flex-basis .16s ease;}
   .app.pinned .sidebar{flex-basis:196px;}
   .sb{position:absolute;top:0;bottom:0;left:0;width:40px;display:flex;flex-direction:column;gap:6px;
     padding:4px;overflow:hidden;border-radius:10px;border:1px solid transparent;
     transition:width .16s ease, background-color .16s ease, box-shadow .16s ease;}
   .sb > *{flex:0 0 auto;}
-  /* на низком экране сжимается и скроллится только список избранного —
-     навигация сверху и блоки снизу (ссылки, лицензия, аккаунт) остаются на месте */
+  /* on a short screen only the favorites list shrinks and scrolls —
+     navigation on top and the blocks below (links, license, account) stay in place */
   .snav-fav{flex:0 1 auto;min-height:64px;overflow-y:auto;overflow-x:hidden;}
-  /* в свёрнутой рейке полосу не показываем, чтобы иконки не съезжали — колесо работает */
+  /* no scrollbar in the collapsed rail so icons don't shift — the wheel still works */
   .app:not(.pinned) .sidebar:not(:hover) .snav-fav{scrollbar-width:none;}
   .app:not(.pinned) .sidebar:not(:hover) .snav-fav::-webkit-scrollbar{display:none;}
   .sidebar:hover .sb, .app.pinned .sb{width:196px;}
@@ -94,11 +94,11 @@
   .sacc-icn{border-radius:50%;}
   .sacc-icn img{width:10px;height:17px;margin-top:5px;}
 
-  /* ===== Контент ===== */
+  /* ===== Content ===== */
   .content{flex:1 1 0;min-width:0;min-height:0;background:var(--ec-fg-4);border-radius:8px;
     border:1px solid var(--ec-fg-12);padding:0;overflow:hidden;display:flex;flex-direction:column;}
-  /* страница не скроллится целиком: тулбар с фильтрами закреплён,
-     прокручивается только тело — карточка, секции и таблицы */
+  /* the page does not scroll as a whole: the filter toolbar is fixed,
+     only the body scrolls — card, sections and tables */
   .page{flex:1 1 0;min-height:0;display:flex;flex-direction:column;overflow:hidden;}
   .page[hidden]{display:none;}
   .pbody{flex:1 1 0;min-height:0;display:flex;flex-direction:column;
@@ -116,7 +116,7 @@
   .ph-tab:hover{color:var(--ec-fg-96);}
   .ph-tab.active{background:linear-gradient(90deg,var(--st-green),var(--st-blue));color:#fff;}
 
-  /* строка фильтров */
+  /* filter row */
   .toolbar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;flex:0 0 auto;}
   .tb-left{display:flex;align-items:center;gap:16px;}
   .seg{display:flex;align-items:center;gap:2px;padding:2px;border-radius:24px;background:var(--ec-fg-8);}
@@ -138,7 +138,7 @@
   .dd:hover{background:var(--ec-fg-12);}
   .dd img{width:10px;height:5px;}
 
-  /* тумблер прототипа online/offline — живёт в титлбаре */
+  /* prototype online/offline toggle — lives in the title bar */
   .hgroup-right .cseg{flex:0 0 auto;margin-right:8px;}
   .hgroup-right .cseg .ci{flex:0 0 auto;height:20px;padding:0 10px;font:400 11px/16px var(--ec-font);}
   .sconn{padding:8px 10px;display:flex;flex-direction:column;gap:6px;

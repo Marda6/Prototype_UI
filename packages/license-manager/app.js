@@ -1,12 +1,12 @@
-// License manager — данные и логика раздела.
-// Оболочка (титлбар, сайдбар, пин, online/offline) — ../shared-ui/chrome.js
+// License manager — section data and logic.
+// The shell (title bar, sidebar, pin, online/offline) lives in ../shared-ui/chrome.js
 var app = document.getElementById('app');
 
-// ===== данные лицензий =====
-// remaining: число дней · null = perpetual · 0 = срок вышел
-// maint: дата окончания поддержки (прошедшая = закончилась) · null = поддержки нет
-// status: 'active' (под ней работаем) | 'valid' (годна) | 'invalid' (непригодна)
-// ver: true — установленная версия ENCY новее той, что покрыта поддержкой
+// ===== license data =====
+// remaining: number of days · null = perpetual · 0 = term expired
+// maint: maintenance end date (past = lapsed) · null = no maintenance
+// status: 'active' (currently in use) | 'valid' (usable) | 'invalid' (unusable)
+// ver: true — the installed ENCY version is newer than the one covered by maintenance
 var LICENSES = {
   tblTonini: [
     {id:'#421480', name:'ENCY 5x Mill', remaining:199, type:'Commercial', prot:'account',
@@ -68,7 +68,7 @@ var LICENSES = {
      maint:'2027-04-02', status:'valid',
      items:['Adaptive','ENCY NB 3 5D','ENCY NB 3 6D','Disc Roughing','Multichannel','Nesting','Robot+',
             'SOLIDWORKS Reader','Teamcenter integration','Wire EDM','Welding','Turn XZCYB']},
-    // интерпретаторы — чтение управляющих программ станка обратно в ENCY
+    // interpreters — reading machine NC programs back into ENCY
     {id:'#530301', name:'Fanuc 0i · interpreter', remaining:199, type:'Interpreter', prot:'dongle',
      maint:'2027-06-30', status:'valid', items:['Mill cycles','Drill cycles','Subprograms']},
     {id:'#530302', name:'Heidenhain TNC 640 · interpreter', remaining:null, type:'Interpreter',
@@ -78,14 +78,14 @@ var LICENSES = {
   ]
 };
 
-// ===== отрисовка строк =====
+// ===== row rendering =====
 (function(){
   var PROT = {account:'Account', software:'Software', dongle:'Dongle'},
-      // active — лицензия, под которой идёт текущая сессия: та же формулировка, что в карточке
+      // active — the license the current session runs under: same wording as in the card
       STATUS = {active:'Current', valid:'Valid', invalid:'Invalid', signin:'Sign in required'},
-      SOON = 30;                      // дней до конца — уже «скоро»
+      SOON = 30;                      // days remaining that already count as "soon"
 
-  // maintenance тоже считаем в днях — так же, как срок лицензии
+  // maintenance is also counted in days — same as the license term
   var TODAY = '2026-08-14';
   function maintDays(d){
     if (!d) return null;
@@ -94,7 +94,7 @@ var LICENSES = {
   function maintPast(d){ var n = maintDays(d); return n !== null && n <= 0; }
   function maintSoon(d){ var n = maintDays(d); return n !== null && n > 0 && n <= SOON; }
 
-  // ячейка Maintenance: дни до конца поддержки, Expired — когда закончилась
+  // Maintenance cell: days until maintenance ends, Expired — once it has lapsed
   function maintCell(l){
     var n = maintDays(l.maint);
     if (n === null)  return '<span class="xnum">—</span>';
@@ -102,15 +102,15 @@ var LICENSES = {
     return '<span class="xnum' + (n <= SOON ? ' warn' : '') + '">' + n + ' days</span>';
   }
 
-  // отдельный столбец активации: включить лицензию или освободить активную
+  // dedicated activation column: enable a license or release the active one
   function useCell(l){
     if (l.status === 'active')  return '<button class="xd-btn rel">Release</button>';
     if (l.status === 'signin')  return '<button class="xd-btn">Sign in</button>';
     if (l.status === 'valid')   return '<button class="xd-btn uset">Activate</button>';
-    return '';                      // истёкшую активировать нельзя
+    return '';                      // an expired one cannot be activated
   }
 
-  // «⋮» — только предложения и запросы; пусто, если предлагать нечего
+  // "⋮" — only offers and requests; empty when there is nothing to offer
   function menuCell(l){
     var menu = [];
     if (maintPast(l.maint) || maintSoon(l.maint)) menu.push('Renew maintenance');
@@ -134,8 +134,8 @@ var LICENSES = {
   }
 
   function row(l){
-    // data-status нужен фильтру, data-prot — оффлайн-режиму
-    // «expired» — про срок самой лицензии, именно эти строки скрыты по умолчанию
+    // data-status is used by the filter, data-prot by the offline mode
+    // "expired" refers to the license's own term; exactly these rows are hidden by default
     var filter = l.remaining === 0 ? 'expired'
                : (l.remaining !== null && l.remaining <= SOON ? 'expiring' : 'active');
     return '<div class="lgrid xrow' + (l.status === 'active' ? ' inuse' : '') + '"' +
@@ -165,7 +165,7 @@ var LICENSES = {
 
 
 
-// табы Software licenses / Extensions
+// Software licenses / Extensions tabs
 var pages = {
   licenses: document.getElementById('page-licenses'),
   containers: document.getElementById('page-containers')
@@ -178,8 +178,8 @@ document.querySelectorAll('.ph-tab').forEach(function(t){
   });
 });
 
-// фильтры списка: сегмент (статус или вид) + свитчер «показать истёкшие».
-// Один проход: считаем видимость строк, затем обновляем счётчики сегментов и групп.
+// list filters: segment (status or kind) + a "show expired" switch.
+// Single pass: compute row visibility, then update segment and group counters.
 (function(){
   var pages = document.querySelectorAll(".page");
 
@@ -202,7 +202,7 @@ document.querySelectorAll('.ph-tab').forEach(function(t){
         r.classList.toggle("hid", !matches(r, filter, showExp));
       });
 
-      // счётчик у каждого сегмента — сколько строк он покажет
+      // each segment's counter — how many rows it would show
       if (seg) seg.querySelectorAll(".sitem").forEach(function(it){
         var n = [].filter.call(rows, function(r){
           return matches(r, it.dataset.filter, showExp);
@@ -210,7 +210,7 @@ document.querySelectorAll('.ph-tab').forEach(function(t){
         it.querySelector(".cnt").textContent = n;
       });
 
-      // счётчик у группы лицензиата — по видимым строкам её таблицы
+      // the licensee group's counter — based on its table's visible rows
       page.querySelectorAll(".lsee").forEach(function(l){
         var table = l.nextElementSibling, out = l.querySelector(".n");
         if (!table || !out) return;
@@ -250,7 +250,7 @@ document.querySelectorAll('.ph-tab').forEach(function(t){
 
 
 
-// правая группа тулбара: меню действий и обновление данных о лицензиях
+// right toolbar group: actions menu and refreshing license data
 (function(){
   function closeAll(){
     document.querySelectorAll('.menu').forEach(function(m){ m.hidden = true; });
@@ -273,7 +273,7 @@ document.querySelectorAll('.ph-tab').forEach(function(t){
     });
   });
 
-  // обновление: в прототипе только показываем состояние загрузки
+  // refresh: the prototype only shows the loading state
   document.querySelectorAll('.ibtn[data-refresh]').forEach(function(b){
     b.addEventListener('click', function(){
       if (b.classList.contains('spin')) return;
@@ -283,8 +283,8 @@ document.querySelectorAll('.ph-tab').forEach(function(t){
   });
 })();
 
-// активация применяется после перезапуска ENCY: текущая лицензия остаётся Active,
-// выбранная получает статус Pending restart и кнопку отмены
+// activation applies after ENCY restarts: the current license stays Active,
+// the selected one gets a Pending restart status and a cancel button
 (function(){
   var bar = document.getElementById('rbar');
   if (!bar) return;
@@ -326,8 +326,8 @@ document.querySelectorAll('.ph-tab').forEach(function(t){
   document.querySelectorAll('#page-licenses .xrow').forEach(bind);
 })();
 
-// Список модулей начинается на той же вертикали, что колонка Package: ширину подписи
-// Included подгоняем под этот отступ, но не меньше её собственного содержимого.
+// The module list starts on the same vertical as the Package column: the Included
+// label width is fitted to that offset, but never smaller than its own content.
 function syncModLabels(){
   var card = document.querySelector('.cur'),
       lbl = document.querySelector('.cur-mods > .lbl'),
@@ -341,9 +341,9 @@ function syncModLabels(){
 }
 window.addEventListener('resize', syncModLabels);
 
-// ===== состав лицензии и режим Upgrade =====
-// Один список Included: постоянные модули лицензии плюс модули апгрейда.
-// Модули апгрейда помечены акцентом и действуют пробно — общий срок показан у названия.
+// ===== license contents and Upgrade mode =====
+// One Included list: the license's permanent modules plus the upgrade modules.
+// Upgrade modules are accent-marked and run as a trial — the shared term is shown by the name.
 (function(){
   var btn = document.getElementById('upgBtn'),
       card = document.querySelector('.cur'),
@@ -354,11 +354,11 @@ window.addEventListener('resize', syncModLabels);
       counter = box.querySelector('.n'),
       LIMIT = 10, open = false;
 
-  // постоянные модули лицензии — их убрать нельзя
+  // the license's permanent modules — they cannot be removed
   var BASE = box.dataset.items.split('|').filter(Boolean)
         .filter(function(i){ return i.indexOf('@trial:') === -1; });
 
-  // уже выданные пробно модули — это и есть действующий апгрейд
+  // modules already granted as a trial — this is the active upgrade
   var GRANTED = box.dataset.items.split('|')
         .filter(function(i){ return i.indexOf('@trial:') > -1; })
         .map(function(i){ return i.split('@trial:')[0]; }),
@@ -366,18 +366,18 @@ window.addEventListener('resize', syncModLabels);
         .filter(function(i){ return i.indexOf('@trial:') > -1; })
         .map(function(i){ return +i.split('@trial:')[1]; });
 
-  // каталог того, чего в лицензии нет
+  // catalog of what the license doesn't have
   var CATALOG = ['5-axis Simultaneous', 'Swiss turning', 'Probing', 'Nesting Advanced',
                  'Robot calibration', 'Toolpath verification', 'Feature recognition'];
 
-  // пакеты продукта ENCY по старшинству: сверху — старший
+  // ENCY product packages by seniority: highest first
   var PACKAGES = ['5x Mill Advanced', '5x Mill', 'Rotary', '3x Mill Advanced', '3x Mill',
                   '2.5x Mill', 'Cutting 5D', 'Cutting', 'Lathe', 'Wire EDM'],
       CUR_PKG = '5x Mill',
       TRIAL_DAYS = 30;
 
-  // saved — апгрейд, действующий пробно; draft — правки в режиме Upgrade;
-  // trial — общий срок пробы, правки его не продлевают
+  // saved — the upgrade running as a trial; draft — edits in Upgrade mode;
+  // trial — the shared trial term, edits don't extend it
   var saved = {pkg: CUR_PKG, mods: GRANTED.slice()},
       trial = GRANTED_DAYS.length ? Math.max.apply(null, GRANTED_DAYS) : null,
       draft = null,
@@ -412,7 +412,7 @@ window.addEventListener('resize', syncModLabels);
     return a.pkg !== saved.pkg || a.mods.join('|') !== saved.mods.join('|');
   }
 
-  // ——— выпадающие списки ———
+  // ——— dropdown lists ———
   function place(anchorEl){
     var r = anchorEl.getBoundingClientRect();
     pop.hidden = false;
@@ -435,7 +435,7 @@ window.addEventListener('resize', syncModLabels);
     });
   }
 
-  // пакеты: текущий с галочкой, младшие недоступны — апгрейд только вверх
+  // packages: the current one is checked, lower ones are unavailable — upgrades go up only
   function openPkg(){
     var base = PACKAGES.indexOf(CUR_PKG), now = PACKAGES.indexOf(draft.pkg);
     pop.innerHTML = PACKAGES.map(function(p, i){
@@ -454,14 +454,14 @@ window.addEventListener('resize', syncModLabels);
       'stroke-linecap="round"><path d="M1 1l6 6M7 1L1 7"/></svg></button>';
   }
 
-  // ——— отрисовка ———
+  // ——— rendering ———
   function render(){
     var m = mode(), s = cur();
 
     card.classList.toggle('upg', m);
     btn.classList.toggle('on', m);
 
-    // пакет: вне режима — что действует, в режиме — выбор со зачёркнутым текущим
+    // package: outside the mode — the active one, in the mode — a picker with the current struck out
     var pkgHtml = s.pkg === CUR_PKG ? CUR_PKG :
       '<span class="pkg-new">' + s.pkg + '</span>';
     pkgVal.innerHTML = pkgHtml;
@@ -469,12 +469,12 @@ window.addEventListener('resize', syncModLabels);
     pkgBtn.hidden = !m;
     pkgBtn.querySelector('.cu').innerHTML = pkgHtml;
 
-    // один список: постоянные модули сворачиваются, модули апгрейда видны всегда
+    // one list: permanent modules collapse, upgrade modules are always visible
     counter.textContent = BASE.length + s.mods.length;
     var shown = open ? BASE : BASE.slice(0, LIMIT);
     list.innerHTML = '';
 
-    // «+» всегда первым — его не приходится искать в списке
+    // "+" always comes first — no need to hunt for it in the list
     if (m && free().length) {
       var add = document.createElement('button');
       add.className = 'mod-add';
@@ -483,8 +483,8 @@ window.addEventListener('resize', syncModLabels);
       list.appendChild(add);
     }
 
-    // модули апгрейда идут следом: их видно всегда, даже когда список свёрнут,
-    // и крестик есть только у них — постоянные модули лицензии убрать нельзя
+    // upgrade modules come next: always visible even when the list is collapsed,
+    // and only they get the remove cross — the license's permanent modules can't be removed
     list.insertAdjacentHTML('beforeend', s.mods.map(function(name){
       return '<span class="mod upg">' + name + (m ? rmBtn(name) : '') + '</span>';
     }).join(''));
@@ -506,11 +506,11 @@ window.addEventListener('resize', syncModLabels);
       });
     });
 
-    // общий срок пробы — пока апгрейд не оформлен
+    // the shared trial term — until the upgrade is formalized
     utrial.hidden = trial === null || !(saved.mods.length || saved.pkg !== CUR_PKG);
     if (trial !== null) utrial.textContent = 'Upgrade trial · ' + trial + ' d left';
 
-    // сводка изменений — в шапке, слева от Cancel
+    // change summary — in the header, to the left of Cancel
     var parts = [];
     if (m) {
       if (s.pkg !== saved.pkg) parts.push('Package ' + saved.pkg + ' → ' + s.pkg);
@@ -519,7 +519,7 @@ window.addEventListener('resize', syncModLabels);
       if (added.length) parts.push('+' + added.length + (added.length === 1 ? ' module' : ' modules'));
       if (gone.length) parts.push('−' + gone.length + (gone.length === 1 ? ' module' : ' modules'));
     }
-    // текст уходит во всплывающую подсказку иконки, чтобы не занимать строку
+    // the text goes into the icon's tooltip so it doesn't take up the row
     editSum.dataset.tip = parts.length
       ? parts.join(' · ') + (trial === null ? ' · trial starts on save'
                                            : ' · trial period is not extended')
@@ -528,25 +528,25 @@ window.addEventListener('resize', syncModLabels);
     cancelBtn.hidden = !m;
     sentRow.hidden = !sent || m;
 
-    // сброс апгрейда виден, когда есть что откатывать, и только вне режима правки
+    // the upgrade reset is visible when there is something to roll back, and only outside edit mode
     resetBtn.hidden = !(saved.mods.length || saved.pkg !== CUR_PKG) || m;
 
-    // та же кнопка: вход в режим и сохранение набора
+    // the same button: entering the mode and saving the set
     btn.textContent = m ? 'Save changes' : 'Upgrade';
     btn.disabled = m && !dirty();
 
-    // заявка возможна, пока есть что оформлять, и только по сохранённому набору
+    // a request is possible while there is something to formalize, and only for the saved set
     reqBtn.hidden = !(saved.mods.length || saved.pkg !== CUR_PKG) || m;
     reqBtn.disabled = sent;
     reqBtn.textContent = sent ? 'Requested' : 'Request upgrade';
 
-    // ширина подписи Included зависит от мета-строки — пересчитываем после отрисовки
+    // the Included label width depends on the meta row — recalculated after rendering
     syncModLabels();
   }
 
-  // ——— действия ———
-  // Upgrade открывает режим правки, в режиме та же кнопка сохраняет набор:
-  // сохранение включает пробу, уже начатый срок при этом не продлевается
+  // ——— actions ———
+  // Upgrade opens the edit mode; in the mode the same button saves the set:
+  // saving starts the trial, an already running term is not extended
   btn.addEventListener('click', function(){
     if (mode()) {
       if (trial === null) trial = TRIAL_DAYS;
@@ -561,7 +561,7 @@ window.addEventListener('resize', syncModLabels);
   pkgBtn.addEventListener('click', function(e){ e.stopPropagation(); openPkg(); });
   cancelBtn.addEventListener('click', function(){ draft = null; closePop(); render(); });
 
-  // сброс: лицензия возвращается к исходному пакету и составу, проба прекращается
+  // reset: the license returns to its original package and contents, the trial ends
   resetBtn.addEventListener('click', function(){
     saved = {pkg: CUR_PKG, mods: []};
     trial = null; draft = null; sent = false; closePop();
@@ -573,7 +573,7 @@ window.addEventListener('resize', syncModLabels);
 
   render();
 })();
-// чип «+N» у продукта: число вложенных модулей, по ховеру — их список
+// the product's "+N" chip: the number of nested modules, hover shows their list
 (function(){
   var pop = document.createElement('div');
   pop.className = 'xpop'; pop.hidden = true;
@@ -586,7 +586,7 @@ window.addEventListener('resize', syncModLabels);
       return '<div class="it">' + i + '</div>';
     }).join('');
     pop.hidden = false;
-    // панель прижимается к чипу и не вылезает за окно
+    // the panel hugs the chip and doesn't overflow the window
     var r = chip.getBoundingClientRect(), h = pop.offsetHeight, w = pop.offsetWidth;
     var top = Math.min(r.bottom + 4, window.innerHeight - h - 8);
     var left = Math.min(r.left, window.innerWidth - w - 8);

@@ -1,17 +1,17 @@
-// ENCY Core — оболочка окна приложения: титлбар, сайдбар и их поведение.
+// ENCY Core — application window shell: title bar, sidebar and their behavior.
 //
-// Раздел подключает этот файл после своей разметки и объявляет себя до него:
+// A section includes this file after its markup and declares itself before it:
 //   <script>window.ENCY_APP = {id: "license-manager"};</script>
-// Скрипт вставляет титлбар первым ребёнком .app и сайдбар первым ребёнком
-// .workspace, поэтому в файле раздела остаётся только <main class="content">.
+// The script inserts the title bar as the first child of .app and the sidebar as
+// the first child of .workspace, so a section file only keeps <main class="content">.
 (function(){
   'use strict';
 
-  // ——— реестр разделов: единственный источник правды для сайдбара и хаба ———
-  // Новый раздел = папка packages/<id> плюс запись здесь.
-  //   id     — имя папки, из него же строится относительная ссылка ../<id>/
-  //   group  — где пункт стоит в сайдбаре: 'nav' (вверху) | 'account' (внизу)
-  //   icon   — файл в shared-ui/assets, либо svg: инлайновая иконка
+  // ——— section registry: the single source of truth for the sidebar and the hub ———
+  // A new section = a packages/<id> folder plus an entry here.
+  //   id     — folder name; the relative link ../<id>/ is built from it too
+  //   group  — where the item sits in the sidebar: 'nav' (top) | 'account' (bottom)
+  //   icon   — a file in shared-ui/assets, or svg: an inline icon
   var SECTIONS = [
     {id:'extension-store', title:'Extension Store', group:'nav',
      icon:'st-ext.svg', iconSize:16},
@@ -23,10 +23,10 @@
   ];
 
   var APP = window.ENCY_APP || {};
-  // область приложения: 'home' — разделы вне проекта (Home нажат, вкладка проекта
-  // не активна), 'project' — экраны внутри открытого проекта
+  // application area: 'home' — sections outside a project (Home pressed, no project
+  // tab active), 'project' — screens inside an open project
   var AREA = APP.area || 'home';
-  // из packages/<id>/ до packages/shared-ui/ ровно один уровень вверх
+  // from packages/<id>/ to packages/shared-ui/ is exactly one level up
   var BASE = '../shared-ui/assets/';
 
   function icon(s){
@@ -35,7 +35,7 @@
     return '<span class="icn16"><img src="' + BASE + s.icon + '" alt=""' + st + '></span>';
   }
 
-  // пункт сайдбара: активный раздел не ссылка, остальные — переход на ../<id>/
+  // sidebar item: the active section is not a link, the rest navigate to ../<id>/
   function sectionRow(s){
     var active = s.id === APP.id;
     return '<div class="srow' + (active ? ' active' : '') + '"' +
@@ -47,23 +47,23 @@
     return SECTIONS.filter(function(s){ return s.group === name; }).map(sectionRow).join('\n');
   }
 
-  // ——— титлбар окна ———
+  // ——— window title bar ———
   function topbar(){
     return '' +
     '<header class="topbar">' +
-      '<div class="hbtn" title="Меню"><img class="hicn-act hicn-logo" src="' + BASE + 'hdr-logo.svg" alt=""></div>' +
+      '<div class="hbtn" title="Menu"><img class="hicn-act hicn-logo" src="' + BASE + 'hdr-logo.svg" alt=""></div>' +
       '<div class="hdiv"></div>' +
       '<div class="hgroup-left">' +
-        '<div class="hbtn' + (AREA === 'home' ? ' on' : '') + '" title="Домой">' +
+        '<div class="hbtn' + (AREA === 'home' ? ' on' : '') + '" title="Home">' +
           '<img class="hicn-act" src="' + BASE + 'hdr-home.svg" alt=""></div>' +
-        '<div class="hbtn" title="Список"><img class="hicn-act" src="' + BASE + 'hdr-list.svg" alt=""></div>' +
-        '<div class="hbtn" title="Новый файл"><img class="hicn-act" src="' + BASE + 'hdr-file.svg" alt=""></div>' +
-        '<div class="hbtn" title="Открыть"><img class="hicn-act" src="' + BASE + 'hdr-folder.svg" alt=""></div>' +
-        '<div class="hbtn" title="Сохранить"><img class="hicn-act hicn-save" src="' + BASE + 'hdr-save.svg" alt=""></div>' +
+        '<div class="hbtn" title="List"><img class="hicn-act" src="' + BASE + 'hdr-list.svg" alt=""></div>' +
+        '<div class="hbtn" title="New file"><img class="hicn-act" src="' + BASE + 'hdr-file.svg" alt=""></div>' +
+        '<div class="hbtn" title="Open"><img class="hicn-act" src="' + BASE + 'hdr-folder.svg" alt=""></div>' +
+        '<div class="hbtn" title="Save"><img class="hicn-act hicn-save" src="' + BASE + 'hdr-save.svg" alt=""></div>' +
       '</div>' +
       '<div class="hdiv"></div>' +
       '<div class="htabs">' +
-        // в домашней области ни одна вкладка проекта не активна — активен Home
+        // in the home area no project tab is active — Home is active
         '<div class="htab' + (AREA === 'project' ? ' active' : '') + '">' +
           '<span class="htab-t">Turn part probing 2</span>' +
           '<img class="htab-x" src="' + BASE + 'hdr-tabclose.svg" alt=""></div>' +
@@ -71,23 +71,23 @@
           '<img class="htab-x" src="' + BASE + 'hdr-tabclose.svg" alt=""></div>' +
         '<div class="htab"><span class="htab-t">New project 3</span>' +
           '<img class="htab-x" src="' + BASE + 'hdr-tabclose.svg" alt=""></div>' +
-        '<div class="hbtn" title="Новая вкладка"><img class="hicn-plus" src="' + BASE + 'hdr-plus.svg" alt=""></div>' +
+        '<div class="hbtn" title="New tab"><img class="hicn-plus" src="' + BASE + 'hdr-plus.svg" alt=""></div>' +
       '</div>' +
       '<div class="hgroup-right">' +
-        // временный тумблер прототипа: показывает разделы в онлайне и без сети
+        // temporary prototype toggle: shows the sections online and without network
         '<div class="cseg" id="connSeg">' +
           '<span class="ci on" data-net="online">Online</span>' +
           '<span class="ci" data-net="offline">Offline</span>' +
         '</div>' +
-        '<div class="hbtn" title="Ещё"><img class="hicn32" src="' + BASE + 'hdr-chevron.svg" alt=""></div>' +
-        '<div class="hbtn" title="Свернуть"><img class="hicn32" src="' + BASE + 'hdr-min.svg" alt=""></div>' +
-        '<div class="hbtn" title="Развернуть"><img class="hicn32" src="' + BASE + 'hdr-max.svg" alt=""></div>' +
-        '<div class="hbtn" title="Закрыть"><img class="hicn32" src="' + BASE + 'hdr-close.svg" alt=""></div>' +
+        '<div class="hbtn" title="More"><img class="hicn32" src="' + BASE + 'hdr-chevron.svg" alt=""></div>' +
+        '<div class="hbtn" title="Minimize"><img class="hicn32" src="' + BASE + 'hdr-min.svg" alt=""></div>' +
+        '<div class="hbtn" title="Maximize"><img class="hicn32" src="' + BASE + 'hdr-max.svg" alt=""></div>' +
+        '<div class="hbtn" title="Close"><img class="hicn32" src="' + BASE + 'hdr-close.svg" alt=""></div>' +
       '</div>' +
     '</header>';
   }
 
-  // ——— сайдбар ———
+  // ——— sidebar ———
   function sidebar(){
     return '' +
     '<aside class="sidebar">' +
@@ -96,11 +96,11 @@
           '<div class="srow srow-recent" data-page="recent">' +
             '<span class="icn16"><img src="' + BASE + 'sb-recent.svg" alt="" style="width:12px;height:12px"></span>' +
             '<span class="t">Recent</span>' +
-            '<span class="spin sfade" id="pinBtn" title="Закрепить панель">' +
+            '<span class="spin sfade" id="pinBtn" title="Pin panel">' +
               '<img src="' + BASE + 'sb-pin.svg" alt=""></span>' +
           '</div>' +
-          // Clouds — обычный раздел packages/clouds, но пункт остаётся здесь:
-          // у него особый порядок (между Recent и Local) и индикатор-точка
+          // Clouds is a regular packages/clouds section, but the item stays here:
+          // it has a special position (between Recent and Local) and a dot indicator
           '<div class="srow' + (APP.id === 'clouds' ? ' active' : '') + '"' +
             (APP.id === 'clouds' ? '' : ' data-app="../clouds/"') + ' data-page="clouds">' +
             '<span class="icn16"><img src="' + BASE + 'sb-clouds.svg" alt="" style="width:12px;height:12px"></span>' +
@@ -155,7 +155,7 @@
       '<span class="t">' + title + '</span></div>';
   }
 
-  // ——— вставка и поведение ———
+  // ——— insertion and behavior ———
   var app = document.getElementById('app'),
       workspace = app && app.querySelector('.workspace');
   if (!app || !workspace) return;
@@ -163,8 +163,8 @@
   app.insertAdjacentHTML('afterbegin', topbar());
   workspace.insertAdjacentHTML('afterbegin', sidebar());
 
-  // пин сайдбара: состояние живёт в localStorage, чтобы не сбрасываться
-  // при переходе между разделами (это полная перезагрузка страницы)
+  // sidebar pin: state lives in localStorage so it doesn't reset
+  // when navigating between sections (which is a full page reload)
   try { if (localStorage.getItem('ency.sidebar.pinned') === '1') app.classList.add('pinned'); } catch(e){}
   document.getElementById('pinBtn').addEventListener('click', function(e){
     e.stopPropagation();
@@ -172,12 +172,12 @@
     try { localStorage.setItem('ency.sidebar.pinned', on ? '1' : '0'); } catch(e){}
   });
 
-  // переход между разделами: относительный путь работает и на Pages, и локально
+  // navigation between sections: the relative path works both on Pages and locally
   document.querySelectorAll('.srow[data-app]').forEach(function(r){
     r.addEventListener('click', function(){ location.href = r.dataset.app; });
   });
 
-  // временный тумблер прототипа: online / offline
+  // temporary prototype toggle: online / offline
   (function(){
     var seg = document.getElementById('connSeg');
     function apply(net){
@@ -195,6 +195,6 @@
     });
   })();
 
-  // разделам иногда нужен реестр — например, чтобы построить свой список ссылок
+  // sections sometimes need the registry — e.g. to build their own list of links
   window.ENCY_CHROME = {sections: SECTIONS.slice()};
 })();

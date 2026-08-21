@@ -1,14 +1,14 @@
-// Clouds — данные и поведение раздела: карточки приглашений, коллекций и проектов,
-// переключатель Compact/Extensive, сворачивание секций.
+// Clouds — section data and behavior: invite, collection and project cards,
+// the Compact/Extensive switch, section collapsing.
 (function(){
   'use strict';
 
   var A = 'assets/';
-  // два реальных превью из макета; чередуем, чтобы сетка не выглядела клонированной
+  // two real previews from the mockup; alternated so the grid doesn't look cloned
   var PARTS = [A+'part-b.png', A+'part-c.png'];
   var part = function(i){ return PARTS[i % PARTS.length]; };
 
-  // ——— приглашения: 4 штуки, последнее истекло; число дублируется на бейдже ———
+  // ——— invites: 4 of them, the last one expired; the count is mirrored on the badge ———
   var invites = [
     {days:'30 days'}, {days:'24 days'}, {days:'12 days'},
     {expired:true}
@@ -19,7 +19,7 @@
     return '<div class="card' + (exp ? ' expired' : '') + '">' +
       (exp ? '<img class="x" src="' + A + 'icn-close-30.svg" alt="">' : '') +
       '<div class="preview">' +
-        // у активных приглашений ховер даёт меню действий
+        // active invites get an actions menu on hover
         (exp ? '' :
           '<div class="hovermenu">' +
             '<button>Preview</button><button>Accept</button><button>Decline</button>' +
@@ -43,7 +43,7 @@
     '</div>';
   }
 
-  // ——— коллекции: непрозрачные цвета для мини-превью в свёрнутом заголовке ———
+  // ——— collections: opaque colors for the mini previews in the collapsed header ———
   var collections = [
     {name:'Milling boats', cls:'c-blue', mini:'#84c9eb'},
     {name:'Swiss-type', cls:'c-violet', mini:'#9584eb'},
@@ -69,7 +69,7 @@
     '</div>';
   }
 
-  // ——— проекты: смесь расположений и состояний из макета ———
+  // ——— projects: a mix of locations and states from the mockup ———
   var projects = [
     {name:'Part More 4X', loc:'Shared with me'},
     {name:'Part More 4X', loc:'Shared with me'},
@@ -107,7 +107,7 @@
           '<span class="btn-loc"><img src="' + A + 'icn-clouds-10.svg" alt="">' +
           '<span>' + p.loc + '</span></span>' +
           (p.star ? '<span class="btn-star"><img src="' + A + 'icn-star-16.svg" alt=""></span>' : '') +
-          // три точки — родная 16px-иконка из макета, а не текстовый глиф
+          // three dots — the native 16px icon from the mockup, not a text glyph
           '<span class="btn-dots"><svg viewBox="0 0 16 16" width="16" height="16">' +
             '<circle cx="8" cy="3" r="1" fill="currentColor"/>' +
             '<circle cx="8" cy="8" r="1" fill="currentColor"/>' +
@@ -121,13 +121,13 @@
   document.querySelector('#sect-invites .badge').textContent = invites.length;
   document.getElementById('collections').innerHTML = collections.map(collectionCard).join('');
   document.getElementById('projects').innerHTML = projects.map(projectCard).join('');
-  // мини-превью коллекций для свёрнутого заголовка
+  // collection mini previews for the collapsed header
   document.getElementById('collMini').innerHTML = collections.map(function(c, i){
     return '<span class="p" style="background:' + c.mini + '">' +
       '<img src="' + A + 'mini-' + (i % 4 + 1) + '.png" alt=""></span>';
   }).join('');
 
-  // ——— Compact / Extensive: класс на теле страницы, выбор переживает перезагрузку ———
+  // ——— Compact / Extensive: a class on the page body, the choice survives a reload ———
   var body = document.getElementById('pagebody'),
       seg = document.getElementById('viewSeg');
   function setView(v){
@@ -144,7 +144,7 @@
   try { saved = localStorage.getItem('ency.clouds.view') || 'compact'; } catch(e){}
   setView(saved);
 
-  // ——— сворачивание секций: Collapse прячет ленту (у коллекций остаются мини-превью) ———
+  // ——— section collapsing: Collapse hides the strip (collections keep their mini previews) ———
   document.querySelectorAll('.sect-collapse').forEach(function(b){
     b.addEventListener('click', function(){
       var on = b.closest('.sect').classList.toggle('collapsed');
@@ -152,8 +152,8 @@
     });
   });
 
-  // ——— стрелка у заголовка: отдельная страница со всеми элементами секции;
-  // повторный клик по стрелке возвращает к обзору ———
+  // ——— header arrow: a dedicated page with all of the section's items;
+  // clicking the arrow again returns to the overview ———
   var content = document.querySelector('.content');
   document.querySelectorAll('.sect-head .arrow').forEach(function(a){
     a.addEventListener('click', function(){
@@ -164,7 +164,7 @@
       if (!open) { sect.classList.remove('collapsed'); sect.classList.add('open'); }
     });
   });
-  // ——— в ленте видна только первая строка: лишние карточки прячем по числу колонок ———
+  // ——— only the first row is visible in the strip: extra cards are hidden per column count ———
   function trimRows(){
     document.querySelectorAll('.sect-row').forEach(function(row){
       var n = getComputedStyle(row).gridTemplateColumns.split(' ').length;
@@ -173,7 +173,7 @@
       });
     });
   }
-  // ——— переключение областей Projects / Digital Machine Center ———
+  // ——— switching between the Projects / Digital Machine Center areas ———
   document.getElementById('areaTabs').addEventListener('click', function(e){
     var tab = e.target.closest('.ph-tab');
     if (!tab) return;
@@ -185,8 +185,8 @@
     if (tab.dataset.area === 'projects') requestAnimationFrame(trimRows);
   });
 
-  // ——— каталог DMC: данные и таблица (упрощённый порт веб-версии) ———
-  // детерминированный генератор, чтобы каталог не менялся между перезагрузками
+  // ——— DMC catalog: data and table (a simplified port of the web version) ———
+  // deterministic generator so the catalog doesn't change between reloads
   var rseed = 42;
   function rnd(){ rseed = (rseed * 1103515245 + 12345) % 2147483648; return rseed / 2147483648; }
   function ri(a, b){ return a + Math.floor(rnd() * (b - a + 1)); }
@@ -203,7 +203,7 @@
   var TYPES = ['Milling','Turn','Mill Turn','Wire EDM','Swiss','Additive','Laser'];
   var KINDS = {post:'Post Processor', interp:'Interpreter', schema:'Machine Schema', kit:'Kit'};
   var PUBLISHERS = ['ENCY Software Ltd','Postworks GmbH','CAM Guild','MillwrightSoft'];
-  // опциональное оборудование станка — только у схем и китов
+  // optional machine equipment — only for schemas and kits
   var OPTIONS = ['4th axis','5th axis','Probe','Tool setter','Sub-spindle','Live tooling',
     'Bar feeder','Tailstock','Pallet changer','Y axis'];
 
@@ -244,7 +244,7 @@
   var dmc = {scope:'all', q:'', fav:false,
     makers:{}, ctrls:{}, types:{}, axes:{}, price:'', units:'', pub:''};
 
-  // фильтрация с возможностью пропустить одну грань — для честных счётчиков
+  // filtering with the option to skip one facet — for honest counters
   function some(obj){ for (var k in obj) if (obj[k]) return true; return false; }
   function dmcMatch(p, skip){
     if (dmc.fav && !p.fav) return false;
@@ -296,7 +296,7 @@
       '<td class="c-price num">' + priceHtml(p) + '</td>' +
     '</tr>';
   }
-  // карточка каталога: те же факты, что в строке таблицы
+  // catalog card: the same facts as in the table row
   function cardHtml(p){
     var kv = [['Control', p.kind === 'schema' ? p.control : p.ctrlModel]];
     if (p.kind !== 'schema') kv.push(['Machine', p.maker + ' ' + p.model]);
@@ -321,7 +321,7 @@
     '</div>';
   }
 
-  // ——— панель фильтров: строится по каталогу, счётчики без учёта своей грани ———
+  // ——— filter panel: built from the catalog, counters exclude their own facet ———
   var FACETS = [
     {key:'maker', set:'makers', title:'Machine manufacturer', vals:MAKERS,
      of:function(p){ return p.maker; }},
@@ -333,8 +333,8 @@
      of:function(p){ return Math.min(p.axes, 6); },
      label:function(v){ return v >= 6 ? '6+ axes' : v + ' axes'; }}
   ];
-  // заголовок секции: у активной — зелёный цвет и крестик очистки;
-  // общий счётчик выбранного живёт один, в шапке панели
+  // section header: an active one gets a green color and a clear cross;
+  // there is a single shared selection counter, in the panel header
   function grpHead(title, selCnt, clearKey){
     return '<div class="fp-grp"><span class="t">' + title + '</span>' +
       (selCnt ? '<button class="fgrp-clear" data-clear="' + clearKey + '" title="Clear">' +
@@ -383,7 +383,7 @@
           v + ' (' + n + ')</option>';
       }).join('') + '</select></div>';
     document.getElementById('dmcFilters').innerHTML = html;
-    // сколько всего значений выбрано — бейджи на воронке и у заголовка панели
+    // total number of selected values — badges on the funnel and next to the panel header
     var total = 0;
     FACETS.forEach(function(f){
       total += Object.keys(dmc[f.set]).filter(function(k){ return dmc[f.set][k]; }).length;
@@ -406,11 +406,11 @@
         grid = document.getElementById('dmcGrid');
     table.hidden = dmc.view === 'grid';
     grid.hidden = dmc.view !== 'grid';
-    // подложка-панель только у таблицы; карточки лежат на общем фоне
+    // panel backdrop only for the table; cards sit on the common background
     document.querySelector('.dmc-scroll').classList.toggle('as-panel', dmc.view !== 'grid');
     if (dmc.view === 'grid'){
       grid.innerHTML = rows.map(cardHtml).join('');
-      // не влезшие теги оборудования сворачиваем в «+N» (рецепт веб-версии)
+      // equipment tags that don't fit collapse into "+N" (the web version's recipe)
       grid.querySelectorAll('.kv-opts').forEach(function(cell){
         var more = cell.querySelector('.xtag--more'), hidden = 0;
         while (cell.scrollWidth > cell.clientWidth + 1){
@@ -427,7 +427,7 @@
       ? rows.map(rowHtml).join('')
       : '<tr><td colspan="9"><div class="dmc-empty"><b>Nothing matches</b>' +
         'Try clearing a filter or the search query</div></td></tr>';
-    // счётчики на чипах-областях: без учёта самой грани scope
+    // counters on the scope chips: excluding the scope facet itself
     document.querySelectorAll('#dmcScope .chip').forEach(function(c){
       var s = c.dataset.scope;
       c.querySelector('.cnt').textContent =
@@ -490,16 +490,16 @@
     dmc.price = ''; dmc.units = ''; dmc.pub = '';
     renderDmc();
   });
-  dmc.view = 'grid';   // по умолчанию — карточки
+  dmc.view = 'grid';   // cards by default
   renderDmc();
 
   trimRows();
   window.addEventListener('resize', trimRows);
-  // смена Compact/Extensive меняет ширину колонок — пересчитываем после перерисовки
+  // switching Compact/Extensive changes column widths — recalculate after the repaint
   seg.addEventListener('click', function(){ requestAnimationFrame(trimRows); });
 
-  // ——— загрузка проекта: Open project запускает прогресс; по завершении
-  // наверху открывается новая вкладка проекта. Cancel отменяет и загрузку, и открытие ———
+  // ——— project download: Open project starts the progress; when it finishes
+  // a new project tab opens at the top. Cancel aborts both the download and the opening ———
   function openTab(name){
     var tabs = document.querySelector('.htabs');
     if (!tabs) return;
@@ -514,7 +514,7 @@
   }
 
   function startDownload(card){
-    if (card.dataset.dl) return;                     // уже качается
+    if (card.dataset.dl) return;                     // already downloading
     card.dataset.dl = '1';
     card.classList.add('downloading');
     var menu = document.createElement('div');

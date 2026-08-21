@@ -1,18 +1,18 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ENCY Core — License manager</title>
-<!-- Целевой экран прототипа: 1920×1080 при системном масштабе 125%
-     → рабочая CSS-область 1536×864 логических px. -->
+<!-- Prototype target screen: 1920×1080 at 125% system scale
+     → working CSS area of 1536×864 logical px. -->
 <meta name="ency-target-viewport" content="1536x864">
 <link rel="stylesheet" href="../shared-ui/tokens.css">
 <link rel="stylesheet" href="../shared-ui/chrome.css">
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
-<!-- id раздела: по нему оболочка подсвечивает активный пункт сайдбара -->
+<!-- section id: the shell uses it to highlight the active sidebar item -->
 <script>window.ENCY_APP = {id: "license-manager"};</script>
 <div class="app" id="app">
   <div class="workspace">
@@ -32,7 +32,7 @@
           <span class="ph-tab active" data-page="licenses">Software licenses</span>
           <span class="ph-tab" data-page="containers">Extensions</span>
         </div>
-        <!-- состояние соединения живёт в шапке страницы, справа: это статус, а не событие -->
+        <!-- connection state lives in the page header, on the right: it is a status, not an event -->
         <span class="ostate" title="Account-based licenses can’t be verified without connection. Local license files and dongles stay available.">
           <span class="dot"></span><span class="t">Offline</span>
         </span>
@@ -64,26 +64,26 @@
       <!-- ===== Licenses ===== -->
       <div class="page" id="page-licenses">
         <div class="pbody">
-        <!-- выбрана другая лицензия: применится после перезапуска ENCY -->
+        <!-- another license is selected: it applies after ENCY restarts -->
         <div class="rbar" id="rbar" hidden>
           <b>Restart required</b>
           <span>License <span class="rid"></span> will be used after ENCY restarts.
             The current license stays in use until then.</span>
         </div>
 
-        <!-- лицензия, под которой работает текущая сессия ENCY -->
+        <!-- the license the current ENCY session runs under -->
         <div class="cur">
           <div class="cur-top">
             <div class="cur-head">
               <b id="curName">ENCY 5x Mill</b>
               <span class="xuse">Current</span>
-              <!-- апгрейд действует пробно: срок один на весь набор и не продлевается правками -->
+              <!-- the upgrade runs as a trial: one term for the whole set, edits don't extend it -->
               <span class="utrial" id="utrial" hidden>Upgrade trial · 23 d left</span>
               <span class="curoff">Grace period · 7 d left</span>
             </div>
             <div class="cur-btns">
-              <!-- в режиме правки подсказка и Cancel встают слева от той же кнопки,
-                   которая превращается из Upgrade в Save changes -->
+              <!-- in edit mode the hint and Cancel line up to the left of the same button,
+                   which turns from Upgrade into Save changes -->
               <span class="ihint" id="reqSum" data-tip="" hidden>
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"
                   stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v4"/>
@@ -98,7 +98,7 @@
 
           <div class="cur-meta">
             <span class="grp"><span class="lbl">ID</span><span class="val">#421480</span></span>
-            <!-- пакет продукта: в режиме апгрейда значение превращается в выбор старшего пакета -->
+            <!-- product package: in upgrade mode the value turns into picking a higher package -->
             <span class="grp"><span class="lbl">Package</span>
               <span class="val" id="pkgVal">5x Mill</span>
               <button class="pkg-pick" id="pkgBtn" hidden>
@@ -116,14 +116,14 @@
 
           <div class="cur-div"></div>
 
-          <!-- состав лицензии: модули собираются скриптом из data-items -->
-          <!-- «@trial:N» — модуль выдан пробно, N дней до конца -->
+          <!-- license contents: modules are built by the script from data-items -->
+          <!-- "@trial:N" — the module is granted as a trial, N days remaining -->
           <div class="cur-mods" data-items="Adaptive|ENCY NB 3 5D|ENCY NB 3D|ENCY NB 3 2D|ENCY NB 3 6D|Disc Roughing|ENCY NB 3 operations|Multichannel|Nesting@trial:23|Robot+@trial:12|Robotic turning|SOLIDWORKS Reader|Spraying/Painting|Teamcenter integration|Turn XZCYB|Welding|Wire EDM@trial:5">
             <span class="lbl">Included <span class="n"></span></span>
             <span class="mods"></span>
           </div>
 
-          <!-- заявка уже отправлена дилеру: правки набора её сбрасывают -->
+          <!-- the request is already sent to the dealer: editing the set resets it -->
           <div class="cur-req sent" id="curSent" hidden>
             <span class="sum">Upgrade request sent to the dealer · you will be notified when the license is updated</span>
             <button class="lnk" id="reqUndo">Withdraw</button>
@@ -141,7 +141,7 @@
           </div>
         </div>
 
-        <!-- лицензии сгруппированы по лицензиату: у одной учётной записи их может быть несколько -->
+        <!-- licenses are grouped by licensee: one account can have several -->
         <div class="lsee">
           <b>TONINI FABIO ELETTROMECCANICA</b>
           <span class="n">6 licenses</span>
@@ -155,7 +155,7 @@
           </div>
         </div>
 
-        <!-- вторая группа — лицензии, привязанные к личной учётной записи -->
+        <!-- second group — licenses tied to a personal account -->
         <div class="lsee">
           <b>ruslan.m@encycam.io</b>
           <span class="n">3 licenses</span>
@@ -172,7 +172,7 @@
 
         </div>
 
-      <!-- ===== Extensions: лицензии на расширения — Machine / Post / Operation / Container ===== -->
+      <!-- ===== Extensions: extension licenses — Machine / Post / Operation / Container ===== -->
       <div class="page" id="page-containers" hidden>
         <div class="pbody">
         <div class="shead">

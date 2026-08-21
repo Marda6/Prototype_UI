@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
-<!-- id раздела: по нему оболочка подсвечивает активный пункт сайдбара -->
+<!-- section id: the shell uses it to highlight the active sidebar item -->
 <script>window.ENCY_APP = {id: "extension-store"};</script>
 <div class="app" id="app">
   <div class="workspace">
@@ -34,13 +34,13 @@
             <span class="sitem active">All&nbsp;<span class="cnt">245</span></span>
             <span class="sitem">Installed 8</span>
           </div>
-          <span class="chip-star" title="Избранные"><img src="../shared-ui/assets/st-star.svg" alt=""></span>
+          <span class="chip-star" title="Favorites"><img src="../shared-ui/assets/st-star.svg" alt=""></span>
           <div class="tb-search">
             <span class="swrap">
               <input class="search" type="text" placeholder="Search">
               <img src="../shared-ui/assets/st-search.svg" alt="">
             </span>
-            <span class="btn-funnel" title="Фильтр"><img src="../shared-ui/assets/st-funnel.svg" alt=""></span>
+            <span class="btn-funnel" title="Filter"><img src="../shared-ui/assets/st-funnel.svg" alt=""></span>
           </div>
         </div>
         <button class="dd">Resents <img src="../shared-ui/assets/st-chev.svg" alt=""></button>
@@ -311,13 +311,13 @@
       </div>
       </div>
 
-      <!-- ===== просмотр расширения ===== -->
+      <!-- ===== extension view ===== -->
       <div class="dwrap" id="dWrap" hidden>
        <div class="dwin" id="dWin">
         <div class="dhead">
           <span class="cap" id="dCap">RobotReachExtension</span>
-          <button class="dwbtn" id="dCopyLink" title="Скопировать ссылку"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round"><path d="M4.8 7.2 7.2 4.8M5.2 3.2 6 2.4a2 2 0 0 1 2.8 2.8l-.8.8M6.8 8.8 6 9.6a2 2 0 0 1-2.8-2.8l.8-.8"/></svg></button>
-          <button class="dwbtn" id="dBack" title="Закрыть"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg></button>
+          <button class="dwbtn" id="dCopyLink" title="Copy link"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round"><path d="M4.8 7.2 7.2 4.8M5.2 3.2 6 2.4a2 2 0 0 1 2.8 2.8l-.8.8M6.8 8.8 6 9.6a2 2 0 0 1-2.8-2.8l.8-.8"/></svg></button>
+          <button class="dwbtn" id="dBack" title="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg></button>
         </div>
 
         <div class="dscroll">
@@ -346,8 +346,8 @@
                 <div class="dgal-track" id="dGalTrack">
                   <div class="dgal-slide"><img src="../shared-ui/assets/st-cover3.png" alt=""></div>
                 </div>
-                <button class="dgal-nav prev" id="dGalPrev" title="Назад">‹</button>
-                <button class="dgal-nav next" id="dGalNext" title="Вперёд">›</button>
+                <button class="dgal-nav prev" id="dGalPrev" title="Previous">‹</button>
+                <button class="dgal-nav next" id="dGalNext" title="Next">›</button>
                 <span class="dgal-cnt" id="dGalCnt">1 / 1</span>
               </div>
               <div class="dgal-thumbs" id="dGalThumbs"></div>
@@ -395,16 +395,16 @@
                 <span class="dcm-av"><img src="../shared-ui/assets/fav-additive.png" alt=""></span>
                 <div class="dcm-b">
                   <div class="dcm-hd"><span class="nm">kbelousov-ency</span><span class="at">@kbelousov</span><span class="tm">· 2 weeks ago</span></div>
-                  <div class="dcm-tx">Работает и на 6-осевых, и на роботе с позиционером. На плотности 5 мм
-                    считает облако за пару секунд — для проверки досягаемости хватает.</div>
+                  <div class="dcm-tx">Works both on 6-axis machines and on a robot with a positioner. At 5 mm density
+                    it computes the cloud in a couple of seconds — enough for a reachability check.</div>
                 </div>
               </div>
               <div class="dcm">
                 <span class="dcm-av"><img src="../shared-ui/assets/fav-aerospace.png" alt=""></span>
                 <div class="dcm-b">
                   <div class="dcm-hd"><span class="nm">EncySoftware</span><span class="at">@ency</span><span class="tm">· 2 weeks ago</span></div>
-                  <div class="dcm-tx"><span class="mention">@kbelousov</span> Спасибо! В 0.1.2 добавим
-                    сохранение облака в проект, чтобы не пересчитывать после перезапуска.</div>
+                  <div class="dcm-tx"><span class="mention">@kbelousov</span> Thanks! In 0.1.2 we will add
+                    saving the cloud into the project so it doesn't have to be recomputed after a restart.</div>
                 </div>
               </div>
             </div>
@@ -414,7 +414,7 @@
             <div class="dact">
               <div class="dact-row">
                 <button class="dinstall" id="dInstall">Install</button>
-                <span class="dstar" title="В избранное"><img src="../shared-ui/assets/st-star16.svg" alt=""></span>
+                <span class="dstar" title="Add to favorites"><img src="../shared-ui/assets/st-star16.svg" alt=""></span>
               </div>
             </div>
 

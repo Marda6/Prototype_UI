@@ -1,16 +1,16 @@
-/* Clouds — стили раздела. Оболочка (титлбар, сайдбар) — в ../shared-ui.
-   Размеры и цвета — из макетов Figma «Home page» (compact 5425:8305, extensive 2197:10423). */
+/* Clouds — section styles. The shell (title bar, sidebar) lives in ../shared-ui.
+   Sizes and colors come from the "Home page" Figma mockups (compact 5425:8305, extensive 2197:10423). */
 
 :root{
-  /* локальные акценты раздела: есть только в макете Clouds, в общих токенах их нет */
-  --cl-badge:#b042ff;                 /* счётчик приглашений */
-  --cl-red:#ff7072;                   /* истёкшие приглашения */
+  /* local section accents: exist only in the Clouds mockup, not in the shared tokens */
+  --cl-badge:#b042ff;                 /* invite counter */
+  --cl-red:#ff7072;                   /* expired invites */
   --cl-grad:linear-gradient(90deg,var(--st-green),var(--st-blue));
-  --cl-col-blue:rgba(132,201,235,.8); /* фоны карточек коллекций */
+  --cl-col-blue:rgba(132,201,235,.8); /* collection card backgrounds */
   --cl-col-violet:rgba(149,132,235,.8);
   --cl-col-yellow:rgba(235,218,132,.8);
   --cl-col-green:rgba(132,235,184,.8);
-  --cl-ink:rgba(25,28,36,.96);        /* тёмный текст на цветных коллекциях */
+  --cl-ink:rgba(25,28,36,.96);        /* dark text on colored collections */
   --cl-ink-60:rgba(25,28,36,.6);
   --cl-ink-08:rgba(24,28,39,.08);
 }
@@ -18,7 +18,7 @@
 .content{flex:1 1 0;min-width:0;display:flex;flex-direction:column;
   border-radius:8px;background:var(--st-w04);overflow:hidden;}
 
-/* ——— шапка страницы: разметка и стили общие (chrome.css), здесь только своё ——— */
+/* ——— page header: markup and styles are shared (chrome.css), only local bits here ——— */
 .ph-icn img{width:20px;height:20px;}
 .ph-actions{flex:1;display:flex;justify-content:flex-end;}
 .btn-upload{display:flex;align-items:center;justify-content:space-between;width:140px;
@@ -26,14 +26,14 @@
   background:var(--st-w08);color:var(--ec-fg-100);font:400 12px/16px var(--ec-font);cursor:pointer;}
 .btn-upload img{width:8px;height:4px;}
 
-/* ——— тулбар фильтров ——— */
+/* ——— filter toolbar ——— */
 .toolbar{display:flex;align-items:center;justify-content:space-between;
   padding:8px 16px;flex:0 0 auto;}
 .tb-left,.tb-right{display:flex;align-items:center;gap:16px;}
 .tb-group{display:flex;align-items:center;gap:4px;}
-/* сегментированный контрол: скругление 24, чипы h28 r36 */
+/* segmented control: 24 radius, chips h28 r36 */
 .seg{display:flex;align-items:center;gap:2px;padding:2px;border-radius:24px;background:var(--ec-fg-8);}
-/* подсегмент текстовых чипов внутри внешнего сегмента (макет 5425:8441/8442) */
+/* sub-segment of text chips inside the outer segment (mockup 5425:8441/8442) */
 .seg-inner{display:flex;align-items:center;gap:4px;border-radius:40px;background:var(--ec-fg-8);}
 .chip{display:flex;align-items:center;justify-content:center;gap:4px;height:28px;
   padding:0 16px;border-radius:36px;color:var(--ec-fg-56);
@@ -57,10 +57,10 @@
   background:var(--ec-fg-8);color:var(--ec-fg-100);font:400 12px/16px var(--ec-font);cursor:pointer;}
 .dd img{width:9px;height:4px;}
 
-/* ——— прокручиваемое тело ——— */
+/* ——— scrollable body ——— */
 .pagebody{flex:1 1 0;min-height:0;overflow-y:auto;}
 
-/* ——— секция: заголовок + лента карточек ——— */
+/* ——— section: header + card strip ——— */
 .sect{display:flex;flex-direction:column;gap:4px;padding:12px;border-bottom:1px solid var(--st-w08);}
 .sect-head{display:flex;align-items:center;gap:8px;height:40px;padding:0 16px;}
 .sect-title{color:var(--st-text);font:500 16px/24px var(--ec-font);letter-spacing:.32px;}
@@ -70,31 +70,31 @@
 .sect-collapse{flex:1;text-align:right;color:var(--ec-fg-56);
   font:400 14px/16px var(--ec-font);cursor:pointer;background:none;border:0;padding:0;}
 .sect-collapse:hover{color:var(--ec-fg-96);}
-/* лента: карточки не сжимаются — в один ряд помещается меньше целых карточек,
-   лишние уходят в невидимые нулевые строки грида */
-/* колонки фиксированной ширины: карточки не растягиваются, если строка не заполнена */
+/* strip: cards don't shrink — fewer whole cards fit in one row,
+   the extras go into invisible zero-height grid rows */
+/* fixed-width columns: cards don't stretch when the row isn't full */
 .sect-row{display:grid;grid-template-columns:repeat(auto-fill,211px);
   gap:8px;padding:2px;}
 .ext .sect-row{grid-template-columns:repeat(auto-fill,240px);}
 .sect-row.row-coll{grid-template-columns:repeat(auto-fill,294px);gap:16px;}
-/* не влезшие в первую строку карточки прячет app.js по числу колонок */
+/* cards not fitting the first row are hidden by app.js per column count */
 .sect-row>.ovf{display:none;}
 .sect.collapsed .sect-row{display:none;}
-/* свёрнутые коллекции: мини-превью остаются в заголовке */
+/* collapsed collections: mini previews remain in the header */
 .mini-strip{display:none;align-items:center;gap:8px;}
 .sect.collapsed .mini-strip{display:flex;}
 .mini-strip .p{width:40px;height:40px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;}
 .mini-strip .p img{width:29px;height:24px;object-fit:contain;}
-/* режим «отдельная страница»: стрелка у заголовка раскрывает секцию на всю,
-   остальные секции скрыты, ряды переносятся */
+/* "dedicated page" mode: the header arrow expands the section fully,
+   other sections are hidden, rows wrap */
 .content.subpage .sect:not(.open),.content.subpage .sect-proj{display:none;}
 .content.subpage .sect.open .sect-row>.ovf{display:flex;}
 .content.subpage .sect.open .mini-strip{display:none;}
 .content.subpage .sect.open .sect-collapse{display:none;}
 .content.subpage .sect.open .arrow{transform:rotate(180deg);}
 
-/* ——— карточка проекта (общая для приглашений и Projects) ——— */
+/* ——— project card (shared by invites and Projects) ——— */
 .card{position:relative;display:flex;flex-direction:column;gap:2px;flex:1 1 0;min-width:0;
   border-radius:6px;border:1px solid var(--st-w08);background:var(--st-w04);overflow:hidden;}
 .card .preview{position:relative;height:100px;background:var(--st-w04);overflow:hidden;flex:0 0 auto;}
@@ -121,12 +121,12 @@
 .btn-star img{width:16px;height:16px;}
 .btn-star:hover{background:var(--ec-fg-8);}
 
-/* тег Featured на превью */
+/* Featured tag on the preview */
 .tag{position:absolute;right:10px;top:10px;padding:4px 8px;border-radius:36px;
   border:1px solid var(--st-green);background:var(--ec-fg-8);
   color:var(--ec-fg-100);font:400 10px/16px var(--ec-font);}
 
-/* строка приглашения: часы + срок */
+/* invite line: clock + expiry */
 .expline{display:flex;align-items:center;gap:4px;padding-right:8px;min-height:28px;}
 .expline img{width:28px;height:28px;transform:scaleX(-1);flex:0 0 auto;}
 .expline .lbl{flex:1;color:#d5d5d5;font:400 10px/14px var(--ec-font);
@@ -134,7 +134,7 @@
 .expline .val{color:#d5d5d5;font:400 10px/14px var(--ec-font);
   letter-spacing:-.2px;white-space:nowrap;}
 
-/* истёкшее приглашение: карточка гаснет, срок краснеет */
+/* expired invite: the card dims, the expiry turns red */
 .card.expired{background:rgba(255,255,255,.02);}
 .card.expired .preview{background:rgba(255,255,255,.02);}
 .card.expired .preview>img{opacity:.55;}
@@ -145,29 +145,29 @@
 .card.expired .expline .val{margin-left:auto;color:var(--ec-fg-48);}
 .card .x{position:absolute;right:6px;top:6px;width:30px;height:30px;cursor:pointer;z-index:2;}
 
-/* hover-меню поверх превью: список действий, превью гаснет */
+/* hover menu over the preview: a list of actions, the preview dims */
 .hovermenu{position:absolute;inset:0;z-index:1;display:none;flex-direction:column;gap:2px;}
 .hovermenu button{flex:1;border:0;margin:0;text-align:left;padding:6px 14px;cursor:pointer;
   background:var(--st-w04);color:#fff;font:400 12px/16px var(--ec-font);}
 .hovermenu button:hover{background:var(--ec-fg-12);}
 .card:hover .hovermenu{display:flex;}
-/* ховер меняет рамку; компенсируем толщину, чтобы карточка не прыгала.
-   У проектов рамка градиентная 45° (зелёный→синий): рисуем её псевдоэлементом
-   через маску, потому что border градиент не умеет */
-/* #202222 = var(--st-w04) карточки поверх фона раздела, сведённый в непрозрачный цвет:
-   двухслойный фон требует непрозрачной подложки под градиентную рамку */
+/* hover changes the border; the width is compensated so the card doesn't jump.
+   Projects get a 45° gradient border (green→blue): drawn via a masked
+   pseudo-element, because border can't do gradients */
+/* #202222 = the card's var(--st-w04) over the section background flattened into an
+   opaque color: the two-layer background needs an opaque base under the gradient border */
 .card:hover{border:1.25px solid transparent;
   background:linear-gradient(#202222,#202222) padding-box,
              linear-gradient(45deg,var(--st-green),var(--st-blue)) border-box;}
-#invites .card:hover{border-color:var(--cl-badge);   /* у приглашений рамка фиолетовая */
+#invites .card:hover{border-color:var(--cl-badge);   /* invites get a purple border */
   background:var(--st-w04);}
 .card:hover .preview>img{opacity:.25;}
-.card.expired:hover{border:1px solid var(--st-w08);}  /* истёкшим ховер-меню не положено */
+.card.expired:hover{border:1px solid var(--st-w08);}  /* expired ones get no hover menu */
 .card.expired:hover .hovermenu{display:none;}
 .card.expired:hover .preview>img{opacity:.55;}
 
-/* состояние загрузки: прогресс вместо превью, ховер не нужен */
-/* загрузка: та же градиентная рамка, что и на ховере проектов */
+/* downloading state: progress instead of the preview, no hover needed */
+/* download: the same gradient border as on project hover */
 .card.downloading,.card.downloading:hover{border:1.25px solid transparent;
   background:linear-gradient(#202222,#202222) padding-box,
              linear-gradient(45deg,var(--st-green),var(--st-blue)) border-box;}
@@ -181,12 +181,12 @@
 .dlrow span{position:relative;}
 .dlcancel{flex:0 0 36px;display:flex;align-items:center;padding:6px 12px;border:0;
   background:var(--st-w04);color:#fff;font:400 12px/16px var(--ec-font);cursor:pointer;}
-/* ховер Cancel — красный градиент, как в макете отмены загрузки */
+/* Cancel hover — red gradient, as in the download-cancel mockup */
 .dlcancel:hover{background:linear-gradient(90deg,var(--cl-red),#c9506e);}
-/* пока идёт загрузка, ховер-меню карточки не показываем */
+/* while downloading, the card's hover menu is not shown */
 .card.downloading .hovermenu{display:none !important;}
 
-/* ——— карточка коллекции ——— */
+/* ——— collection card ——— */
 .coll{display:flex;flex-direction:column;justify-content:space-between;flex:0 0 294px;
   width:294px;height:160px;padding:12px;border-radius:8px;overflow:hidden;}
 .coll.c-blue{background:var(--cl-col-blue);} .coll.c-violet{background:var(--cl-col-violet);}
@@ -205,28 +205,28 @@
   display:flex;align-items:center;justify-content:center;}
 .coll-previews .p img{width:35px;height:29px;object-fit:contain;}
 
-/* ——— сетка Projects ——— */
+/* ——— Projects grid ——— */
 .proj-title{padding:8px 16px 8px 28px;color:var(--st-text);font:500 16px/24px var(--ec-font);}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
   gap:8px;padding:2px 14px;}
 .grid+.proj-title{margin-top:8px;}
 .sect-proj{border-bottom:0;padding:12px 0 24px;}
 
-/* ——— область DMC: каталог (адаптация веб-версии под ENCY Core) ——— */
+/* ——— DMC area: catalog (the web version adapted to ENCY Core) ——— */
 .area[hidden]{display:none;}
 .area{display:flex;flex-direction:column;flex:1 1 0;min-height:0;}
 .dmcbody{flex:1 1 0;min-height:0;display:flex;align-items:stretch;}
-/* слева 8px: панель фильтров стоит вплотную к таблице;
-   сверху 8px — вровень с верхним краем панели фильтров */
+/* 8px on the left: the filter panel sits flush against the table;
+   8px on top — level with the filter panel's top edge */
 .dmc-main{flex:1 1 0;min-width:0;min-height:0;display:flex;flex-direction:column;padding:8px 16px 16px 8px;}
-/* в режиме таблицы прокручиваемая область сама становится панелью:
-   фон и радиус как у фильтров, скроллбар лежит на её фоне */
+/* in table mode the scroll area itself becomes a panel:
+   same background and radius as the filters, the scrollbar sits on its background */
 .dmc-scroll.as-panel{background:var(--st-w04);border-radius:8px;}
 .dmc-scroll{flex:1 1 0;min-height:0;overflow-y:auto;}
-/* счётчики в чипах-областях — как в тулбаре Extension Store */
+/* counters in the scope chips — as in the Extension Store toolbar */
 .chip .cnt{color:var(--ec-fg-32,rgba(245,245,245,.32));font-variant-numeric:tabular-nums;}
 .chip.active .cnt{color:rgba(31,33,38,.48);}
-/* переключатель вида: таблица / карточки */
+/* view switch: table / cards */
 .vmode{display:flex;gap:2px;padding:2px;border-radius:24px;background:var(--ec-fg-8);}
 .vbtn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;
   border-radius:36px;cursor:pointer;color:var(--ec-fg-56);}
@@ -234,7 +234,7 @@
 .vbtn:hover{color:var(--ec-fg-96);}
 .vbtn.active{background:var(--ec-fg-100);color:#1f2126;}
 
-/* ——— панель фильтров: та же метрика, что в Extension Store ——— */
+/* ——— filter panel: the same metrics as in Extension Store ——— */
 .fpanel{flex:0 0 236px;margin:8px 0 16px 14px;
   background:var(--st-w04);border-radius:8px;display:flex;flex-direction:column;
   min-height:0;overflow:hidden;}
@@ -255,7 +255,7 @@
   color:var(--ec-fg-48);font:600 10px/16px var(--ec-font);
   letter-spacing:.6px;text-transform:uppercase;}
 .fp-grp .t{flex:1 1 0;min-width:0;}
-/* активная секция: заголовок зеленеет, рядом бейдж выбранного и крестик очистки */
+/* active section: the header turns green, with a selection badge and a clear cross */
 .fgrp.is-active .fp-grp{color:var(--st-green);}
 .fgrp-badge{display:flex;align-items:center;justify-content:center;min-width:14px;height:14px;
   padding:0 4px;border-radius:7px;background:var(--st-green);
@@ -264,7 +264,7 @@
   border-radius:4px;cursor:pointer;color:var(--ec-fg-48);border:0;background:none;padding:0;}
 .fgrp-clear svg{display:block;}
 .fgrp-clear:hover{background:var(--ec-fg-8);color:var(--ec-fg-100);}
-/* счётчики активных фильтров: на кнопке-воронке и у заголовка панели */
+/* active filter counters: on the funnel button and next to the panel header */
 .btn-funnel{position:relative;}
 .fbadge{position:absolute;top:-3px;right:-3px;display:flex;align-items:center;justify-content:center;
   min-width:14px;height:14px;padding:0 4px;border-radius:7px;background:var(--st-green);
@@ -273,35 +273,35 @@
 .fopt{height:24px;display:flex;align-items:center;gap:8px;padding:0 6px;border-radius:4px;
   cursor:pointer;color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);}
 .fopt:hover{background:var(--ec-fg-4);color:var(--ec-fg-96);}
-/* выбранная строка подсвечена зелёным, как в веб-DMC */
+/* the selected row is highlighted green, as in the web DMC */
 .fopt.on{color:var(--ec-fg-96);background:rgba(0,163,109,.08);}
 .fopt.on:hover{background:var(--ec-green-16);}
-/* значения, не дающие результатов при текущих фильтрах, приглушены */
+/* values yielding no results under the current filters are dimmed */
 .fopt.dim{color:var(--ec-fg-24);}
 .fopt.dim .n{color:var(--ec-fg-24);}
 .fopt .lb{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .fopt .n{flex:0 0 auto;color:var(--ec-fg-48);font-variant-numeric:tabular-nums;}
-/* чекбокс */
+/* checkbox */
 .chk{width:14px;height:14px;flex:0 0 14px;box-sizing:border-box;border-radius:4px;
   border:1px solid var(--ec-fg-24);position:relative;}
 .fopt:hover .chk{border-color:var(--ec-fg-48);}
 .fopt.on .chk{background:var(--st-green);border-color:var(--st-green);}
 .fopt.on .chk::after{content:"";position:absolute;left:2.5px;top:3px;width:7px;height:3.5px;
   border-left:1.5px solid #04150e;border-bottom:1.5px solid #04150e;transform:rotate(-45deg);}
-/* радио */
+/* radio */
 .rdo{width:14px;height:14px;flex:0 0 14px;box-sizing:border-box;border-radius:50%;
   border:1px solid var(--ec-fg-24);position:relative;}
 .fopt:hover .rdo{border-color:var(--ec-fg-48);}
 .fopt.on .rdo{border-color:var(--st-green);}
 .fopt.on .rdo::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--st-green);}
-/* сегмент (Units) */
+/* segment (Units) */
 .fseg{display:flex;gap:2px;padding:2px;border-radius:6px;background:var(--ec-fg-4);}
 .fseg .fs{flex:1 1 0;min-width:0;height:24px;display:flex;align-items:center;justify-content:center;
   border-radius:4px;cursor:pointer;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);
   white-space:nowrap;}
 .fseg .fs:hover{color:var(--ec-fg-96);}
 .fseg .fs.on{background:var(--ec-fg-16);color:var(--ec-fg-100);}
-/* селект издателя */
+/* publisher select */
 .fsel{height:28px;width:100%;box-sizing:border-box;border-radius:6px;
   border:1px solid var(--ec-fg-8);background:var(--ec-fg-4);color:var(--ec-fg-96);
   outline:none;font:400 12px/16px var(--ec-font);padding:0 24px 0 8px;cursor:pointer;
@@ -313,10 +313,10 @@
 .fsel:hover{background-color:var(--ec-fg-8);}
 .fsel option{background:#191b1d;color:var(--ec-fg-96);}
 
-/* ——— карточки каталога ——— */
+/* ——— catalog cards ——— */
 .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:8px;padding:2px;}
 .mgrid[hidden]{display:none;}
-/* карточка как в веб-DMC: превью-полоса без отступов, факты в две колонки слева */
+/* card as in the web DMC: preview strip without padding, facts in two left columns */
 .mcard{display:flex;flex-direction:column;border-radius:6px;overflow:hidden;
   border:1px solid var(--st-w08);background:var(--st-w04);cursor:pointer;text-align:left;}
 .mcard:hover{border-color:var(--ec-fg-24);background:var(--st-w06);}
@@ -328,13 +328,13 @@
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mcard__sub{margin-top:2px;color:var(--ec-fg-56);font:400 11px/14px var(--ec-font);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-/* резервируем высоту под шесть строк фактов, чтобы карточки в сетке были одной высоты */
+/* reserve height for six fact rows so grid cards are the same height */
 .mcard__kv{display:grid;grid-template-columns:88px minmax(0,1fr);gap:4px 10px;
   align-content:start;min-height:112px;padding:0 12px 10px;}
 .mcard__kv span{color:var(--ec-fg-48);font:400 11px/15px var(--ec-font);white-space:nowrap;}
 .mcard__kv b{color:var(--ec-fg-80);font:400 11px/15px var(--ec-font);min-width:0;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;}
-/* опции оборудования: пилюли, лишние обрезаются */
+/* equipment options: pills, extras get clipped */
 .kv-opts{display:flex;gap:4px;min-width:0;overflow:hidden;}
 .xtag{display:inline-flex;align-items:center;height:16px;padding:0 7px;flex:0 0 auto;
   border-radius:999px;background:var(--ec-fg-8);color:var(--ec-fg-72);
@@ -346,8 +346,8 @@
 .mtable{width:100%;border-collapse:collapse;table-layout:fixed;}
 .mtable th:first-child,.mtable td:first-child{padding-left:12px;}
 .mtable th:last-child,.mtable td:last-child{padding-right:12px;}
-/* шапка светлее тела таблицы; цвет непрозрачный (#202222 = w04 поверх фона
-   раздела), иначе при прокрутке под sticky-строкой просвечивают строки */
+/* the header is lighter than the table body; the color is opaque (#202222 = w04 over
+   the section background), otherwise rows show through under the sticky row on scroll */
 .mtable th{position:sticky;top:0;z-index:2;background:#202222;
   padding:6px 10px;text-align:left;color:var(--ec-fg-64);
   font:500 11px/16px var(--ec-font);letter-spacing:.22px;
@@ -365,7 +365,7 @@
 .mtable .c-kind{width:12%;} .mtable .c-mach{width:13%;} .mtable .c-type{width:8%;}
 .mtable .c-ctrl{width:13%;} .mtable .c-ax{width:5%;} .mtable .c-wa{width:12%;}
 .mtable .c-dl{width:9%;} .mtable .c-price{width:9%;}
-/* ячейка продукта: превью + имя над издателем */
+/* product cell: preview + name above the publisher */
 .mtable__id{display:flex;align-items:center;gap:10px;min-width:0;}
 .mtable__thumb{display:flex;align-items:center;justify-content:center;flex:0 0 32px;
   width:32px;height:32px;border-radius:4px;background:var(--st-w04);
@@ -377,7 +377,7 @@
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mtable__sub{display:block;margin-top:1px;color:var(--ec-fg-48);
   font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-/* теги категорий — цвета из веб-версии DMC */
+/* category tags — colors from the DMC web version */
 .kindtag{display:inline-flex;align-items:center;height:18px;padding:0 8px;
   border-radius:9px;font:500 10px/16px var(--ec-font);white-space:nowrap;}
 .kindtag--post{background:rgba(70,172,255,.14);color:#84c9eb;}
@@ -390,7 +390,7 @@
   font:400 12px/20px var(--ec-font);}
 .dmc-empty b{display:block;color:var(--ec-fg-80);font:500 14px/20px var(--ec-font);}
 
-/* ——— режим Extensive: карточки крупнее, типографика на ступень выше ——— */
+/* ——— Extensive mode: bigger cards, typography one step up ——— */
 .ext .card .preview{height:142px;}
 .ext .card .meta{gap:6px;padding:8px;}
 .ext .card .name{font:500 16px/20px var(--ec-font);}
@@ -399,4 +399,4 @@
 .ext .grid{grid-template-columns:repeat(auto-fill,minmax(232px,1fr));}
 .ext .sect-row .card{max-width:none;}
 .ext .expline .lbl,.ext .expline .val{font-size:12px;line-height:16px;}
-/* в compact-ленте приглашений карточек больше — в extensive они шире сами по себе */
+/* the compact invite strip fits more cards — in extensive they are wider by themselves */

@@ -1,10 +1,10 @@
-/* Extension Store — только своё: каталог, панель фильтров, окно расширения
-   и раздел Manage. Оболочка — в ../shared-ui. */
-  /* иконка раздела в шапке — растровая, у License manager там svg */
+/* Extension Store — only its own bits: catalog, filter panel, extension window
+   and the Manage section. The shell lives in ../shared-ui. */
+  /* section icon in the header is a raster image; License manager has an svg there */
   .ph-icn img{width:24px;height:24px;}
-  /* страница Manage скроллится целиком, в отличие от каталога */
+  /* the Manage page scrolls as a whole, unlike the catalog */
   #page-manage{overflow:auto;}
-  /* избранное и воронка фильтров — контролы тулбара каталога */
+  /* favorites and the filter funnel — catalog toolbar controls */
   .chip-star{width:28px;height:28px;flex:0 0 28px;border-radius:36px;background:var(--ec-fg-6);
     display:flex;align-items:center;justify-content:center;cursor:pointer;}
   .chip-star:hover{background:var(--ec-fg-12);}
@@ -16,12 +16,12 @@
   .btn-funnel.on{background:var(--ec-fg-16);}
   .btn-funnel.on img{filter:brightness(1.4);}
 
-  /* ===== Store: панель фильтров слева ===== */
-  /* панель фильтров растянута на всю доступную высоту, карточки скроллятся отдельно */
+  /* ===== Store: filter panel on the left ===== */
+  /* the filter panel is stretched to the full available height, cards scroll separately */
   .storebody{flex:1 1 0;min-height:0;display:flex;align-items:stretch;}
   .storebody .grid{flex:1 1 0;min-width:0;min-height:0;overflow-y:auto;align-content:start;}
-  /* панель фильтров: шапка закреплена, ниже — секции с одним ритмом
-     (заголовок 24px + строки 24px + 16px до следующей секции) */
+  /* filter panel: the header is fixed, below it sections share one rhythm
+     (24px heading + 24px rows + 16px to the next section) */
   .fpanel{flex:0 0 236px;margin:26px 0 16px 14px;
     background:var(--st-w04);border-radius:8px;display:flex;flex-direction:column;
     min-height:0;overflow:hidden;}
@@ -32,40 +32,40 @@
   .fp-reset{background:none;border:none;padding:0;cursor:pointer;
     color:var(--st-green);font:400 11px/16px var(--ec-font);}
   .fp-reset:hover{text-decoration:underline;}
-  /* пока ничего не выбрано, сбрасывать нечего */
+  /* while nothing is selected, there is nothing to reset */
   .fp-reset[disabled]{color:var(--ec-fg-24);cursor:default;text-decoration:none;}
-  /* прокручивается только тело панели, шапка остаётся на месте */
+  /* only the panel body scrolls, the header stays in place */
   .fp-body{flex:1 1 0;min-height:0;display:flex;flex-direction:column;
     overflow-y:auto;overscroll-behavior:contain;padding:12px;}
   .fgrp{flex:0 0 auto;}
   .fgrp + .fgrp{margin-top:16px;}
-  /* секция тегов забирает остаток высоты — её список скроллится сам */
+  /* the tag section takes the remaining height — its list scrolls on its own */
   .fgrp-tags{flex:1 1 auto;min-height:132px;display:flex;flex-direction:column;}
   .fp-grp{height:24px;display:flex;align-items:center;justify-content:space-between;
     color:var(--ec-fg-48);font:600 10px/16px var(--ec-font);
     letter-spacing:.6px;text-transform:uppercase;}
   .fp-grp .n{color:var(--ec-fg-24);font:400 11px/16px var(--ec-font);letter-spacing:0;}
-  /* строка опции — единая метрика для радио, чекбоксов и тегов */
+  /* option row — a single metric for radios, checkboxes and tags */
   .fopt,.ftag{height:24px;display:flex;align-items:center;gap:8px;padding:0 6px;border-radius:4px;
     cursor:pointer;color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);}
   .fopt:hover,.ftag:hover{background:var(--ec-fg-4);color:var(--ec-fg-96);}
   .fopt.on,.ftag.on{color:var(--ec-fg-96);}
   .fopt .lb,.ftag .lb{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .fopt .n,.ftag .n{flex:0 0 auto;color:var(--ec-fg-48);font-variant-numeric:tabular-nums;}
-  /* радио */
+  /* radio */
   .rdo{width:14px;height:14px;flex:0 0 14px;box-sizing:border-box;border-radius:50%;
     border:1px solid var(--ec-fg-24);position:relative;}
   .fopt:hover .rdo{border-color:var(--ec-fg-48);}
   .fopt.on .rdo{border-color:var(--st-green);}
   .fopt.on .rdo::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--st-green);}
-  /* Price — сегментный переключатель: три взаимоисключающих значения, всегда видны разом */
+  /* Price — a segmented switch: three mutually exclusive values, always all visible */
   .fseg{display:flex;gap:2px;padding:2px;border-radius:6px;background:var(--ec-fg-4);}
   .fseg .fs{flex:1 1 0;min-width:0;height:24px;display:flex;align-items:center;justify-content:center;
     border-radius:4px;cursor:pointer;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);
     white-space:nowrap;transition:background-color .12s ease,color .12s ease;}
   .fseg .fs:hover{color:var(--ec-fg-96);}
   .fseg .fs.on{background:var(--ec-fg-16);color:var(--ec-fg-100);}
-  /* поля ввода — общая метрика для селекта и поиска по тегам */
+  /* input fields — a shared metric for the select and the tag search */
   .fsel,.ftagsearch input{height:28px;width:100%;box-sizing:border-box;border-radius:6px;
     border:1px solid var(--ec-fg-8);background:var(--ec-fg-4);color:var(--ec-fg-96);
     outline:none;font:400 12px/16px var(--ec-font);}
@@ -81,7 +81,7 @@
   .ftagsearch{position:relative;flex:0 0 auto;margin-bottom:4px;}
   .ftagsearch input{padding:0 8px;}
   .ftagsearch input::placeholder{color:var(--ec-fg-48);}
-  /* список тегов: отдельный скролл, полоса не наезжает на счётчики */
+  /* tag list: its own scroll, the scrollbar doesn't overlap the counters */
   .ftaglist{display:flex;flex-direction:column;flex:1 1 0;min-height:0;overflow-y:auto;
     overflow-x:hidden;margin-right:-6px;padding-right:6px;overscroll-behavior:contain;}
   .ftag[hidden]{display:none;}
@@ -89,7 +89,7 @@
   .fempty{margin:4px 6px 0;color:var(--ec-fg-48);font:400 11px/16px var(--ec-font);}
   .card[hidden]{display:none;}
 
-  /* секция и карточки (mock 6058:24497) */
+  /* section and cards (mock 6058:24497) */
   .sect{margin:8px 12px 0;padding:8px 16px;flex:0 0 auto;}
   .sect h2{margin:0;color:var(--st-text);font:500 16px/24px var(--ec-font);}
   .grid{margin:26px 14px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:8px;}
@@ -97,18 +97,18 @@
     display:flex;flex-direction:column;overflow:hidden;cursor:pointer;
     transition:background-color .12s ease;}
   .card:hover{background:var(--st-w08);border-color:var(--ec-fg-24);}
-  /* дефолтная обложка — нейтральная; цветные (blue/teal) — выбор пользователя при загрузке */
+  /* default cover is neutral; colored ones (blue/teal) are the user's choice on upload */
   .cover{flex:1 1 0;min-height:0;border-radius:4px;padding:10px;background:var(--st-w04);
     display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;}
-  /* цвет обложки закреплён за категорией расширения (палитра icn_operation_color) */
-  .card[data-cat="Utility"] .cover{background:#3670c6;}          /* синий */
-  .card[data-cat="Operation"] .cover{background:#1d8a7c;}         /* зелёный */
-  .card[data-cat="Operation Popup"] .cover{background:#6c5ac4;}   /* фиолетовый */
-  .card[data-cat="Global"] .cover{background:#b8763a;}            /* коралл/охра */
-  /* фото-обложка перекрывает цвет категории */
+  /* the cover color is tied to the extension category (icn_operation_color palette) */
+  .card[data-cat="Utility"] .cover{background:#3670c6;}          /* blue */
+  .card[data-cat="Operation"] .cover{background:#1d8a7c;}         /* green */
+  .card[data-cat="Operation Popup"] .cover{background:#6c5ac4;}   /* purple */
+  .card[data-cat="Global"] .cover{background:#b8763a;}            /* coral/ochre */
+  /* a photo cover overrides the category color */
   .cov-img{background:linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,.5)),
     url("assets/st-cover3.png") center/cover no-repeat;}
-  /* на фото-обложке чипы непрозрачные, чтобы читались */
+  /* on a photo cover the chips are opaque so they stay readable */
   .cov-img .ctag{background:#565b60;color:var(--ec-fg-100);}
   .chead{display:flex;gap:8px;align-items:flex-start;}
   .cav{width:32px;height:32px;flex:0 0 32px;border-radius:50%;overflow:hidden;}
@@ -128,7 +128,7 @@
   .cdesc{color:var(--st-text-60);font:400 10px/14px var(--ec-font);height:28px;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   .cdiv{height:1px;background:var(--st-w08);position:relative;}
-  /* прогресс установки — заливка разделителя градиентом */
+  /* installation progress — the divider fills with a gradient */
   .card.installing .cdiv::after{content:"";position:absolute;left:0;top:-0.5px;height:2px;
     width:var(--p,0%);border-radius:1px;
     background:linear-gradient(90deg,var(--st-green),var(--st-blue));
@@ -150,19 +150,19 @@
     min-width:78px;padding:4px 18px;
     border-radius:120px;background:var(--st-w08);border:none;color:#fff;
     font:400 14px/24px var(--ec-font);cursor:pointer;}
-  /* установлено: зелёная обводка + галочка, заливки нет */
+  /* installed: green outline + checkmark, no fill */
   .cinstall.done{gap:6px;background:transparent;color:var(--st-green);cursor:default;
     box-shadow:inset 0 0 0 1px var(--st-green);}
   .cinstall.done:hover::before{display:none;}
   .cinstall .ok{width:12px;height:12px;flex:0 0 12px;}
-  /* ховер — градиентная обводка 1px */
+  /* hover — 1px gradient outline */
   .cinstall:hover::before{content:"";position:absolute;inset:0;border-radius:120px;padding:1px;
     background:linear-gradient(90deg,var(--st-green),var(--st-blue));
     -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
     -webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
     mask-composite:exclude;pointer-events:none;}
 
-  /* ===== Store: окно расширения (модальное, поверх каталога) ===== */
+  /* ===== Store: extension window (modal, over the catalog) ===== */
   .dwrap{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
     padding:24px;background:rgba(0,0,0,.5);
     -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
@@ -170,7 +170,7 @@
   .dwin{width:100%;max-width:1000px;max-height:100%;min-height:0;display:flex;flex-direction:column;
     background:#15171a;border:1px solid var(--ec-fg-12);border-radius:12px;overflow:hidden;
     box-shadow:0 32px 80px rgba(0,0,0,.6);}
-  /* шапка окна: имя пакета слева, действия окна справа */
+  /* window header: package name on the left, window actions on the right */
   .dhead{display:flex;align-items:center;gap:4px;padding:8px 8px 8px 16px;flex:0 0 auto;
     border-bottom:1px solid var(--ec-fg-8);}
   .dhead .cap{flex:1 1 0;min-width:0;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);
@@ -179,9 +179,9 @@
     border-radius:4px;background:transparent;border:none;cursor:pointer;color:var(--ec-fg-72);padding:0;}
   .dwbtn:hover{background:var(--ec-fg-12);color:var(--ec-fg-96);}
   .dwbtn svg{width:12px;height:12px;}
-  /* всё содержимое окна — одна область скролла; basis auto, иначе схлопывается в 0 */
+  /* the whole window content is one scroll area; basis auto, otherwise it collapses to 0 */
   .dscroll{flex:0 1 auto;min-height:0;overflow-y:auto;}
-  /* шапка расширения — на всю ширину: иконка, имя+мета+описание */
+  /* extension header — full width: icon, name+meta+description */
   .dhero{display:flex;align-items:flex-start;gap:16px;padding:20px 24px 16px;}
   .dhero-av{width:48px;height:48px;flex:0 0 48px;border-radius:12px;overflow:hidden;
     background:var(--st-w06);display:flex;align-items:center;justify-content:center;}
@@ -194,7 +194,7 @@
   .dmeta .dl{display:inline-flex;align-items:center;gap:4px;}
   .dmeta .dl svg{width:10px;height:10px;}
   .dsum{max-width:640px;color:var(--ec-fg-72);font:400 12px/18px var(--ec-font);}
-  /* чип категории — залит цветом обложки этой категории */
+  /* category chip — filled with that category's cover color */
   .dcat{height:20px;flex:0 0 auto;display:inline-flex;align-items:center;padding:0 10px;
     border-radius:10px;background:var(--cat,var(--ec-fg-16));color:#fff;
     font:400 11px/16px var(--ec-font);white-space:nowrap;}
@@ -205,7 +205,7 @@
   .dh-ver{flex:0 0 auto;height:20px;display:inline-flex;align-items:center;padding:0 8px;
     border-radius:10px;background:var(--ec-fg-8);color:var(--ec-fg-72);
     font:400 11px/16px var(--ec-font);white-space:nowrap;}
-  /* действия — в правой панели, залипают при скролле */
+  /* actions — in the right panel, sticky on scroll */
   .dact{display:flex;flex-direction:column;gap:6px;}
   .dinstall{height:32px;flex:1 1 0;min-width:0;padding:0 24px;
     display:inline-flex;align-items:center;justify-content:center;
@@ -226,7 +226,7 @@
   .dside{flex:0 0 260px;display:flex;flex-direction:column;gap:20px;
     position:sticky;top:20px;align-self:flex-start;}
 
-  /* карусель скриншотов */
+  /* screenshot carousel */
   .dgal{margin-bottom:28px;}
   .dgal-stage{position:relative;border-radius:8px;border:1px solid var(--ec-fg-12);
     background:var(--st-w04);overflow:hidden;aspect-ratio:16/10;}
@@ -253,7 +253,7 @@
   .dgal-th.on{opacity:1;border-color:var(--st-green);}
   .dgal-th img{width:100%;height:100%;object-fit:cover;}
   .dgal-thumbs:has(.dgal-th:only-child){display:none;}
-  /* текст описания */
+  /* description text */
   .dmain h2{margin:0 0 8px;color:var(--st-text);font:600 16px/24px var(--ec-font);}
   .dmain h3{margin:24px 0 8px;color:var(--st-text);font:600 14px/20px var(--ec-font);}
   .dmain p{margin:0 0 10px;color:var(--ec-fg-72);font:400 12px/18px var(--ec-font);}
@@ -265,7 +265,7 @@
     border-radius:50%;background:var(--st-green);}
   .dmain ul ul{margin:6px 0 0;}
   .dmain ul ul li::before{background:var(--ec-fg-24);}
-  /* боковые блоки */
+  /* side blocks */
   .dcard{background:var(--st-w04);border-radius:8px;padding:4px;}
   .dsec{margin:0 0 6px 4px;color:var(--st-text);font:600 12px/16px var(--ec-font);}
   .dver{height:28px;display:flex;align-items:center;justify-content:space-between;gap:8px;
@@ -282,7 +282,7 @@
   .dtag{height:20px;display:inline-flex;align-items:center;padding:0 10px;border-radius:36px;
     background:var(--ec-fg-8);color:var(--ec-fg-72);font:400 11px/16px var(--ec-font);cursor:pointer;}
   .dtag:hover{background:var(--ec-fg-16);color:var(--ec-fg-96);}
-  /* «Read more» и разделы описания */
+  /* "Read more" and description sections */
   .dmore{margin:4px 0 0;background:none;border:none;padding:0;cursor:pointer;
     color:var(--st-green);font:400 12px/18px var(--ec-font);}
   .dmore:hover{text-decoration:underline;}
@@ -298,7 +298,7 @@
   .dlink{background:none;border:none;padding:0;cursor:pointer;
     color:var(--st-green);font:400 12px/16px var(--ec-font);}
   .dlink:hover{text-decoration:underline;}
-  /* история версий — в правой панели, длинный список со своим скроллом */
+  /* version history — in the right panel, a long list with its own scroll */
   .dvh{display:flex;flex-direction:column;max-height:232px;overflow-y:auto;
     overscroll-behavior:contain;}
   .dvh-row{display:grid;grid-template-columns:auto 1fr;gap:0 8px;padding:5px 8px;border-radius:4px;
@@ -307,7 +307,7 @@
   .dvh-row .v{color:var(--ec-fg-96);min-width:40px;font-variant-numeric:tabular-nums;}
   .dvh-row .dt{color:var(--ec-fg-48);text-align:right;white-space:nowrap;}
   .dvh-row .rq{grid-column:1/-1;color:var(--ec-fg-48);font:400 11px/14px var(--ec-font);}
-  /* комментарии */
+  /* comments */
   .dcm-add{display:flex;gap:8px;align-items:flex-start;padding:8px;border-radius:8px;
     background:var(--st-w04);border:1px solid var(--ec-fg-8);}
   .dcm-add textarea{flex:1 1 0;min-width:0;height:44px;resize:vertical;background:transparent;border:none;
@@ -331,7 +331,7 @@
 
   /* ===== Manage: Installed ===== */
   .page[hidden],.mbtn[hidden],.overlay[hidden]{display:none;}
-  /* левый отступ = начало видимой части иконки в шапке страницы (26px + 4px внутри 32px-слота) */
+  /* left offset = start of the visible part of the icon in the page header (26px + 4px inside the 32px slot) */
   .msect{display:flex;align-items:flex-end;justify-content:space-between;margin:16px 16px 0 30px;}
   .msect-first{margin-top:8px;}
   .msect h3{margin:0;color:var(--st-text);font:600 16px/24px var(--ec-font);}
@@ -349,7 +349,7 @@
     font:400 12px/16px var(--ec-font);}
   .xgrid>*{padding:0 8px;}
   .xgrid>:nth-child(1){justify-self:stretch;display:flex;justify-content:center;padding:0;}
-  /* сетка: вертикальные разделители колонок + горизонтальные линии строк */
+  /* grid: vertical column dividers + horizontal row lines */
   .xgrid>:not(:first-child){border-left:1px solid var(--ec-fg-8);height:24px;
     display:flex;align-items:center;min-width:0;}
   .xrow,.xhead,.xgroup{border-bottom:1px solid var(--ec-fg-8);}
@@ -402,7 +402,7 @@
     font:400 12px/16px var(--ec-font);background:var(--ec-fg-8);color:var(--ec-fg-72);white-space:nowrap;}
   .ftgl:hover{background:var(--ec-fg-12);}
   .ftgl.on{background:var(--st-green);color:#fff;}
-  /* модалка Add feed */
+  /* Add feed modal */
   .overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.55);
     -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
     display:flex;align-items:center;justify-content:center;}

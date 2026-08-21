@@ -1,7 +1,7 @@
 # Clouds
 
-Раздел облачных хранилищ проектов. Пока заготовка: разметка контента, стили и логика
-будут наполняться по мере проработки макетов.
+Cloud project storage section. Still a stub: the content markup, styles and logic
+will be filled in as the mockups get worked out.
 
-Файлы: `index.html` — разметка контента, `app.css` — стили раздела, `app.js` — логика.
-Оболочка окна берётся из `../shared-ui`.
+Files: `index.html` — content markup, `app.css` — section styles, `app.js` — logic.
+The window shell comes from `../shared-ui`.

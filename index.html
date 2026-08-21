@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ENCY UI — прототипы</title>
+<title>ENCY UI — prototypes</title>
 <link rel="stylesheet" href="packages/shared-ui/tokens.css">
 <style>
-  /* хаб: единственная страница вне разделов, поэтому стили держим здесь */
+  /* hub: the only page outside the sections, so styles live here */
   body{display:flex;align-items:center;justify-content:center;padding:48px 24px;}
   .hub{width:100%;max-width:880px;}
   h1{margin:0;color:var(--st-text);font:500 24px/28px var(--ec-font);letter-spacing:.48px;}
@@ -24,31 +24,31 @@
 </head>
 <body>
 <div class="hub">
-  <h1>ENCY UI — прототипы</h1>
-  <p class="sub">Тёмная тема ENCY Core. Целевой экран: 1920×1080 при масштабе 125% — 1536×864 CSS px.</p>
+  <h1>ENCY UI — prototypes</h1>
+  <p class="sub">ENCY Core dark theme. Target screen: 1920×1080 at 125% scale — 1536×864 CSS px.</p>
 
   <div class="grid">
     <a class="card" href="packages/license-manager/">
       <b>License manager</b>
-      <span>Лицензии и расширения: текущая лицензия, режим Upgrade, заявки дилеру</span>
+      <span>Licenses and extensions: current license, Upgrade mode, dealer requests</span>
       <code>packages/license-manager</code>
     </a>
     <a class="card" href="packages/clouds/">
       <b>Clouds</b>
-      <span>Облачные хранилища проектов (заготовка раздела)</span>
+      <span>Cloud project storage (section stub)</span>
       <code>packages/clouds</code>
     </a>
     <a class="card" href="packages/extension-store/">
       <b>Extension Store</b>
-      <span>Каталог расширений, окно расширения, раздел Manage</span>
+      <span>Extension catalog, extension window, Manage section</span>
       <code>packages/extension-store</code>
     </a>
   </div>
 
   <p class="foot">
-    Оболочка приложения (титлбар, сайдбар, шапка страницы, токены) — в
-    <code>packages/shared-ui</code>. Как добавить раздел и как выкачать только один —
-    в <a href="https://github.com/EncySoftware/ENCY_UI#readme">README</a>.
+    The application shell (title bar, sidebar, page header, tokens) lives in
+    <code>packages/shared-ui</code>. How to add a section and how to check out just one —
+    see the <a href="https://github.com/EncySoftware/ENCY_UI#readme">README</a>.
   </p>
 </div>
 </body>

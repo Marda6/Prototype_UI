@@ -1,5 +1,5 @@
-// Локальный сервер прототипов ENCY UI с автоперезагрузкой.
-// Раздаёт репозиторий как есть — те же относительные пути, что и на GitHub Pages.
+// Local ENCY UI prototype server with auto-reload.
+// Serves the repository as is — same relative paths as on GitHub Pages.
 //   node tools/dev-server.js        → http://localhost:5584/
 //   PORT=6000 node tools/dev-server.js
 const http = require('http'), fs = require('fs'), path = require('path');
@@ -20,7 +20,7 @@ http.createServer(function(req, res){
     req.on('close', function(){ var i = clients.indexOf(res); if (i >= 0) clients.splice(i, 1); });
     return;
   }
-  // каталог → index.html внутри него
+  // directory → index.html inside it
   var file = path.join(ROOT, url);
   if (url.slice(-1) === '/') file = path.join(file, 'index.html');
   else if (!path.extname(file) && fs.existsSync(file) && fs.statSync(file).isDirectory()) {

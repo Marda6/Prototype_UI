@@ -1,48 +1,48 @@
-# ENCY UI — прототипы интерфейса
+# ENCY UI — interface prototypes
 
-Статические прототипы интерфейса ENCY (CAM/ЧПУ, тёмная тема ENCY Core).
-Без сборки и зависимостей: HTML, CSS и немного ванильного JS.
+Static prototypes of the ENCY interface (CAM/CNC, ENCY Core dark theme).
+No build step or dependencies: HTML, CSS and a bit of vanilla JS.
 
-**Демо:** https://encysoftware.github.io/ENCY_UI/
+**Demo:** https://encysoftware.github.io/ENCY_UI/
 
-Целевой экран: 1920×1080 при системном масштабе 125% → рабочая область **1536×864** CSS px.
+Target screen: 1920×1080 at 125% system scale → working area of **1536×864** CSS px.
 
-## Структура
+## Structure
 
 ```
 ENCY_UI/
-├── index.html                     # хаб: список разделов
+├── index.html                     # hub: list of sections
 ├── packages/
-│   ├── shared-ui/                 # оболочка приложения — общая для всех разделов
-│   │   ├── tokens.css             #   цвета, типографика, сброс
-│   │   ├── chrome.css             #   титлбар, сайдбар, контейнер контента, шапка страницы
-│   │   ├── chrome.js              #   разметка оболочки + реестр разделов + поведение
-│   │   └── assets/                #   иконки (SVG/PNG)
-│   ├── license-manager/           # раздел: лицензии и расширения
-│   │   ├── index.html             #   только <main class="content">
-│   │   ├── app.css                #   только свои стили
-│   │   └── app.js                 #   только своя логика
-│   └── extension-store/           # раздел: каталог расширений и Manage
-└── tools/dev-server.js            # локальный сервер с автоперезагрузкой
+│   ├── shared-ui/                 # application shell — shared by all sections
+│   │   ├── tokens.css             #   colors, typography, reset
+│   │   ├── chrome.css             #   title bar, sidebar, content container, page header
+│   │   ├── chrome.js              #   shell markup + section registry + behavior
+│   │   └── assets/                #   icons (SVG/PNG)
+│   ├── license-manager/           # section: licenses and extensions
+│   │   ├── index.html             #   only <main class="content">
+│   │   ├── app.css                #   only its own styles
+│   │   └── app.js                 #   only its own logic
+│   └── extension-store/           # section: extension catalog and Manage
+└── tools/dev-server.js            # local server with auto-reload
 ```
 
-Правило простое: **оболочка — в `shared-ui`, содержимое раздела — в своей папке.**
-Раздел не переопределяет стили оболочки; если чего-то не хватает, это добавляется
-в `shared-ui` один раз для всех.
+The rule is simple: **the shell lives in `shared-ui`, section content lives in its own folder.**
+A section does not override shell styles; if something is missing, it gets added
+to `shared-ui` once for everyone.
 
-## Запуск локально
+## Running locally
 
 ```bash
 node tools/dev-server.js
 ```
 
-Откроется на `http://localhost:5584/` (порт меняется через `PORT=6000 node tools/dev-server.js`).
-Сервер раздаёт репозиторий как есть, поэтому пути ведут себя ровно так же, как на Pages.
-Сборка не нужна: `packages/license-manager/index.html` можно открыть и файлом в браузере.
+Opens at `http://localhost:5584/` (change the port with `PORT=6000 node tools/dev-server.js`).
+The server serves the repository as is, so paths behave exactly the same as on Pages.
+No build is needed: `packages/license-manager/index.html` can also be opened as a file in the browser.
 
-## Забрать только один раздел
+## Checking out a single section
 
-Разделу нужна оболочка, поэтому в выгрузке всегда две папки: `shared-ui` и сам раздел.
+A section needs the shell, so a checkout always includes two folders: `shared-ui` and the section itself.
 
 ```bash
 git clone --filter=blob:none --no-checkout https://github.com/EncySoftware/ENCY_UI.git
@@ -52,31 +52,31 @@ git sparse-checkout set packages/shared-ui packages/license-manager
 git checkout main
 ```
 
-`--filter=blob:none` — частичный клон: файлы остальных разделов не скачиваются вообще.
-Добавить себе ещё один раздел позже: `git sparse-checkout add packages/extension-store`.
+`--filter=blob:none` is a partial clone: files of the other sections are not downloaded at all.
+To add another section later: `git sparse-checkout add packages/extension-store`.
 
-Ссылки на соседние разделы в сайдбаре при этом останутся: локально они дадут 404,
-на Pages работают. Это ожидаемо — оболочка одна на все разделы.
+Sidebar links to the neighboring sections will remain: locally they return 404,
+on Pages they work. This is expected — there is one shell for all sections.
 
-## Как добавить новый раздел
+## How to add a new section
 
-1. Скопировать папку любого раздела в `packages/<новый-id>` и вычистить содержимое
-   `index.html` (оставить `<main class="content">`), `app.css`, `app.js`.
-2. В `index.html` поправить `window.ENCY_APP = {id: "<новый-id>"}` и `<title>`.
-3. Добавить запись в реестр `SECTIONS` в `packages/shared-ui/chrome.js` — из неё строятся
-   пункт сайдбара и ссылка `../<id>/`.
-4. Добавить карточку в корневой `index.html`.
+1. Copy any section's folder to `packages/<new-id>` and clean out the contents of
+   `index.html` (keep `<main class="content">`), `app.css`, `app.js`.
+2. In `index.html`, update `window.ENCY_APP = {id: "<new-id>"}` and `<title>`.
+3. Add an entry to the `SECTIONS` registry in `packages/shared-ui/chrome.js` — it drives
+   the sidebar item and the `../<id>/` link.
+4. Add a card to the root `index.html`.
 
-`id` раздела = имя папки. Ссылки между разделами всегда относительные (`../<id>/`),
-поэтому одинаково работают и на `encysoftware.github.io/ENCY_UI/`, и в локальном клоне.
+The section `id` = folder name. Links between sections are always relative (`../<id>/`),
+so they work the same on `encysoftware.github.io/ENCY_UI/` and in a local clone.
 
-Вложенные разделы (например, экраны внутри открытого проекта) кладутся так же —
-папкой `packages/project-<что-именно>`; общая оболочка от этого не меняется.
+Nested sections (e.g. screens inside an open project) are laid out the same way —
+as a `packages/project-<something>` folder; the shared shell does not change.
 
-## Договорённости
+## Conventions
 
-- Никакого билд-шага и внешних зависимостей: прототип должен открываться из файла.
-- Все размеры и цвета — из токенов `shared-ui/tokens.css`, без «магических» значений.
-- Комментарии в коде — по-русски, отвечают на «почему», а не «что».
-- Данные в прототипах выдуманные, но покрывают все состояния интерфейса: так
-  разработчику не приходится угадывать, как выглядит истёкшая лицензия или пустой список.
+- No build step and no external dependencies: a prototype must open from a file.
+- All sizes and colors come from `shared-ui/tokens.css` tokens, no "magic" values.
+- Code comments answer "why", not "what".
+- Prototype data is made up but covers every interface state: this way
+  a developer never has to guess what an expired license or an empty list looks like.

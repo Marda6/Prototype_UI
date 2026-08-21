@@ -1,5 +1,5 @@
-// Extension Store — логика раздела.
-// Оболочка (титлбар, сайдбар, пин, online/offline) — ../shared-ui/chrome.js
+// Extension Store — section logic.
+// The shell (title bar, sidebar, pin, online/offline) lives in ../shared-ui/chrome.js
 var app = document.getElementById("app");
 
 document.querySelectorAll('.cstar').forEach(function(s){
@@ -10,7 +10,7 @@ document.querySelectorAll('.cstar').forEach(function(s){
   });
 });
 
-// установка: прогресс на разделителе + проценты на кнопке
+// installation: progress on the divider + percentage on the button
 document.querySelectorAll('.cinstall').forEach(function(b){
   b.addEventListener('click', function(e){
     e.stopPropagation();
@@ -41,7 +41,7 @@ document.querySelectorAll('.cinstall').forEach(function(b){
   });
 });
 
-// ===== Store: панель фильтров =====
+// ===== Store: filter panel =====
 (function(){
   var panel = document.getElementById('fpanel'),
       funnel = document.querySelector('.btn-funnel'),
@@ -54,7 +54,7 @@ document.querySelectorAll('.cinstall').forEach(function(b){
       resetBtn = document.getElementById('fReset'),
       state = { cat:'', price:'', pub:'', tags:[] };
 
-  // сбор тегов из карточек с частотой — так список масштабируется на любое число тегов
+  // collect tags from the cards with frequency — this way the list scales to any tag count
   var freq = {};
   cards.forEach(function(c){
     (c.dataset.tags || '').split(',').filter(Boolean).forEach(function(t){
@@ -85,7 +85,7 @@ document.querySelectorAll('.cinstall').forEach(function(b){
   function renderTags(){
     var q = tagQ.value.trim().toLowerCase(), matched = 0,
         items = [].slice.call(tagList.children);
-    // выбранные поднимаем наверх, чтобы не терялись в длинном списке
+    // selected ones are moved to the top so they don't get lost in a long list
     items.slice().reverse().forEach(function(el){
       if (state.tags.indexOf(el.dataset.tag) > -1) tagList.insertBefore(el, tagList.firstChild);
     });
@@ -113,7 +113,7 @@ document.querySelectorAll('.cinstall').forEach(function(b){
     });
   }
 
-  // радио Category и сегмент Price — одна логика «выбрать одно из группы»
+  // the Category radio and the Price segment share one "pick one of a group" logic
   document.querySelectorAll('.fopt, .fseg .fs').forEach(function(o){
     o.addEventListener('click', function(){
       var f = o.dataset.f;
@@ -137,7 +137,7 @@ document.querySelectorAll('.cinstall').forEach(function(b){
     renderTags(); apply();
   });
 
-  // вернуть все группы в положение «All»
+  // return all groups to the "All" position
   function clearPicks(){
     document.querySelectorAll('.fopt, .fseg .fs').forEach(function(x){
       x.classList.toggle('on', x.dataset.v === '');
@@ -146,7 +146,7 @@ document.querySelectorAll('.cinstall').forEach(function(b){
 
   renderTags();
 
-  // внешний вход: показать Store, отфильтрованный по одному тегу
+  // external entry point: show the Store filtered by a single tag
   window.storeFilterByTag = function(tag){
     var k = String(tag).trim().toLowerCase();
     if (!freq[k]) return false;
@@ -159,7 +159,7 @@ document.querySelectorAll('.cinstall').forEach(function(b){
   };
 })();
 
-// табы Store / Manage
+// Store / Manage tabs
 var pages = {
   store: document.getElementById('page-store'),
   manage: document.getElementById('page-manage'),
@@ -175,7 +175,7 @@ document.querySelectorAll('.ph-tab').forEach(function(t){
   });
 });
 
-// ===== просмотр расширения: открытие по карточке, карусель, возврат =====
+// ===== extension view: opened from a card, carousel, back navigation =====
 (function(){
   var d = pages.detail,
       track = document.getElementById('dGalTrack'),
@@ -185,11 +185,11 @@ document.querySelectorAll('.ph-tab').forEach(function(t){
       next = document.getElementById('dGalNext'),
       shots = [], idx = 0;
 
-  // карусель: массив путей к скриншотам; при одном кадре навигация скрыта
+  // carousel: an array of screenshot paths; navigation is hidden for a single frame
   function setShots(list, fallbackBg){
     shots = list.slice(); idx = 0;
     track.innerHTML = ''; thumbs.innerHTML = '';
-    if (!shots.length){                       // нет скриншотов — цветная заглушка категории
+    if (!shots.length){                       // no screenshots — colored category placeholder
       var ph = document.createElement('div');
       ph.className = 'dgal-slide'; ph.style.background = fallbackBg;
       track.appendChild(ph);
@@ -230,7 +230,7 @@ document.querySelectorAll('.ph-tab').forEach(function(t){
 
   document.querySelectorAll('.grid .card').forEach(function(c){
     c.addEventListener('click', function(e){
-      // клики по кнопкам внутри карточки не открывают страницу
+      // clicks on buttons inside the card don't open the page
       if (e.target.closest('.cinstall, .cstar')) return;
       var pub = c.dataset.pub,
           ver = (c.querySelector('.cpub').textContent.match(/v\d+(?:\.\d+)*(?:-[a-z]+(?:\.\d+)?)?/i) || ['v1.0.0'])[0],
@@ -258,8 +258,8 @@ document.querySelectorAll('.ph-tab').forEach(function(t){
       (c.dataset.tags || '').split(',').filter(Boolean).forEach(function(t){
         var s = document.createElement('span'), name = t.trim();
         s.className = 'dtag'; s.textContent = name;
-        s.title = 'Показать расширения с тегом «' + name + '»';
-        // клик по тегу возвращает в Store с фильтром по этому тегу
+        s.title = 'Show extensions tagged "' + name + '"';
+        // clicking a tag returns to the Store filtered by that tag
         s.addEventListener('click', function(){
           back();
           if (window.storeFilterByTag) window.storeFilterByTag(name);
@@ -267,11 +267,11 @@ document.querySelectorAll('.ph-tab').forEach(function(t){
         tw.appendChild(s);
       });
 
-      // скриншоты берём из data-shots карточки ("a.png|b.png"), иначе — заглушка
+      // screenshots come from the card's data-shots ("a.png|b.png"), otherwise the placeholder
       var list = (c.dataset.shots || '').split('|').filter(Boolean);
       setShots(list, getComputedStyle(cover).background);
 
-      // окно открывается поверх каталога — Store остаётся под ним
+      // the window opens over the catalog — the Store stays underneath
       d.hidden = false;
       d.querySelector('.dscroll').scrollTop = 0;
       about.classList.remove('open');
@@ -284,7 +284,7 @@ document.querySelectorAll('.ph-tab').forEach(function(t){
   document.getElementById('dBack').addEventListener('click', back);
   d.addEventListener('click', function(e){ if (e.target === d) back(); });
 
-  // «Read more» — раскрытие описания
+  // "Read more" — description expansion
   var about = document.getElementById('dAbout'),
       moreBtn = document.getElementById('dAboutMore');
   moreBtn.addEventListener('click', function(){
@@ -298,7 +298,7 @@ document.querySelectorAll('.ph-tab').forEach(function(t){
   });
 })();
 
-// выбор строки в таблице Installed
+// row selection in the Installed table
 document.querySelectorAll('.xrow').forEach(function(r){
   r.addEventListener('click', function(){
     document.querySelectorAll('.xrow').forEach(function(x){ x.classList.remove('sel'); });
@@ -306,7 +306,7 @@ document.querySelectorAll('.xrow').forEach(function(r){
   });
 });
 
-// копирование пути из ячейки; кнопки в строке не меняют выбор
+// copying the path from a cell; buttons in the row don't change the selection
 document.querySelectorAll('.xrow .xcopy').forEach(function(b){
   b.addEventListener('click', function(e){
     e.stopPropagation();
@@ -320,7 +320,7 @@ document.querySelectorAll('.xrow .xact .xd-btn').forEach(function(b){
   b.addEventListener('click', function(e){ e.stopPropagation(); });
 });
 
-// тоглы фидов (Enable/Disable в Actions)
+// feed toggles (Enable/Disable in Actions)
 document.querySelectorAll('[data-feedtgl]').forEach(function(t){
   t.addEventListener('click', function(e){
     e.stopPropagation();
@@ -328,7 +328,7 @@ document.querySelectorAll('[data-feedtgl]').forEach(function(t){
   });
 });
 
-// модалка Add feed
+// Add feed modal
 var feedOverlay = document.getElementById('feedOverlay');
 function closeFeedOverlay(){ feedOverlay.hidden = true; }
 document.getElementById('addFeedBtn').addEventListener('click', function(){ feedOverlay.hidden = false; });

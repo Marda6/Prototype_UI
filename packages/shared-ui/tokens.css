@@ -1,4 +1,4 @@
-/* ENCY Core — токены и базовый сброс. Общие для всех разделов. */
+/* ENCY Core — tokens and base reset. Shared by all sections. */
   :root{
     --ec-bg:#0e1010; --ec-bg-96:rgba(14,16,16,.96); --ec-bg-80:rgba(14,16,16,.80);
     --ec-fg-100:#f5f5f5; --ec-fg-96:rgba(245,245,245,.96); --ec-fg-80:rgba(245,245,245,.80);
@@ -9,8 +9,8 @@
     --ec-green:#00a36d; --ec-green-16:rgba(0,203,154,.16);
     --st-text:#f3f2f3; --st-text-60:rgba(243,242,243,.6);
     --st-green:#00cb9a; --st-blue:#1269d9;
-    /* акцент апгрейда: пробные модули и срок пробы */
-    /* акцент апгрейда — синий из градиента активного таба */
+    /* upgrade accent: trial modules and trial period */
+    /* upgrade accent — blue from the active tab gradient */
     --st-upg:#1269d9; --st-upg-txt:#5aa6ff; --st-upg-16:rgba(18,105,217,.16);
     --st-w12:rgba(255,255,255,.12); --st-w08:rgba(255,255,255,.08);
     --st-w06:rgba(255,255,255,.06); --st-w04:rgba(255,255,255,.04);

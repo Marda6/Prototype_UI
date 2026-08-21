@@ -1,28 +1,28 @@
 # License manager
 
-Раздел управления лицензиями: карточка текущей лицензии с режимом `Upgrade`,
-таблицы лицензий по лицензиатам и вкладка `Extensions`.
+License management section: current license card with an `Upgrade` mode,
+license tables grouped by licensee and the `Extensions` tab.
 
-Файлы: `index.html` — разметка контента, `app.css` — стили раздела, `app.js` — данные и логика.
-Оболочка окна берётся из `../shared-ui`.
+Files: `index.html` — content markup, `app.css` — section styles, `app.js` — data and logic.
+The window shell comes from `../shared-ui`.
 
-## Что показывает прототип
+## What the prototype shows
 
-- **Карточка текущей лицензии** — пакет продукта, состав (`Included`), срок и maintenance.
-  Кнопка `Upgrade` включает режим правки: выбор старшего пакета, добавление модулей,
-  `Save changes` включает пробный период, `Request upgrade` отправляет заявку дилеру,
-  `Reset changes` возвращает лицензию в исходное состояние.
-- **Таблицы** — сгруппированы по лицензиату; специально собраны все состояния:
+- **Current license card** — product package, contents (`Included`), term and maintenance.
+  The `Upgrade` button enables edit mode: picking a higher package, adding modules,
+  `Save changes` starts a trial period, `Request upgrade` sends a request to the dealer,
+  `Reset changes` returns the license to its original state.
+- **Tables** — grouped by licensee; all states are deliberately included:
   `Current`, `Valid`, `Invalid`, `Sign in required`, `Pending restart`, `Perpetual`,
-  истёкший срок (`Expired`, строка помечена красным) и закончившаяся maintenance.
-- **Activate / Release** — активация применяется только после перезапуска ENCY:
-  строка получает `Pending restart`, сверху появляется уведомление, текущая лицензия остаётся.
-- **Show expired** — истёкшие лицензии скрыты по умолчанию.
-- **Online / Offline** в титлбаре — временный тумблер прототипа: показывает, как ведут
-  себя лицензии с защитой `Account` без сети.
+  an expired term (`Expired`, the row is marked red) and lapsed maintenance.
+- **Activate / Release** — activation only applies after restarting ENCY:
+  the row gets `Pending restart`, a notification appears on top, the current license stays.
+- **Show expired** — expired licenses are hidden by default.
+- **Online / Offline** in the title bar — a temporary prototype toggle: shows how
+  `Account`-protected licenses behave without a network.
 
-## Данные
+## Data
 
-Все строки лежат в `LICENSES` в начале `app.js`:
-`remaining` — дни (`null` = perpetual, `0` = срок вышел), `maint` — дата окончания
-поддержки (прошедшая = закончилась, `null` = поддержки нет), `status` — состояние строки.
+All rows live in `LICENSES` at the top of `app.js`:
+`remaining` — days (`null` = perpetual, `0` = term expired), `maint` — maintenance end
+date (past = lapsed, `null` = no maintenance), `status` — row state.
