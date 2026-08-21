@@ -1,0 +1,287 @@
+/* License manager — только своё: таблицы лицензий, карточка текущей лицензии,
+   режим Upgrade и оффлайн-состояния. Оболочка — в ../shared-ui. */
+  /* ===== секции и таблицы (метрика из Manage) ===== */
+  .msect{display:flex;align-items:flex-end;justify-content:space-between;margin:16px 16px 0 30px;}
+  .msect-first{margin-top:8px;}
+  .msect h3{margin:0;color:var(--st-text);font:600 16px/24px var(--ec-font);}
+  .msect p{margin:2px 0 0;color:var(--ec-fg-56);}
+  .msect-btns{display:flex;gap:8px;}
+  .mbtn{height:28px;display:inline-flex;align-items:center;gap:6px;padding:0 16px;border-radius:36px;
+    background:var(--ec-fg-8);border:1px solid var(--ec-fg-16);color:var(--ec-fg-100);cursor:pointer;
+    font:400 12px/16px var(--ec-font);white-space:nowrap;}
+  .mbtn:hover{background:var(--ec-fg-12);}
+  .mbtn[hidden]{display:none;}
+  .xtable{margin:8px 16px 16px;background:var(--st-w04);border-radius:8px;padding:8px;
+    display:flex;flex-direction:column;}
+  .xrow,.xhead{border-bottom:1px solid var(--ec-fg-8);}
+  .xhead{height:24px;}
+  .xhead .xh{color:var(--ec-fg-56);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .xrow{cursor:pointer;}
+  .xrow:hover{background:var(--ec-fg-4);}
+  .xname{color:var(--ec-fg-96);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .xnum{color:var(--ec-fg-72);font-variant-numeric:tabular-nums;}
+  .xnum.warn{color:#ebda84;}
+  .xnum.bad{color:#ff5c77;}
+  .v.warn{color:#ebda84;}
+  /* красным — только истёкший срок самой лицензии */
+  .v.bad{color:#ff5c77;}
+  .xstate{color:var(--ec-fg-72);white-space:nowrap;}
+  .xstate.st-active{color:var(--st-green);}
+  .xstate.st-invalid{color:var(--ec-fg-48);}
+  .xstate.st-pending{color:#ebda84;}
+  .xsign{display:none;color:var(--ec-fg-56);}
+  /* оффлайн: у account-лицензий нет входа в систему */
+  .app.offline .xrow[data-prot="account"] .xstate .v{display:none;}
+  .app.offline .xrow[data-prot="account"] .xsign{display:inline;}
+  .xdim{color:var(--ec-fg-48);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .xact{gap:4px;padding:0 6px;}
+  /* продукт + чип с числом вложенных модулей; список — во всплывающей панели */
+  .xprod{gap:6px;}
+  .xprod .xname{flex:0 1 auto;min-width:0;}
+  .xcnt{flex:0 0 auto;height:16px;display:flex;align-items:center;padding:0 6px;border-radius:8px;
+    background:var(--ec-fg-8);color:var(--ec-fg-72);cursor:default;
+    font:400 11px/16px var(--ec-font);font-variant-numeric:tabular-nums;}
+  .xcnt:hover{background:var(--ec-fg-16);color:var(--ec-fg-96);}
+  /* панель позиционируется скриптом (position:fixed), чтобы не обрезаться таблицей */
+  .xpop{position:fixed;z-index:60;min-width:180px;max-width:280px;max-height:320px;overflow-y:auto;
+    background:#191b1d;border:1px solid var(--ec-fg-12);border-radius:8px;padding:6px;
+    box-shadow:0 16px 40px rgba(0,0,0,.5);}
+  .xpop .it{height:22px;display:flex;align-items:center;padding:0 8px;border-radius:4px;
+    color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);white-space:nowrap;}
+  .xpop[hidden]{display:none;}
+  .xact .xd-btn{height:22px;padding:0 10px;font:400 11px/16px var(--ec-font);}
+  .xd-btn{height:24px;padding:0 12px;border-radius:4px;background:var(--ec-fg-4);border:none;
+    color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);cursor:pointer;white-space:nowrap;}
+  .xd-btn:hover{background:var(--ec-fg-12);color:var(--ec-fg-96);}
+  /* ===== плашка текущей лицензии (под ней работает сессия) ===== */
+  /* левый край карточки совпадает с левым краем таблиц (16px) */
+  .cur{margin:8px 16px 0;display:flex;flex-direction:column;gap:12px;
+    padding:14px 16px;border-radius:8px;background:var(--st-w04);
+    border:1px solid var(--ec-fg-12);}
+  /* верхняя строка: чип · название · статус — и действия у правого края */
+  .cur-top{display:flex;align-items:center;gap:16px;min-width:0;}
+  .cur-head{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:8px;}
+  .cur-head b{color:var(--st-text);font:500 16px/24px var(--ec-font);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cur-btns{display:flex;gap:8px;flex:0 0 auto;}
+  /* включённый режим у кнопки-переключателя — нейтральной подсветкой, без акцента */
+  .mbtn.on{background:var(--ec-fg-16);border-color:var(--ec-fg-24);}
+  /* второстепенное действие: только текст, фон и рамка появляются по ховеру */
+  .mbtn-ghost{background:transparent;border-color:transparent;color:var(--ec-fg-48);}
+  .mbtn-ghost:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+  /* характеристики: подпись сверху, значение снизу — колонки одной высоты */
+  .cur-meta{display:flex;align-items:flex-start;flex-wrap:wrap;gap:12px 32px;min-width:0;}
+  .cur-meta .grp{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .cur-meta .lbl{color:var(--ec-fg-48);font:400 12px/16px var(--ec-font);white-space:nowrap;}
+  .cur-meta .val{color:var(--ec-fg-96);white-space:nowrap;font-variant-numeric:tabular-nums;
+    overflow:hidden;text-overflow:ellipsis;}
+  .cur-div{height:1px;background:var(--ec-fg-8);}
+  /* выбор пакета — виден только в режиме апгрейда, на месте обычного значения */
+  /* рамка стоит по левому краю колонки — значение сдвигается, но столбцы не разъезжаются */
+  .pkg-pick{height:24px;margin:-3px 0;display:inline-flex;align-items:center;gap:8px;
+    padding:0 10px;border-radius:4px;border:1px solid var(--ec-fg-16);background:var(--ec-fg-8);
+    color:var(--ec-fg-100);cursor:pointer;font:400 13px/16px var(--ec-font);}
+  .pkg-pick:hover{background:var(--ec-fg-12);border-color:var(--ec-fg-24);}
+  .pkg-pick[hidden]{display:none;}
+  .pkg-pick .ar{width:8px;height:5px;flex:0 0 8px;color:var(--ec-fg-48);}
+  /* выбран старший пакет: значение остаётся текстом, но в цвете апгрейда */
+  .pkg-new{color:var(--st-upg-txt);}
+  .xpop .it.cur-it{color:var(--ec-fg-96);}
+  .xpop .it.off{color:var(--ec-fg-24);cursor:default;}
+  .xpop .it.off:hover{background:transparent;}
+  /* срок пробного апгрейда — один на весь набор, заливкой чтобы читался белый текст */
+  .utrial{flex:0 0 auto;height:22px;display:flex;align-items:center;padding:0 10px;
+    border-radius:11px;background:var(--st-upg-16);color:var(--st-upg-txt);
+    box-shadow:inset 0 0 0 1px var(--st-upg);
+    font:400 12px/16px var(--ec-font);white-space:nowrap;}
+  .utrial[hidden]{display:none;}
+  /* подсказка режима правки — в шапке карточки, слева от кнопок */
+  /* подсказка режима правки — иконка с всплывающим текстом, чтобы не занимать строку */
+  .ihint{position:relative;align-self:center;width:20px;height:20px;flex:0 0 20px;
+    display:flex;align-items:center;justify-content:center;color:var(--ec-fg-48);cursor:help;}
+  .ihint:hover{color:var(--ec-fg-96);}
+  .ihint[hidden]{display:none;}
+  .ihint svg{width:16px;height:16px;}
+  .ihint::after{content:attr(data-tip);position:absolute;top:26px;right:0;z-index:70;
+    width:264px;padding:8px 10px;border-radius:6px;background:#1a1c1c;
+    border:1px solid var(--ec-fg-12);box-shadow:0 8px 32px rgba(0,0,0,.5);
+    color:var(--ec-fg-80);font:400 12px/16px var(--ec-font);text-align:left;
+    opacity:0;pointer-events:none;transition:opacity .12s ease;}
+  .ihint:hover::after{opacity:1;}
+  .lnk[hidden]{display:none;}
+  /* строка правок режима апгрейда */
+  .cur-req{display:flex;align-items:center;gap:12px;padding-top:12px;
+    border-top:1px solid var(--ec-fg-8);}
+  .cur-req[hidden]{display:none;}
+  .cur-req .sum{flex:1 1 0;min-width:0;color:var(--ec-fg-48);
+    font:400 12px/16px var(--ec-font);}
+  .cur-req.sent .sum{color:var(--ec-fg-72);}
+  .mbtn-pri{background:var(--ec-fg-16);border-color:var(--ec-fg-24);color:var(--ec-fg-100);}
+  .mbtn-pri:hover{background:var(--ec-fg-24);}
+  .mbtn-pri:disabled{background:var(--ec-fg-8);border-color:var(--ec-fg-12);
+    color:var(--ec-fg-24);cursor:default;}
+  .lnk{background:none;border:none;padding:0;cursor:pointer;color:var(--ec-fg-72);
+    font:400 12px/16px var(--ec-font);}
+  .lnk:hover{color:var(--ec-fg-96);text-decoration:underline;}
+  /* состав лицензии — чипы модулей, длинный список сворачивается */
+  .cur-mods{display:flex;align-items:flex-start;gap:12px;min-width:0;}
+  /* подписи одной ширины — ширину задаёт самая длинная из них (--lblw считает скрипт),
+     чтобы списки модулей начинались на одной вертикали без запаса «на глаз» */
+  .cur-mods > .lbl{flex:0 0 var(--lblw,auto);width:var(--lblw,auto);padding-top:2px;
+    color:var(--ec-fg-48);font:400 12px/16px var(--ec-font);white-space:nowrap;}
+  .cur-mods > .lbl .n{color:var(--ec-fg-24);}
+  /* режим апгрейда: карточка получает пунктирную рамку — нейтральную, без цвета */
+  .cur.upg{border-style:dashed;border-color:var(--ec-fg-56);background:var(--st-w06);}
+  /* модуль апгрейда: тот же список Included, но заливкой — он действует пробно */
+  .mod.upg{background:var(--st-upg-16);color:var(--st-upg-txt);
+    box-shadow:inset 0 0 0 1px var(--st-upg);}
+  .mod .rm{margin-left:1px;margin-right:-3px;width:16px;height:16px;flex:0 0 16px;display:flex;align-items:center;
+    justify-content:center;border:none;background:none;padding:0;cursor:pointer;
+    color:var(--st-upg-txt);border-radius:3px;}
+  .mod .rm:hover{background:rgba(18,105,217,.32);color:#fff;}
+  .mod .rm svg{width:8px;height:8px;}
+  /* «+» открывает список доступных модулей */
+  .mod-add{height:24px;display:flex;align-items:center;gap:5px;padding:0 10px;border-radius:4px;
+    border:1px dashed var(--ec-fg-24);background:transparent;color:var(--ec-fg-72);cursor:pointer;
+    font:400 12px/16px var(--ec-font);}
+  .mod-add:hover{border-color:var(--ec-fg-48);color:var(--ec-fg-96);background:var(--st-w06);}
+  .cur-mods .mods{display:flex;flex-wrap:wrap;gap:4px;min-width:0;}
+  .mod{height:24px;display:flex;align-items:center;gap:6px;padding:0 10px;border-radius:4px;
+    background:var(--ec-fg-6);color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);white-space:nowrap;}
+  .mod-more{background:none;border:none;height:24px;padding:0 6px;cursor:pointer;
+    color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);}
+  .mod-more:hover{text-decoration:underline;}
+
+  /* галочка «показать истёкшие»: по умолчанию такие лицензии скрыты */
+  /* заголовок списка и его контролы — одной строкой */
+  /* сверху воздух, чтобы список отделялся от карточки текущей лицензии;
+     заголовок выровнен по названию страницы, контролы — по правому краю таблиц */
+  .shead{flex:0 0 auto;display:flex;align-items:center;gap:16px;margin:28px 16px 0;min-width:0;}
+  .shead h3{margin:0 0 0 10px;flex:0 0 auto;color:var(--st-text);font:600 16px/24px var(--ec-font);}
+  .shead .seg{flex:0 0 auto;}
+  .shead-right{position:relative;margin-left:auto;display:flex;align-items:center;gap:20px;flex:0 0 auto;}
+  .shead-right .swrap{width:240px;}
+  .shead-right .menu{top:36px;}
+
+  /* правая группа тулбара: обновить данные и меню действий */
+  .tb-right{position:relative;display:flex;align-items:center;gap:4px;flex:0 0 auto;}
+  .ibtn{width:28px;height:28px;flex:0 0 28px;display:flex;align-items:center;justify-content:center;
+    border-radius:6px;cursor:pointer;color:var(--ec-fg-72);}
+  .ibtn:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+  .ibtn.on{background:var(--ec-fg-12);color:var(--ec-fg-96);}
+  .ibtn svg{width:16px;height:16px;}
+  /* «крутится» пока подтягиваются данные */
+  .ibtn.spin svg{animation:ispin .7s linear infinite;}
+  @keyframes ispin{to{transform:rotate(360deg);}}
+  .menu{position:absolute;top:32px;right:0;z-index:60;min-width:220px;padding:6px;
+    background:#191b1d;border:1px solid var(--ec-fg-12);border-radius:8px;
+    box-shadow:0 16px 40px rgba(0,0,0,.5);display:flex;flex-direction:column;}
+  .menu[hidden]{display:none;}
+  .mitem{display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border-radius:6px;
+    cursor:pointer;color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);white-space:nowrap;}
+  .mitem:hover{background:var(--ec-fg-8);}
+  .mdiv{height:1px;margin:4px 6px;background:var(--ec-fg-8);}
+  .mi{margin-left:auto;width:16px;height:16px;flex:0 0 16px;display:flex;align-items:center;
+    justify-content:center;color:var(--ec-fg-48);}
+  .mi:hover{color:var(--ec-fg-96);}
+  .mi svg{width:14px;height:14px;}
+
+  /* свитчер «показать истёкшие» */
+  .sw{width:24px;height:14px;flex:0 0 24px;border-radius:8px;background:var(--ec-fg-16);
+    position:relative;transition:background-color .12s ease;}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;
+    background:var(--ec-fg-56);transition:transform .12s ease, background-color .12s ease;}
+  .sw.on{background:var(--st-green);}
+  .sw.on::after{transform:translateX(10px);background:#fff;}
+  .tchk{display:flex;align-items:center;gap:8px;height:28px;cursor:pointer;
+    color:var(--ec-fg-72);white-space:nowrap;user-select:none;}
+  .tchk:hover{color:var(--ec-fg-96);}
+  .tchk:hover .sw{background:var(--ec-fg-24);}
+  .tchk:hover .sw.on{background:var(--st-green);}
+  .tchk.on{color:var(--ec-fg-96);}
+  /* строку скрывает активный фильтр (сегмент или свитчер истёкших) */
+  .xrow.hid{display:none;}
+
+  /* ===== оффлайн-режим ===== */
+  /* статус соединения — чип в шапке страницы, у правого края */
+  .ostate{display:none;margin-left:auto;flex:0 0 auto;align-items:center;gap:6px;
+    height:24px;padding:0 10px;border-radius:16px;background:rgba(235,218,132,.12);
+    color:#ebda84;font:400 12px/16px var(--ec-font);white-space:nowrap;cursor:default;}
+  .ostate .dot{width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:#ebda84;}
+  .app.offline .ostate{display:flex;}
+  /* действия уровня страницы: добавить лицензию можно всегда, а не только в группе */
+  .ph-actions{position:relative;margin-left:auto;display:flex;align-items:center;gap:4px;flex:0 0 auto;}
+  .app.offline .ph-actions{margin-left:0;}
+  .ph-actions .mbtn .mi{margin-left:2px;}
+  /* лицензии, которые нельзя проверить без сети, гаснут и получают свой чип */
+  .xoff{display:none;color:var(--ec-fg-56);white-space:nowrap;}
+  .app.offline .xrow[data-prot="account"] .v{display:none;}
+  .app.offline .xrow[data-prot="account"] .xoff{display:inline;}
+  .app.offline .xrow[data-prot="account"]{opacity:.45;}
+  .app.offline .xrow[data-prot="account"] .xd-btn{pointer-events:none;opacity:.5;}
+  /* плашка текущей лицензии в оффлайне — жёлтый акцент у чипа и статуса */
+  .app.offline .cur .xuse{background:rgba(235,218,132,.16);color:#ebda84;}
+  .curoff{display:none;}
+  .app.offline .curoff{display:flex;align-items:center;gap:6px;color:#ebda84;white-space:nowrap;}
+
+
+
+  /* подпись группы: чьи это лицензии */
+  /* левый отступ как у заголовка «Software licenses» (16 + 10) — подписи групп на одной вертикали */
+  .lsee{display:flex;align-items:center;gap:8px;margin:16px 16px 0 26px;min-width:0;}
+  .lsee .lbl{color:var(--ec-fg-48);font:400 12px/16px var(--ec-font);}
+  .lsee b{color:var(--st-text);font:600 12px/16px var(--ec-font);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .lsee .n{color:var(--ec-fg-48);white-space:nowrap;}
+  /* действие группы: загрузить файл лицензии в эту же группу */
+  .lbtn{height:22px;padding:0 10px;border-radius:16px;border:1px solid var(--ec-fg-16);
+    background:transparent;color:var(--ec-fg-72);cursor:pointer;white-space:nowrap;
+    font:400 11px/16px var(--ec-font);}
+  .lbtn:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+  .lsee + .xtable{margin-top:6px;}
+
+  /* строка той же лицензии в таблице — помечена и подсвечена */
+  .xrow.inuse{background:var(--ec-fg-6);box-shadow:inset 2px 0 0 var(--st-green);}
+  .xrow.inuse:hover{background:var(--ec-fg-8);}
+  /* истёкшая лицензия: видна сразу — красная метка слева и приглушённая строка */
+  .xrow[data-status="expired"]{background:rgba(255,92,119,.06);
+    box-shadow:inset 2px 0 0 #ff5c77;}
+  .xrow[data-status="expired"]:hover{background:rgba(255,92,119,.10);}
+  .xrow[data-status="expired"] .xname,
+  .xrow[data-status="expired"] .xdim,
+  .xrow[data-status="expired"] .xnum{color:var(--ec-fg-48);}
+  .xrow[data-status="expired"] .v.bad{color:#ff5c77;}
+  .xuse{flex:0 0 auto;height:22px;display:flex;align-items:center;padding:0 10px;border-radius:11px;
+    background:var(--ec-green-16);color:var(--st-green);font:400 12px/16px var(--ec-font);}
+
+  /* лицензии и контейнеры — одна сетка:
+     ID · Product · Remaining · Type · Protection · Maintenance · Status · Actions */
+  .lgrid{display:grid;
+    grid-template-columns:80px minmax(160px,1.2fr) 92px 144px 92px 104px 124px 104px 36px;
+    align-items:center;height:36px;padding:0;font:400 12px/16px var(--ec-font);}
+  /* у софтверных лицензий добавляется колонка выбора «Use» */
+  .lgrid>*{padding:0 8px;height:36px;display:flex;align-items:center;gap:6px;min-width:0;}
+  /* Actions: одна иконка по центру ячейки, всё остальное — в её меню */
+  /* активация видна сразу: кнопка на всю ширину столбца */
+  .ucell{padding:0 8px;}
+  .ucell .xd-btn{flex:1 1 auto;height:22px;justify-content:center;border-radius:4px;
+    font:400 11px/16px var(--ec-font);}
+  .ucell .xd-btn.rel{background:transparent;box-shadow:inset 0 0 0 1px var(--ec-fg-16);}
+  .ucell .xd-btn.rel:hover{background:var(--ec-fg-8);}
+  /* «⋮» по центру своей узкой ячейки */
+  .mcell{position:relative;justify-content:center;padding:0;}
+  .ibtn-sm{width:22px;height:22px;flex:0 0 22px;border-radius:4px;}
+  .ibtn-sm svg{width:14px;height:14px;}
+  /* меню строки прижато к правому краю ячейки, иначе уезжает за окно */
+  .mcell .menu{top:26px;left:auto;right:0;min-width:200px;}
+
+  /* уведомление о необходимости перезапуска */
+  .rbar{flex:0 0 auto;display:flex;align-items:center;gap:8px;margin:8px 16px 0;
+    padding:8px 12px;border-radius:8px;background:rgba(235,218,132,.10);
+    border:1px solid rgba(235,218,132,.32);color:var(--ec-fg-80);}
+  .rbar[hidden]{display:none;}
+  .rbar b{color:#ebda84;font:600 12px/16px var(--ec-font);}
+  .rbar .rid{color:var(--ec-fg-96);font-variant-numeric:tabular-nums;}
+  /* шапка ниже строк данных — она подпись, а не запись */
+  .lgrid.xhead,.lgrid.xhead>*{height:28px;}
+  .lgrid>:not(:first-child){border-left:1px solid var(--ec-fg-8);}

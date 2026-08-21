@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENCY Core — License manager</title>
+<!-- Целевой экран прототипа: 1920×1080 при системном масштабе 125%
+     → рабочая CSS-область 1536×864 логических px. -->
+<meta name="ency-target-viewport" content="1536x864">
+<link rel="stylesheet" href="../shared-ui/tokens.css">
+<link rel="stylesheet" href="../shared-ui/chrome.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<!-- id раздела: по нему оболочка подсвечивает активный пункт сайдбара -->
+<script>window.ENCY_APP = {id: "license-manager"};</script>
+<div class="app" id="app">
+  <div class="workspace">
+    <main class="content">
+      <div class="page-head">
+        <div class="ph-title">
+          <span class="ph-icn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--st-text)" stroke-width="1.5"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8.5" cy="9.5" r="4"/><path d="M11.7 12.4 20 20.7M16.7 17.4l2.1-2.1"/>
+            </svg>
+          </span>
+          <h1 class="page-title">License manager</h1>
+        </div>
+        <div class="ph-div"></div>
+        <div class="ph-tabs">
+          <span class="ph-tab active" data-page="licenses">Software licenses</span>
+          <span class="ph-tab" data-page="containers">Extensions</span>
+        </div>
+        <!-- состояние соединения живёт в шапке страницы, справа: это статус, а не событие -->
+        <span class="ostate" title="Account-based licenses can’t be verified without connection. Local license files and dongles stay available.">
+          <span class="dot"></span><span class="t">Offline</span>
+        </span>
+        <div class="ph-actions">
+          <span class="ibtn" data-refresh title="Refresh license data">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 8a5 5 0 1 1-1.6-3.7"/><path d="M13 2.5V5h-2.5"/>
+            </svg>
+          </span>
+          <span class="ibtn" data-more title="Add license">
+            <svg viewBox="0 0 16 16" fill="currentColor">
+              <circle cx="8" cy="3.5" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="8" cy="12.5" r="1.2"/>
+            </svg>
+          </span>
+          <div class="menu" hidden>
+            <span class="mitem">Load from file</span>
+            <span class="mitem">Request license…</span>
+            <span class="mitem">Activate by CM code
+              <span class="mi" title="CodeMeter activation code provided by your reseller">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"
+                     stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><path d="M8 5.2v.1M8 7.4v3.4"/></svg>
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Licenses ===== -->
+      <div class="page" id="page-licenses">
+        <div class="pbody">
+        <!-- выбрана другая лицензия: применится после перезапуска ENCY -->
+        <div class="rbar" id="rbar" hidden>
+          <b>Restart required</b>
+          <span>License <span class="rid"></span> will be used after ENCY restarts.
+            The current license stays in use until then.</span>
+        </div>
+
+        <!-- лицензия, под которой работает текущая сессия ENCY -->
+        <div class="cur">
+          <div class="cur-top">
+            <div class="cur-head">
+              <b id="curName">ENCY 5x Mill</b>
+              <span class="xuse">Current</span>
+              <!-- апгрейд действует пробно: срок один на весь набор и не продлевается правками -->
+              <span class="utrial" id="utrial" hidden>Upgrade trial · 23 d left</span>
+              <span class="curoff">Grace period · 7 d left</span>
+            </div>
+            <div class="cur-btns">
+              <!-- в режиме правки подсказка и Cancel встают слева от той же кнопки,
+                   которая превращается из Upgrade в Save changes -->
+              <span class="ihint" id="reqSum" data-tip="" hidden>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"
+                  stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v4"/>
+                  <path d="M8 4.9v.6"/></svg>
+              </span>
+              <button class="mbtn mbtn-ghost" id="upgReset" hidden>Reset changes</button>
+              <button class="mbtn" id="upgCancel" hidden>Cancel</button>
+              <button class="mbtn" id="upgBtn">Upgrade</button>
+              <button class="mbtn mbtn-pri" id="reqBtn" hidden>Request upgrade</button>
+            </div>
+          </div>
+
+          <div class="cur-meta">
+            <span class="grp"><span class="lbl">ID</span><span class="val">#421480</span></span>
+            <!-- пакет продукта: в режиме апгрейда значение превращается в выбор старшего пакета -->
+            <span class="grp"><span class="lbl">Package</span>
+              <span class="val" id="pkgVal">5x Mill</span>
+              <button class="pkg-pick" id="pkgBtn" hidden>
+                <span class="cu">5x Mill</span>
+                <svg class="ar" viewBox="0 0 8 5" fill="none" stroke="currentColor" stroke-width="1.2"
+                  stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l3 3 3-3"/></svg>
+              </button>
+            </span>
+            <span class="grp"><span class="lbl">Licensee</span><span class="val">TONINI FABIO ELETTROMECCANICA</span></span>
+            <span class="grp"><span class="lbl">Type</span><span class="val">Commercial</span></span>
+            <span class="grp"><span class="lbl">Protection</span><span class="val">Account</span></span>
+            <span class="grp"><span class="lbl">Remaining</span><span class="val">199 d</span></span>
+            <span class="grp"><span class="lbl">Maintenance</span><span class="val">320 d · 2027-06-30</span></span>
+          </div>
+
+          <div class="cur-div"></div>
+
+          <!-- состав лицензии: модули собираются скриптом из data-items -->
+          <!-- «@trial:N» — модуль выдан пробно, N дней до конца -->
+          <div class="cur-mods" data-items="Adaptive|ENCY NB 3 5D|ENCY NB 3D|ENCY NB 3 2D|ENCY NB 3 6D|Disc Roughing|ENCY NB 3 operations|Multichannel|Nesting@trial:23|Robot+@trial:12|Robotic turning|SOLIDWORKS Reader|Spraying/Painting|Teamcenter integration|Turn XZCYB|Welding|Wire EDM@trial:5">
+            <span class="lbl">Included <span class="n"></span></span>
+            <span class="mods"></span>
+          </div>
+
+          <!-- заявка уже отправлена дилеру: правки набора её сбрасывают -->
+          <div class="cur-req sent" id="curSent" hidden>
+            <span class="sum">Upgrade request sent to the dealer · you will be notified when the license is updated</span>
+            <button class="lnk" id="reqUndo">Withdraw</button>
+          </div>
+        </div>
+
+        <div class="shead">
+          <h3>Software licenses</h3>
+          <div class="shead-right">
+            <span class="swrap">
+              <input class="search" type="text" placeholder="Search">
+              <img src="../shared-ui/assets/st-search.svg" alt="">
+            </span>
+            <label class="tchk" data-exp>Show expired<span class="sw"></span></label>
+          </div>
+        </div>
+
+        <!-- лицензии сгруппированы по лицензиату: у одной учётной записи их может быть несколько -->
+        <div class="lsee">
+          <b>TONINI FABIO ELETTROMECCANICA</b>
+          <span class="n">6 licenses</span>
+        </div>
+
+        <div class="xtable use" id="tblTonini">
+          <div class="lgrid xhead">
+            <span class="xh">ID</span><span class="xh">License</span><span class="xh">Remaining</span>
+            <span class="xh">Type</span><span class="xh">Protection</span><span class="xh">Maintenance</span>
+            <span class="xh">Status</span><span class="xh"></span><span class="xh"></span>
+          </div>
+        </div>
+
+        <!-- вторая группа — лицензии, привязанные к личной учётной записи -->
+        <div class="lsee">
+          <b>ruslan.m@encycam.io</b>
+          <span class="n">3 licenses</span>
+        </div>
+
+        <div class="xtable use" id="tblEncySoft">
+          <div class="lgrid xhead">
+            <span class="xh">ID</span><span class="xh">License</span><span class="xh">Remaining</span>
+            <span class="xh">Type</span><span class="xh">Protection</span><span class="xh">Maintenance</span>
+            <span class="xh">Status</span><span class="xh"></span><span class="xh"></span>
+          </div>
+        </div>
+      </div>
+
+        </div>
+
+      <!-- ===== Extensions: лицензии на расширения — Machine / Post / Operation / Container ===== -->
+      <div class="page" id="page-containers" hidden>
+        <div class="pbody">
+        <div class="shead">
+          <h3>Extensions</h3>
+          <div class="seg">
+            <span class="sitem active" data-filter="" data-label="All">All<span class="cnt">0</span></span>
+            <span class="sitem" data-filter="kind:machine" data-label="Machine">Machine<span class="cnt">0</span></span>
+            <span class="sitem" data-filter="kind:post" data-label="Post">Post<span class="cnt">0</span></span>
+            <span class="sitem" data-filter="kind:operation" data-label="Operation">Operation<span class="cnt">0</span></span>
+            <span class="sitem" data-filter="kind:interpreter" data-label="Interpreters">Interpreters<span class="cnt">0</span></span>
+            <span class="sitem" data-filter="kind:extension" data-label="Extensions">Extensions<span class="cnt">0</span></span>
+          </div>
+          <div class="shead-right">
+            <span class="swrap">
+              <input class="search" type="text" placeholder="Search">
+              <img src="../shared-ui/assets/st-search.svg" alt="">
+            </span>
+            <label class="tchk" data-exp>Show expired<span class="sw"></span></label>
+          </div>
+        </div>
+
+        <div class="xtable use" id="tblExt">
+          <div class="lgrid xhead">
+            <span class="xh">ID</span><span class="xh">License</span><span class="xh">Remaining</span>
+            <span class="xh">Type</span><span class="xh">Protection</span><span class="xh">Maintenance</span>
+            <span class="xh">Status</span><span class="xh"></span><span class="xh"></span>
+          </div>
+        </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+<script src="../shared-ui/chrome.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

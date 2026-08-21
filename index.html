@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENCY UI — прототипы</title>
+<link rel="stylesheet" href="packages/shared-ui/tokens.css">
+<style>
+  /* хаб: единственная страница вне разделов, поэтому стили держим здесь */
+  body{display:flex;align-items:center;justify-content:center;padding:48px 24px;}
+  .hub{width:100%;max-width:880px;}
+  h1{margin:0;color:var(--st-text);font:500 24px/28px var(--ec-font);letter-spacing:.48px;}
+  .sub{margin:8px 0 32px;color:var(--ec-fg-48);font:400 13px/20px var(--ec-font);}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
+  a.card{display:flex;flex-direction:column;gap:6px;padding:16px;border-radius:8px;
+    background:var(--st-w04);border:1px solid var(--ec-fg-12);text-decoration:none;}
+  a.card:hover{background:var(--st-w06);border-color:var(--ec-fg-24);}
+  a.card b{color:var(--st-text);font:500 14px/20px var(--ec-font);}
+  a.card span{color:var(--ec-fg-48);font:400 12px/16px var(--ec-font);}
+  a.card code{color:var(--ec-fg-64);font:400 11px/16px ui-monospace,SFMono-Regular,Consolas,monospace;}
+  .foot{margin-top:32px;color:var(--ec-fg-48);font:400 12px/18px var(--ec-font);}
+  .foot a{color:var(--st-green);}
+</style>
+</head>
+<body>
+<div class="hub">
+  <h1>ENCY UI — прототипы</h1>
+  <p class="sub">Тёмная тема ENCY Core. Целевой экран: 1920×1080 при масштабе 125% — 1536×864 CSS px.</p>
+
+  <div class="grid">
+    <a class="card" href="packages/license-manager/">
+      <b>License manager</b>
+      <span>Лицензии и расширения: текущая лицензия, режим Upgrade, заявки дилеру</span>
+      <code>packages/license-manager</code>
+    </a>
+    <a class="card" href="packages/extension-store/">
+      <b>Extension Store</b>
+      <span>Каталог расширений, окно расширения, раздел Manage</span>
+      <code>packages/extension-store</code>
+    </a>
+  </div>
+
+  <p class="foot">
+    Оболочка приложения (титлбар, сайдбар, шапка страницы, токены) — в
+    <code>packages/shared-ui</code>. Как добавить раздел и как выкачать только один —
+    в <a href="https://github.com/EncySoftware/ENCY_UI#readme">README</a>.
+  </p>
+</div>
+</body>
+</html>

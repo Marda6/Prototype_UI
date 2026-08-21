@@ -1,0 +1,15 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="path-1-inside-1_6076_25272" fill="white">
+<rect width="10" height="10" rx="1"/>
+</mask>
+<rect width="10" height="10" rx="1" fill="white" fill-opacity="0.08" stroke="#F5F5F5" stroke-width="4" stroke-linejoin="round" mask="url(#path-1-inside-1_6076_25272)"/>
+<mask id="path-2-inside-2_6076_25272" fill="white">
+<rect x="14" width="10" height="10" rx="1"/>
+</mask>
+<rect x="14" width="10" height="10" rx="1" fill="white" fill-opacity="0.08" stroke="#F5F5F5" stroke-width="4" stroke-linejoin="round" mask="url(#path-2-inside-2_6076_25272)"/>
+<mask id="path-3-inside-3_6076_25272" fill="white">
+<rect y="14" width="10" height="10" rx="1"/>
+</mask>
+<rect y="14" width="10" height="10" rx="1" fill="white" fill-opacity="0.08" stroke="#F5F5F5" stroke-width="4" stroke-linejoin="round" mask="url(#path-3-inside-3_6076_25272)"/>
+<path d="M14 19H24M19 14V24" stroke="#F5F5F5" stroke-width="2" stroke-linejoin="round"/>
+</svg>

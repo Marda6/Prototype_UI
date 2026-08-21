@@ -1,0 +1,32 @@
+/* ENCY Core — токены и базовый сброс. Общие для всех разделов. */
+  :root{
+    --ec-bg:#0e1010; --ec-bg-96:rgba(14,16,16,.96); --ec-bg-80:rgba(14,16,16,.80);
+    --ec-fg-100:#f5f5f5; --ec-fg-96:rgba(245,245,245,.96); --ec-fg-80:rgba(245,245,245,.80);
+    --ec-fg-72:rgba(245,245,245,.72); --ec-fg-64:rgba(245,245,245,.64); --ec-fg-56:rgba(245,245,245,.56);
+    --ec-fg-48:rgba(245,245,245,.48);
+    --ec-fg-24:rgba(245,245,245,.24); --ec-fg-16:rgba(245,245,245,.16); --ec-fg-12:rgba(245,245,245,.12); --ec-fg-8:rgba(245,245,245,.08);
+    --ec-fg-6:rgba(245,245,245,.06); --ec-fg-4:rgba(245,245,245,.04);
+    --ec-green:#00a36d; --ec-green-16:rgba(0,203,154,.16);
+    --st-text:#f3f2f3; --st-text-60:rgba(243,242,243,.6);
+    --st-green:#00cb9a; --st-blue:#1269d9;
+    /* акцент апгрейда: пробные модули и срок пробы */
+    /* акцент апгрейда — синий из градиента активного таба */
+    --st-upg:#1269d9; --st-upg-txt:#5aa6ff; --st-upg-16:rgba(18,105,217,.16);
+    --st-w12:rgba(255,255,255,.12); --st-w08:rgba(255,255,255,.08);
+    --st-w06:rgba(255,255,255,.06); --st-w04:rgba(255,255,255,.04);
+    --ec-font:'Inter','Inter var',system-ui,-apple-system,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box}
+  *{scrollbar-width:thin;scrollbar-color:var(--ec-fg-16) transparent;}
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--ec-fg-16);border-radius:4px;
+    border:2px solid transparent;background-clip:content-box;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--ec-fg-24);background-clip:content-box;}
+  ::-webkit-scrollbar-corner{background:transparent;}
+  html,body{height:100%}
+  body{margin:0;background:var(--ec-bg);color:var(--ec-fg-72);font-family:var(--ec-font);
+    font-size:12px;line-height:16px;-webkit-font-smoothing:antialiased;}
+  img{display:block}
+  .app{position:fixed;inset:0;display:flex;flex-direction:column;}
+  .workspace{flex:1 1 0;min-height:0;display:flex;gap:6px;padding:12px 12px 12px 6px;}

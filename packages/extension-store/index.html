@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENCY Core — Extension Store</title>
+<meta name="ency-target-viewport" content="1536x864">
+<link rel="stylesheet" href="../shared-ui/tokens.css">
+<link rel="stylesheet" href="../shared-ui/chrome.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<!-- id раздела: по нему оболочка подсвечивает активный пункт сайдбара -->
+<script>window.ENCY_APP = {id: "extension-store"};</script>
+<div class="app" id="app">
+  <div class="workspace">
+    <main class="content">
+      <div class="page-head">
+        <div class="ph-title">
+          <span class="ph-icn"><img src="../shared-ui/assets/st-ext.svg" alt=""></span>
+          <h1 class="page-title">Extension Store</h1>
+        </div>
+        <div class="ph-div"></div>
+        <div class="ph-tabs">
+          <span class="ph-tab active" data-page="store">Store</span>
+          <span class="ph-tab" data-page="manage">Manage</span>
+        </div>
+      </div>
+
+      <div class="page" id="page-store">
+      <div class="toolbar">
+        <div class="tb-left">
+          <div class="seg">
+            <span class="sitem active">All&nbsp;<span class="cnt">245</span></span>
+            <span class="sitem">Installed 8</span>
+          </div>
+          <span class="chip-star" title="Избранные"><img src="../shared-ui/assets/st-star.svg" alt=""></span>
+          <div class="tb-search">
+            <span class="swrap">
+              <input class="search" type="text" placeholder="Search">
+              <img src="../shared-ui/assets/st-search.svg" alt="">
+            </span>
+            <span class="btn-funnel" title="Фильтр"><img src="../shared-ui/assets/st-funnel.svg" alt=""></span>
+          </div>
+        </div>
+        <button class="dd">Resents <img src="../shared-ui/assets/st-chev.svg" alt=""></button>
+      </div>
+
+      <div class="storebody">
+        <aside class="fpanel" id="fpanel" hidden>
+          <div class="fp-head"><b>Filters</b><button class="fp-reset" id="fReset" disabled>Reset</button></div>
+
+          <div class="fp-body">
+            <div class="fgrp">
+              <div class="fp-grp">Category</div>
+              <div class="fopt on" data-f="cat" data-v=""><span class="rdo"></span><span class="lb">All</span><span class="n">10</span></div>
+              <div class="fopt" data-f="cat" data-v="Utility"><span class="rdo"></span><span class="lb">Utility</span><span class="n">5</span></div>
+              <div class="fopt" data-f="cat" data-v="Operation"><span class="rdo"></span><span class="lb">Operation</span><span class="n">2</span></div>
+              <div class="fopt" data-f="cat" data-v="Operation Popup"><span class="rdo"></span><span class="lb">Operation Popup</span><span class="n">1</span></div>
+              <div class="fopt" data-f="cat" data-v="Global"><span class="rdo"></span><span class="lb">Global</span><span class="n">2</span></div>
+            </div>
+
+            <div class="fgrp">
+              <div class="fp-grp">Price</div>
+              <div class="fseg">
+                <span class="fs on" data-f="price" data-v="">All</span>
+                <span class="fs" data-f="price" data-v="free">Free</span>
+                <span class="fs" data-f="price" data-v="paid">Paid</span>
+              </div>
+            </div>
+
+            <div class="fgrp">
+              <div class="fp-grp">Publisher</div>
+              <select class="fsel" id="fPub">
+                <option value="">All publishers</option>
+                <option value="EncySoftware">EncySoftware (9)</option>
+                <option value="kbelousov-ency">kbelousov-ency (1)</option>
+              </select>
+            </div>
+
+            <div class="fgrp fgrp-tags">
+              <div class="fp-grp">Tags<span class="n" id="fTagCnt"></span></div>
+              <div class="ftagsearch"><input type="text" id="fTagQ" placeholder="Find tag…"></div>
+              <div class="ftaglist" id="fTagList"></div>
+              <div class="fempty" id="fTagEmpty" hidden>No tags found</div>
+            </div>
+          </div>
+        </aside>
+
+      <div class="grid">
+        <div class="card" data-cat="Utility" data-pub="EncySoftware" data-price="free" data-tags="assistant,AI,utility" data-shots="assets/st-cover3.png|assets/fav-additive.png|assets/fav-aerospace.png">
+          <div class="cover">
+            <div class="chead">
+              <span class="cav"><img src="../shared-ui/assets/st-av-camagent.svg" alt=""></span>
+              <div class="chd">
+                <div class="ctitle">CamAgent — AI assistant</div>
+                <div class="cpub">v3.0.2<span class="pdiv"></span><span class="by">by EncySoftware</span></div>
+              </div>
+            </div>
+            <div class="ctags"><span class="ctag">assistant</span><span class="ctag">AI</span><span class="ctag">utility</span></div>
+          </div>
+          <div class="cbody">
+            <div class="cdesc">Starts the CamAgent AI assistant for this CAM instance</div>
+            <div class="cdiv"></div>
+            <div class="cfoot">
+              <span class="cloc">Utility<span class="cdl"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="0.9"><path d="M5 1v5.5M2.5 4.2 5 6.7l2.5-2.5M1.5 9h7"/></svg><b class="n" style="font-weight:400">12.4k</b></span></span>
+              <span class="cstar"><img src="../shared-ui/assets/st-star16.svg" alt=""></span>
+              <button class="cinstall">Install</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" data-cat="Operation" data-pub="EncySoftware" data-price="free" data-tags="cladding,CAM,additive">
+          <div class="cover">
+            <div class="chead">
+              <span class="cav"><img src="../shared-ui/assets/st-av-support.png" alt=""></span>
+              <div class="chd">
+                <div class="ctitle">DirectCladding operation extensions</div>
+                <div class="cpub">v1.1.0<span class="pdiv"></span><span class="by">by EncySoftware</span></div>
+              </div>
+            </div>
+            <div class="ctags"><span class="ctag">cladding</span><span class="ctag">CAM</span><span class="ctag">additive</span></div>
+          </div>
+          <div class="cbody">
+            <div class="cdesc">Extensions to calculate tool path for DirectCladding</div>
+            <div class="cdiv"></div>
+            <div class="cfoot">
+              <span class="cloc">Operation<span class="cdl"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="0.9"><path d="M5 1v5.5M2.5 4.2 5 6.7l2.5-2.5M1.5 9h7"/></svg><b class="n" style="font-weight:400">8.1k</b></span></span>
+              <span class="cstar faved"><img src="../shared-ui/assets/st-star16-filled.svg" alt=""></span>
+              <button class="cinstall">Install</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" data-cat="Utility" data-pub="kbelousov-ency" data-price="free" data-tags="utility">
+          <div class="cover">
+            <div class="chead">
+              <span class="cav"><img src="../shared-ui/assets/st-av-camagent.svg" alt=""></span>
+              <div class="chd">
+                <div class="ctitle">EncyExtension</div>
+                <div class="cpub">v0.1.0</div>
+              </div>
+            </div>
+            <div class="ctags"><span class="ctag">Utility</span></div>
+          </div>
+          <div class="cbody">
+            <div class="cdesc">Describe what your extension does</div>
+            <div class="cdiv"></div>
+            <div class="cfoot">
+              <span class="cloc">Utility<span class="cdl"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="0.9"><path d="M5 1v5.5M2.5 4.2 5 6.7l2.5-2.5M1.5 9h7"/></svg><b class="n" style="font-weight:400">5.7k</b></span></span>
+              <span class="cstar"><img src="../shared-ui/assets/st-star16.svg" alt=""></span>
+              <button class="cinstall">Install</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" data-cat="Operation Popup" data-pub="EncySoftware" data-price="free" data-tags="utility,sample">
+          <div class="cover">
+            <div class="chead">
+              <span class="cav cav-white"><img src="../shared-ui/assets/fav-partmore.png" alt=""></span>
+              <div class="chd">
+                <div class="ctitle">Example operation popup extension on C#</div>
+                <div class="cpub">v1.0.0<span class="pdiv"></span><span class="by">by EncySoftware</span></div>
+              </div>
+            </div>
+            <div class="ctags"><span class="ctag">Utility</span></div>
+          </div>
+          <div class="cbody">
+            <div class="cdesc">Example operation popup extension on C#</div>
+            <div class="cdiv"></div>
+            <div class="cfoot">
+              <span class="cloc">Operation Popup<span class="cdl"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="0.9"><path d="M5 1v5.5M2.5 4.2 5 6.7l2.5-2.5M1.5 9h7"/></svg><b class="n" style="font-weight:400">3.2k</b></span></span>
+              <span class="cstar"><img src="../shared-ui/assets/st-star16.svg" alt=""></span>
+              <button class="cinstall">Install</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" data-cat="Utility" data-pub="EncySoftware" data-price="free" data-tags="utility,sample">
+          <div class="cover">
+            <div class="chead">
+              <span class="cav cav-white"><img src="../shared-ui/assets/fav-hellic.png" alt=""></span>
+              <div class="chd">
+                <div class="ctitle">Example utility extension on C#</div>
+                <div class="cpub">v1.0.3<span class="pdiv"></span><span class="by">by EncySoftware</span></div>
+              </div>
+            </div>
+            <div class="ctags"><span class="ctag">Utility</span></div>
+          </div>
+          <div class="cbody">
+            <div class="cdesc">Example utility extension on C#</div>
+            <div class="cdiv"></div>
+            <div class="cfoot">
+              <span class="cloc">Utility<span class="cdl"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="0.9"><path d="M5 1v5.5M2.5 4.2 5 6.7l2.5-2.5M1.5 9h7"/></svg><b class="n" style="font-weight:400">2.4k</b></span></span>
+              <span class="cstar"><img src="../shared-ui/assets/st-star16.svg" alt=""></span>
+              <button class="cinstall">Install</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" data-cat="Global" data-pub="EncySoftware" data-price="paid" data-tags="utility,export,reporting">
+          <div class="cover">
+            <div class="chead">
+              <span class="cav cav-white"><img src="../shared-ui/assets/fav-additive.png" alt=""></span>
+              <div class="chd">
+                <div class="ctitle">Export project information</div>
+                <div class="cpub">v1.0.1<span class="pdiv"></span><span class="by">by EncySoftware</span></div>
+              </div>
+            </div>
+            <div class="ctags"><span class="ctag">utility</span><span class="ctag">export</span><span class="ctag">reporting</span></div>
+          </div>
+          <div class="cbody">
+            <div class="cdesc">Export project information</div>
+            <div class="cdiv"></div>
+            <div class="cfoot">
+              <span class="cloc">Global<span class="cdl"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="0.9"><path d="M5 1v5.5M2.5 4.2 5 6.7l2.5-2.5M1.5 9h7"/></svg><b class="n" style="font-weight:400">1.8k</b></span></span>
+              <span class="cstar faved"><img src="../shared-ui/assets/st-star16-filled.svg" alt=""></span>
+              <button class="cinstall">View</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" data-cat="Operation" data-pub="EncySoftware" data-price="paid" data-tags="CAM,fdm,additive">
+          <div class="cover">
+            <div class="chead">
+              <span class="cav cav-white"><img src="../shared-ui/assets/fav-training.png" alt=""></span>
+              <div class="chd">
+                <div class="ctitle">Extension for Planar slicing operations</div>
+                <div class="cpub">v1.2.2<span class="pdiv"></span><span class="by">by EncySoftware</span></div>
+              </div>
+            </div>
+            <div class="ctags"><span class="ctag">CAM</span><span class="ctag">fdm</span><span class="ctag">additive</span></div>
+          </div>
+          <div class="cbody">
+            <div class="cdesc">Extension that allows you to calculate toolpath using the CuraEngine which is the part of Ulti…</div>
+            <div class="cdiv"></div>
+            <div class="cfoot">
+              <span class="cloc">Operation<span class="cdl"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="0.9"><path d="M5 1v5.5M2.5 4.2 5 6.7l2.5-2.5M1.5 9h7"/></svg><b class="n" style="font-weight:400">1.2k</b></span></span>
+              <span class="cstar"><img src="../shared-ui/assets/st-star16.svg" alt=""></span>
+              <button class="cinstall">Install</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" data-cat="Utility" data-pub="kbelousov-ency" data-price="free" data-tags="utility,sample">
+          <div class="cover">
+            <div class="chead">
+              <span class="cav cav-white"><img src="../shared-ui/assets/fav-aerospace.png" alt=""></span>
+              <div class="chd">
+                <div class="ctitle">HelloEncy</div>
+                <div class="cpub">v0.1.0<span class="pdiv"></span><span class="by">by kbelousov-ency</span></div>
+              </div>
+            </div>
+            <div class="ctags"><span class="ctag">Utility</span></div>
+          </div>
+          <div class="cbody">
+            <div class="cdesc">Test utility: dumps the active project's path and id to a text file and opens it</div>
+            <div class="cdiv"></div>
+            <div class="cfoot">
+              <span class="cloc">Utility<span class="cdl"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="0.9"><path d="M5 1v5.5M2.5 4.2 5 6.7l2.5-2.5M1.5 9h7"/></svg><b class="n" style="font-weight:400">940</b></span></span>
+              <span class="cstar"><img src="../shared-ui/assets/st-star16.svg" alt=""></span>
+              <button class="cinstall">Install</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" data-cat="Utility" data-pub="EncySoftware" data-price="free" data-tags="utility,import,svg">
+          <div class="cover">
+            <div class="chead">
+              <span class="cav cav-white"><img src="../shared-ui/assets/fav-partmore.png" alt=""></span>
+              <div class="chd">
+                <div class="ctitle">Import SVG</div>
+                <div class="cpub">v1.0.0</div>
+              </div>
+            </div>
+            <div class="ctags"><span class="ctag">Utility</span></div>
+          </div>
+          <div class="cbody">
+            <div class="cdesc">Import SVG</div>
+            <div class="cdiv"></div>
+            <div class="cfoot">
+              <span class="cloc">Utility<span class="cdl"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="0.9"><path d="M5 1v5.5M2.5 4.2 5 6.7l2.5-2.5M1.5 9h7"/></svg><b class="n" style="font-weight:400">610</b></span></span>
+              <span class="cstar"><img src="../shared-ui/assets/st-star16.svg" alt=""></span>
+              <button class="cinstall">Install</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" data-cat="Global" data-pub="EncySoftware" data-price="free" data-tags="game,global">
+          <div class="cover cov-img">
+            <div class="chead">
+              <span class="cav"><img src="../shared-ui/assets/st-av-support.png" alt=""></span>
+              <div class="chd">
+                <div class="ctitle">Loading Game</div>
+                <div class="cpub">v0.1.5<span class="pdiv"></span><span class="by">by EncySoftware</span></div>
+              </div>
+            </div>
+            <div class="ctags"><span class="ctag">Game</span><span class="ctag">Global</span></div>
+          </div>
+          <div class="cbody">
+            <div class="cdesc">A game for the wait: a milling cutter jumps over parts while ENCY calculates toolpaths</div>
+            <div class="cdiv"></div>
+            <div class="cfoot">
+              <span class="cloc">Global<span class="cdl"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="0.9"><path d="M5 1v5.5M2.5 4.2 5 6.7l2.5-2.5M1.5 9h7"/></svg><b class="n" style="font-weight:400">280</b></span></span>
+              <span class="cstar"><img src="../shared-ui/assets/st-star16.svg" alt=""></span>
+              <button class="cinstall">Install</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+      </div>
+
+      <!-- ===== просмотр расширения ===== -->
+      <div class="dwrap" id="dWrap" hidden>
+       <div class="dwin" id="dWin">
+        <div class="dhead">
+          <span class="cap" id="dCap">RobotReachExtension</span>
+          <button class="dwbtn" id="dCopyLink" title="Скопировать ссылку"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round"><path d="M4.8 7.2 7.2 4.8M5.2 3.2 6 2.4a2 2 0 0 1 2.8 2.8l-.8.8M6.8 8.8 6 9.6a2 2 0 0 1-2.8-2.8l.8-.8"/></svg></button>
+          <button class="dwbtn" id="dBack" title="Закрыть"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg></button>
+        </div>
+
+        <div class="dscroll">
+        <div class="dhero">
+          <span class="dhero-av" id="dAv"><img src="../shared-ui/assets/st-av-camagent.svg" alt=""></span>
+          <div class="dhero-t">
+            <div class="dtitle" id="dTitle">Robot reach zone</div>
+            <div class="dmeta">
+              <span class="dcat" id="dCat" data-cat="Utility">Utility</span>
+              <span class="dh-ver" id="dVer">v0.1.1</span>
+              <span class="sep"></span>
+              <span id="dBy">EncySoftware</span>
+              <span class="sep"></span>
+              <span class="dl" id="dDl"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="0.9"><path d="M5 1v5.5M2.5 4.2 5 6.7l2.5-2.5M1.5 9h7"/></svg>1.4k</span>
+            </div>
+            <div class="dsum" id="dSum">Shows the robot reachable area as a dot cloud right in the
+              ENCY graphics window.</div>
+          </div>
+        </div>
+        <div class="dhr"></div>
+
+        <div class="dbody">
+          <div class="dmain">
+            <div class="dgal" id="dGal">
+              <div class="dgal-stage">
+                <div class="dgal-track" id="dGalTrack">
+                  <div class="dgal-slide"><img src="../shared-ui/assets/st-cover3.png" alt=""></div>
+                </div>
+                <button class="dgal-nav prev" id="dGalPrev" title="Назад">‹</button>
+                <button class="dgal-nav next" id="dGalNext" title="Вперёд">›</button>
+                <span class="dgal-cnt" id="dGalCnt">1 / 1</span>
+              </div>
+              <div class="dgal-thumbs" id="dGalThumbs"></div>
+            </div>
+
+            <div class="dblock">
+            <div class="dblock-h"><b>About</b></div>
+            <div class="dclamp" id="dAbout">
+              <p>Shows where the robot can actually get, as a cloud of small dots drawn right in the
+                ENCY graphics window. The part, the robot and the reachable area are on screen at the
+                same time, so “does the arm reach this face” stops being a guess.</p>
+
+              <h3>Using it</h3>
+              <p><b>Robot reach zone</b> opens a small panel that stays on top of ENCY while you keep
+                working. It has everything the feature needs and nothing else:</p>
+              <ul>
+                <li><b>Tool orientation</b> — what has to hold at a point for it to count as reachable:
+                  <ul>
+                    <li><em>Free</em> — the tool tip only has to get there, in any orientation. The most
+                      generous answer, and the slowest: several directions are tried per point.</li>
+                    <li><em>Tool vector</em> — the tool axis it is in <b>right now</b> is kept, spin
+                      around it is free. The milling case.</li>
+                    <li><em>Strict</em> — the whole current tool frame is kept. The gripper case, and
+                      the strictest answer.</li>
+                  </ul>
+                </li>
+                <li><b>Point density</b> — how fine the cloud is. The step in millimetres follows from
+                  the workspace the robot turns out to have, which is why the slider is a density and
+                  not a distance.</li>
+                <li><b>Build</b> — scans and draws.</li>
+              </ul>
+            </div>
+            <button class="dmore" id="dAboutMore">Read more</button>
+            </div>
+
+            <div class="dblock" hidden>
+              <div class="dblock-h"><b>Comments <span style="color:var(--ec-fg-48);font-weight:400">12</span></b></div>
+              <div class="dcm-add">
+                <span class="dcm-av"><img src="../shared-ui/assets/st-av-support.png" alt=""></span>
+                <textarea placeholder="Add a comment"></textarea>
+                <button class="dcm-post">Post</button>
+              </div>
+              <div class="dcm-sep">v0.1.1 · July 1, 2026</div>
+              <div class="dcm">
+                <span class="dcm-av"><img src="../shared-ui/assets/fav-additive.png" alt=""></span>
+                <div class="dcm-b">
+                  <div class="dcm-hd"><span class="nm">kbelousov-ency</span><span class="at">@kbelousov</span><span class="tm">· 2 weeks ago</span></div>
+                  <div class="dcm-tx">Работает и на 6-осевых, и на роботе с позиционером. На плотности 5 мм
+                    считает облако за пару секунд — для проверки досягаемости хватает.</div>
+                </div>
+              </div>
+              <div class="dcm">
+                <span class="dcm-av"><img src="../shared-ui/assets/fav-aerospace.png" alt=""></span>
+                <div class="dcm-b">
+                  <div class="dcm-hd"><span class="nm">EncySoftware</span><span class="at">@ency</span><span class="tm">· 2 weeks ago</span></div>
+                  <div class="dcm-tx"><span class="mention">@kbelousov</span> Спасибо! В 0.1.2 добавим
+                    сохранение облака в проект, чтобы не пересчитывать после перезапуска.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <aside class="dside">
+            <div class="dact">
+              <div class="dact-row">
+                <button class="dinstall" id="dInstall">Install</button>
+                <span class="dstar" title="В избранное"><img src="../shared-ui/assets/st-star16.svg" alt=""></span>
+              </div>
+            </div>
+
+            <div>
+              <div class="dsec">Details</div>
+              <div class="dcard">
+                <div class="drow" id="dRowPkg"><span class="k">Package id</span><span class="v">RobotReachExtension</span>
+                  <button class="xcopy" title="Copy package id"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><path d="M8.5 3.5v-1a1.5 1.5 0 0 0-1.5-1.5H2.5A1.5 1.5 0 0 0 1 2.5V7a1.5 1.5 0 0 0 1.5 1.5h1"/></svg></button>
+                </div>
+                <div class="drow"><span class="k">Price</span><span class="v" id="dPrice">Free</span></div>
+                <div class="drow"><span class="k">Last updated</span><span class="v">July 1, 2026</span></div>
+                <div class="drow"><span class="k">Requires</span><span class="v">ENCY ≥ 3.0.1-rc.27</span></div>
+                <div class="drow"><span class="k">License</span><span class="v">EncySoftware EULA</span></div>
+                <div class="drow"><span class="k">Support</span><span class="v">support@encycam.com</span></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="dsec">Tags</div>
+              <div class="dtags">
+                <span class="dtag">utility</span><span class="dtag">AI</span>
+              </div>
+            </div>
+
+            <div>
+              <div class="dsec">Version history</div>
+              <div class="dcard">
+                <div class="dvh" id="dVh">
+                  <div class="dvh-row"><span class="v">0.1.1</span><span class="dt">July 1, 2026</span><span class="rq">≥ 3.0.1-rc.27</span></div>
+                  <div class="dvh-row"><span class="v">0.1.0</span><span class="dt">May 13, 2026</span><span class="rq">≥ 3.0.0</span></div>
+                  <div class="dvh-row"><span class="v">0.0.9</span><span class="dt">Apr 2, 2026</span><span class="rq">≥ 3.0.0</span></div>
+                  <div class="dvh-row"><span class="v">0.0.8</span><span class="dt">Feb 18, 2026</span><span class="rq">≥ 2.9.4</span></div>
+                  <div class="dvh-row"><span class="v">0.0.7</span><span class="dt">Jan 22, 2026</span><span class="rq">≥ 2.9.4</span></div>
+                  <div class="dvh-row"><span class="v">0.0.6</span><span class="dt">Dec 9, 2025</span><span class="rq">≥ 2.9.0</span></div>
+                  <div class="dvh-row"><span class="v">0.0.5</span><span class="dt">Nov 18, 2025</span><span class="rq">≥ 2.9.0</span></div>
+                  <div class="dvh-row"><span class="v">0.0.4</span><span class="dt">Oct 30, 2025</span><span class="rq">≥ 2.8.2</span></div>
+                  <div class="dvh-row"><span class="v">0.0.3</span><span class="dt">Oct 7, 2025</span><span class="rq">≥ 2.8.2</span></div>
+                  <div class="dvh-row"><span class="v">0.0.2</span><span class="dt">Sep 15, 2025</span><span class="rq">≥ 2.8.0</span></div>
+                  <div class="dvh-row"><span class="v">0.0.1</span><span class="dt">Aug 28, 2025</span><span class="rq">≥ 2.8.0</span></div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+        </div>
+       </div>
+      </div>
+
+      <div class="page" id="page-manage" hidden>
+        <div class="msect msect-first"><h3>Installed</h3><button class="mbtn">Install from file…</button></div>
+        <div class="minst">
+          <div class="xtable">
+            <div class="xgrid xhead"><span class="xh"></span><span class="xh">Name</span><span class="xh">Version</span><span class="xh">Description</span><span class="xh">Path</span><span class="xh">Actions</span></div>
+            <div class="xgroup">Current user (1)</div>
+            <div class="xgrid xrow sel" data-name="Internal extensions inside main application" data-path="Built into application" data-desc="Extension, which code is written inside main application core" data-on="1">
+              <span class="chk on"></span><span class="xname">Internal extensions inside main application</span><span class="xver">—</span><span class="xdesc">Extension, which code is written inside main application core</span><span class="xpathcell"><span class="xpath">Built into application</span><button class="xcopy" title="Copy path"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><path d="M8.5 3.5v-1a1.5 1.5 0 0 0-1.5-1.5H2.5A1.5 1.5 0 0 0 1 2.5V7a1.5 1.5 0 0 0 1.5 1.5h1"/></svg></button></span><span class="xact"><button class="xd-btn">Inherit</button><button class="xd-btn">Uninstall</button></span>
+            </div>
+            <div class="xgroup">System (6)</div>
+            <div class="xgrid xrow" data-name="Internal extension to work with custom properties" data-path="C:\Program Files\ENCY\extensions\CustomPropHelpers.dll" data-desc="—" data-on="1">
+              <span class="chk on"></span><span class="xname">Internal extension to work with custom properties</span><span class="xver">—</span><span class="xdesc">Helpers for custom properties of technology objects</span><span class="xpathcell"><span class="xpath">C:\Program Files\ENCY\extensions\CustomPropHelpers.dll</span><button class="xcopy" title="Copy path"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><path d="M8.5 3.5v-1a1.5 1.5 0 0 0-1.5-1.5H2.5A1.5 1.5 0 0 0 1 2.5V7a1.5 1.5 0 0 0 1.5 1.5h1"/></svg></button></span><span class="xact"><button class="xd-btn">Inherit</button><button class="xd-btn">Uninstall</button></span>
+            </div>
+            <div class="xgrid xrow" data-name="Lathe cycles" data-path="C:\Program Files\ENCY\STLatheCycles.dll" data-desc="—" data-on="1">
+              <span class="chk on"></span><span class="xname">Lathe cycles</span><span class="xver">—</span><span class="xdesc">Canned cycles for lathe machining</span><span class="xpathcell"><span class="xpath">C:\Program Files\ENCY\STLatheCycles.dll</span><button class="xcopy" title="Copy path"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><path d="M8.5 3.5v-1a1.5 1.5 0 0 0-1.5-1.5H2.5A1.5 1.5 0 0 0 1 2.5V7a1.5 1.5 0 0 0 1.5 1.5h1"/></svg></button></span><span class="xact"><button class="xd-btn">Inherit</button><button class="xd-btn">Uninstall</button></span>
+            </div>
+            <div class="xgrid xrow" data-name="Macro builder on .NET" data-path="C:\Program Files\ENCY\MacroBuilder.Dotnet.dll" data-desc="—" data-on="1">
+              <span class="chk on"></span><span class="xname">Macro builder on .NET</span><span class="xver">—</span><span class="xdesc">Build and run macros written in .NET</span><span class="xpathcell"><span class="xpath">C:\Program Files\ENCY\MacroBuilder.Dotnet.dll</span><button class="xcopy" title="Copy path"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><path d="M8.5 3.5v-1a1.5 1.5 0 0 0-1.5-1.5H2.5A1.5 1.5 0 0 0 1 2.5V7a1.5 1.5 0 0 0 1.5 1.5h1"/></svg></button></span><span class="xact"><button class="xd-btn">Inherit</button><button class="xd-btn">Uninstall</button></span>
+            </div>
+            <div class="xgrid xrow" data-name="Macro builder on Scripts" data-path="C:\Program Files\ENCY\MacroBuilder.Spr.dll" data-desc="—" data-on="1">
+              <span class="chk on"></span><span class="xname">Macro builder on Scripts</span><span class="xver">—</span><span class="xdesc">Build and run macros written in script language</span><span class="xpathcell"><span class="xpath">C:\Program Files\ENCY\MacroBuilder.Spr.dll</span><button class="xcopy" title="Copy path"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><path d="M8.5 3.5v-1a1.5 1.5 0 0 0-1.5-1.5H2.5A1.5 1.5 0 0 0 1 2.5V7a1.5 1.5 0 0 0 1.5 1.5h1"/></svg></button></span><span class="xact"><button class="xd-btn">Inherit</button><button class="xd-btn">Uninstall</button></span>
+            </div>
+            <div class="xgrid xrow off" data-name="TeamCenter PLM extensions" data-path="C:\Program Files\ENCY\STTeamCenter.dll" data-desc="—" data-on="0">
+              <span class="chk"></span><span class="xname">TeamCenter PLM extensions</span><span class="xver">—</span><span class="xdesc">Integration with Siemens Teamcenter PLM</span><span class="xpathcell"><span class="xpath">C:\Program Files\ENCY\STTeamCenter.dll</span><button class="xcopy" title="Copy path"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><path d="M8.5 3.5v-1a1.5 1.5 0 0 0-1.5-1.5H2.5A1.5 1.5 0 0 0 1 2.5V7a1.5 1.5 0 0 0 1.5 1.5h1"/></svg></button></span><span class="xact"><button class="xd-btn">Inherit</button><button class="xd-btn">Uninstall</button></span>
+            </div>
+            <div class="xgrid xrow" data-name="Utility in main window runner" data-path="C:\Program Files\ENCY\CAMAPI.Extension.Util.Common.dll" data-desc="—" data-on="1">
+              <span class="chk on"></span><span class="xname">Utility in main window runner</span><span class="xver">—</span><span class="xdesc">Run utilities in the main application window</span><span class="xpathcell"><span class="xpath">C:\Program Files\ENCY\CAMAPI.Extension.Util.Common.dll</span><button class="xcopy" title="Copy path"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><path d="M8.5 3.5v-1a1.5 1.5 0 0 0-1.5-1.5H2.5A1.5 1.5 0 0 0 1 2.5V7a1.5 1.5 0 0 0 1.5 1.5h1"/></svg></button></span><span class="xact"><button class="xd-btn">Inherit</button><button class="xd-btn">Uninstall</button></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="msect">
+          <div>
+            <h3>Feeds</h3>
+            <p>Disabled feeds are not polled; their packages are removed from the catalog.</p>
+          </div>
+          <div class="msect-btns">
+            <button class="mbtn" id="mRefresh">Refresh</button>
+            <button class="mbtn" id="addFeedBtn">Add feed…</button>
+          </div>
+        </div>
+        <div class="minst">
+          <div class="xtable">
+            <div class="fgrid xhead"><span class="xh">Name</span><span class="xh">Status</span><span class="xh">Extensions</span><span class="xh">URL</span><span class="xh">Actions</span></div>
+            <div class="fgrid xrow" data-path="https://nexus.hq.encycam.com/repository/dev-feed/index.json">
+              <span class="xname">Dev Feed</span><span class="fstate bad" title="The feed does not answer — none of its packages are in the catalog right now">No response</span><span class="xdesc">—</span><span class="xpathcell"><span class="xpath">https://nexus.hq.encycam.com/repository/dev-feed/index.json</span><button class="xcopy" title="Copy URL"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><path d="M8.5 3.5v-1a1.5 1.5 0 0 0-1.5-1.5H2.5A1.5 1.5 0 0 0 1 2.5V7a1.5 1.5 0 0 0 1.5 1.5h1"/></svg></button></span><span class="xact"><button class="xd-btn" data-feedtgl>Disable</button></span>
+            </div>
+            <div class="fgrid xrow" data-path="https://nexus.hq.encycam.com/repository/master-feed/index.json">
+              <span class="xname">Master Feed</span><span class="fstate bad" title="The feed does not answer — none of its packages are in the catalog right now">No response</span><span class="xdesc">—</span><span class="xpathcell"><span class="xpath">https://nexus.hq.encycam.com/repository/master-feed/index.json</span><button class="xcopy" title="Copy URL"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><path d="M8.5 3.5v-1a1.5 1.5 0 0 0-1.5-1.5H2.5A1.5 1.5 0 0 0 1 2.5V7a1.5 1.5 0 0 0 1.5 1.5h1"/></svg></button></span><span class="xact"><button class="xd-btn" data-feedtgl>Disable</button></span>
+            </div>
+            <div class="fgrid xrow" data-path="https://nexus.encycam.com/repository/master/index.json">
+              <span class="xname">Master</span><span class="fstate ok" title="The feed answers; its packages are in the catalog">In catalog</span><span class="xdesc">No extensions</span><span class="xpathcell"><span class="xpath">https://nexus.encycam.com/repository/master/index.json</span><button class="xcopy" title="Copy URL"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><path d="M8.5 3.5v-1a1.5 1.5 0 0 0-1.5-1.5H2.5A1.5 1.5 0 0 0 1 2.5V7a1.5 1.5 0 0 0 1.5 1.5h1"/></svg></button></span><span class="xact"><button class="xd-btn" data-feedtgl>Enable</button></span>
+            </div>
+            <div class="fgrid xrow" data-path="https://api.nuget.org/v3/index.json">
+              <span class="xname">nuget.org</span><span class="fstate ok" title="The feed answers; its packages are in the catalog">In catalog</span><span class="xdesc">Dependencies only</span><span class="xpathcell"><span class="xpath">https://api.nuget.org/v3/index.json</span><button class="xcopy" title="Copy URL"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><path d="M8.5 3.5v-1a1.5 1.5 0 0 0-1.5-1.5H2.5A1.5 1.5 0 0 0 1 2.5V7a1.5 1.5 0 0 0 1.5 1.5h1"/></svg></button></span><span class="xact"><button class="xd-btn" data-feedtgl>Enable</button></span>
+            </div>
+            <div class="fgrid xrow" data-path="https://dmc.encycam.com/store/api/nuget/v3/index.json">
+              <span class="xname">Extension Store</span><span class="fstate ok" title="The feed answers; its packages are in the catalog">In catalog</span><span class="xdesc">18 extensions</span><span class="xpathcell"><span class="xpath">https://dmc.encycam.com/store/api/nuget/v3/index.json</span><button class="xcopy" title="Copy URL"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><path d="M8.5 3.5v-1a1.5 1.5 0 0 0-1.5-1.5H2.5A1.5 1.5 0 0 0 1 2.5V7a1.5 1.5 0 0 0 1.5 1.5h1"/></svg></button></span><span class="xact"><button class="xd-btn" data-feedtgl>Enable</button></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="overlay" id="feedOverlay" hidden>
+          <div class="modal">
+            <div class="mo-head">
+              <h3>Add feed</h3>
+              <button class="mo-x" id="ffClose">✕</button>
+            </div>
+            <div class="fsrc">
+              <button class="ftgl on" data-src="remote">Remote URL</button>
+              <button class="ftgl" data-src="local">Local folder</button>
+            </div>
+            <label class="flbl">Name</label>
+            <input class="finput" type="text">
+            <label class="flbl" id="ffUrlLbl">Feed URL</label>
+            <input class="finput" type="text">
+            <div class="fform-actions">
+              <button class="xd-btn" id="ffCancel">Cancel</button>
+              <button class="fprimary">Add feed</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../shared-ui/chrome.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
