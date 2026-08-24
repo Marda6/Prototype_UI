@@ -1,0 +1,10 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="icn_machine">
+<path id="Rectangle 3364" d="M14 9.5C14 9.22386 14.2239 9 14.5 9C14.7761 9 15 9.22386 15 9.5V11.5C15 11.7761 14.7761 12 14.5 12C14.2239 12 14 11.7761 14 11.5V9.5Z" fill="var(--fill-0, #F5F5F5)" fill-opacity="0.96"/>
+<path id="Rectangle 3365" d="M3 6C3 5.44772 3.44772 5 4 5C4.55228 5 5 5.44772 5 6V9C5 10.1046 5.89543 11 7 11H9C9.55228 11 10 11.4477 10 12V13C10 13.5523 9.55228 14 9 14H4C3.44772 14 3 13.5523 3 13V6Z" fill="var(--fill-0, #F5F5F5)" fill-opacity="0.32"/>
+<rect id="Rectangle 3366" x="3" y="15" width="14" height="2" rx="1" fill="var(--fill-0, #F5F5F5)" fill-opacity="0.96"/>
+<rect id="Rectangle 3367" x="10" y="4" width="1" height="3" rx="0.5" fill="var(--fill-0, #F5F5F5)" fill-opacity="0.32"/>
+<rect id="Rectangle 3363" x="12" y="3" width="5" height="5" rx="1" fill="var(--fill-0, #F5F5F5)" fill-opacity="0.96"/>
+<rect id="Rectangle 3362" x="6" y="3" width="3" height="7" rx="1" fill="var(--fill-0, #F5F5F5)" fill-opacity="0.96"/>
+</g>
+</svg>

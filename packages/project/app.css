@@ -1,0 +1,591 @@
+/* Project window — tree, filters and inspector panels ported from the
+   ENCY 4 standalone prototype. Functional CSS only; the visual style
+   (radii, fonts, spacing) will be reworked to ENCY Core later. */
+
+/* no home sidebar inside a project — the 3D viewport fills the whole
+   workspace edge to edge and the panels float on top of it */
+.workspace{position:relative;padding:0;gap:0;}
+
+/* ===== Dock: tree panel + resizer + inspector panel (floats over the viewport) ===== */
+.dock{position:absolute;top:8px;left:8px;bottom:8px;z-index:10;
+  width:341px;display:flex;flex-direction:column;gap:0;}
+/* floating panel surface: near-opaque window background + fg-12 border,
+   blurred so 3D content doesn't bleed through */
+/* same surface as the window header: fg-8 over the app background, solid
+   (no translucency — the 3D scene must not bleed through) */
+.panel16{background:color-mix(in srgb, #f5f5f5 8%, var(--ec-bg));
+  border:1px solid var(--ec-fg-12);border-radius:8px;padding:2px;display:flex;min-height:0;}
+.panel-tree{flex:1 1 52%;flex-direction:column;gap:2px;}
+.panel-insp{flex:1 1 48%;gap:2px;}
+.dock.insp-collapsed .panel-insp{display:none;}
+.dock-resizer{flex:0 0 6px;height:6px;display:flex;flex-direction:column;justify-content:center;
+  gap:2px;cursor:row-resize;touch-action:none;}
+.dock-resizer::before,.dock-resizer::after{content:"";display:block;height:1px;opacity:0;
+  transition:opacity .12s ease;
+  background:linear-gradient(to right,rgba(246,246,246,0) 0%,#9747ff 50%,rgba(246,246,246,0) 100%);}
+.dock-resizer:hover::before,.dock-resizer:hover::after,
+.dock-resizer.dragging::before,.dock-resizer.dragging::after{opacity:1;}
+.dock.insp-collapsed .dock-resizer{display:none;}
+.dock.insp-collapsed .panel-tree{flex:1 1 auto !important;}
+
+/* the content well is darker than the panel frame (like the window header:
+   light rail, dark content); radius 6 = panel 8 minus its 2px padding.
+   No side insets — the toolbar and the tree align with the tabs row above. */
+/* insets match the toolbar→divider rhythm (the 6px flex gap) */
+.inner{background:var(--ec-bg);border-radius:6px;padding:6px;display:flex;flex-direction:column;
+  gap:6px;flex:1 1 0;min-height:0;overflow:hidden;}
+
+.tabs{display:flex;gap:2px;}
+.seg{flex:1 0 0;min-width:0;display:flex;align-items:center;justify-content:center;padding:8px 8px;
+  border:0;background:transparent;cursor:pointer;border-radius:8px;color:var(--ec-fg-72);
+  font:400 12px/16px var(--ec-font);user-select:none;}
+.seg:hover{color:var(--ec-fg-96);}
+.seg.active{background:var(--ec-fg-16);color:var(--ec-fg-100);font-weight:600;}
+
+/* chrome.css also styles .toolbar (8px 16px) — zero it out here */
+.toolbar{display:flex;align-items:center;justify-content:space-between;padding:0;}
+.tb-group{display:flex;align-items:center;gap:4px;}
+.b24{background:var(--ec-fg-4);display:flex;align-items:center;gap:2px;padding:6px;border-radius:4px;cursor:pointer;}
+.b24:hover{background:var(--ec-fg-12);}
+/* split button: the plus and the chevron are separate hover zones,
+   divided by a hairline (like the mockup's New tab + dropdown) */
+.b24.more{background:var(--ec-fg-16);padding:0;gap:0;overflow:hidden;}
+.more-plus,.more-chev{display:flex;align-items:center;justify-content:center;height:28px;}
+.more-plus{width:28px;}
+.more-plus img{width:22px;height:22px;}
+.more-chev{width:20px;border-left:1px solid var(--ec-fg-12);}
+.more-plus:hover,.more-chev:hover{background:var(--ec-fg-12);}
+.b24.more:hover{background:var(--ec-fg-16);} /* the container itself stays quiet */
+/* Run — flat button; text/icon = panel background color ("cut out" effect) */
+/* Calculate — from the mockup: green 10% tint, green 25% border, radius 4 */
+.b24.calc{justify-content:center;gap:4px;padding:6px 10px;border-radius:4px;
+  background:rgba(6,178,137,.1);border:1px solid rgba(6,178,137,.25);}
+.b24.calc:hover{background:rgba(6,178,137,.16);}
+.b24.calc.busy{opacity:.85;pointer-events:none;}
+.calc-txt{color:#f6f6f6;font:400 12px/16px var(--ec-font);}
+.ic16{width:16px;height:16px;display:grid;place-items:center;flex:0 0 16px;}
+.i16{width:16px;height:16px}
+.i20{width:20px;height:20px}.i24{width:24px;height:24px}
+.rot90{transform:rotate(90deg);}
+.b24.arrange{padding:4px;}
+.tb-ic{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:4px;cursor:pointer;}
+.tb-ic:hover{background:var(--ec-fg-8);}
+.chev7{width:7px;height:4px}
+
+.line{height:1px;width:100%;background:var(--ec-fg-8);flex:0 0 1px;}
+
+/* ===== Sort row (second toolbar row, toggled by the left toolbar button) ===== */
+/* quiet when off — the plate (fill + border) marks only the pressed state */
+.b24.arrange{padding:0;background:transparent;border:1px solid transparent;}
+.b24.arrange:hover{background:var(--ec-fg-8);}
+.b24.arrange.on{background:rgba(246,246,246,.09);border-color:rgba(246,246,246,.18);}
+.i28{width:28px;height:28px;display:block;}
+.i18{width:18px;height:18px;}
+.i12{width:12px;height:14px;}
+.sortrow{display:flex;align-items:center;gap:8px;padding:6px 2px 0;flex:0 0 auto;
+  border-top:1px solid var(--ec-fg-8);}
+.sortrow[hidden]{display:none;}
+/* the dropdown stretches over the free space; the chevron rides its right edge */
+.sr-sort{display:flex;align-items:center;gap:2px;padding:0 6px 0 0;border-radius:4px;cursor:pointer;
+  flex:1 1 0;min-width:0;color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);}
+.sr-sort .chev7{margin-left:auto;}
+.sr-sort:hover{background:var(--ec-fg-8);}
+.sr-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  border-radius:4px;cursor:pointer;flex:0 0 28px;}
+/* trailing buttons sit 4px apart — same rhythm as the toolbar's tb-group */
+.sr-auto + .sr-btn,.sr-btn + .sr-btn{margin-left:-4px;}
+.sr-btn:hover{background:var(--ec-fg-8);}
+.sr-div{width:1px;height:14px;background:var(--ec-fg-12);flex:0 0 1px;}
+.sr-lbl{color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);white-space:nowrap;}
+.sr-auto{border:1px solid var(--ec-fg-16);background:transparent;color:var(--ec-fg-72);
+  font:400 12px/16px var(--ec-font);height:28px;padding:0 10px;border-radius:4px;cursor:pointer;
+  display:inline-flex;align-items:center;box-sizing:border-box;}
+.sr-auto:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+.sr-auto.on{border-color:var(--ec-green);background:rgba(0,163,109,.08);color:var(--ec-fg-96);}
+
+/* ===== Tree ===== */
+/* wrapper hosts the halves split: a full-height line + drag handle that do
+   not scroll with the rows (the line runs past the last row, like in ENCY) */
+.treewrap{position:relative;flex:1 1 0;min-height:0;display:flex;flex-direction:column;--tree-split:46%;}
+.treewrap .tree{flex:1 1 0;min-height:0;}
+/* the line is invisible until the handle is hovered or dragged — then it
+   lights up with the same violet accent as the dock resizer */
+.tsplit-line{position:absolute;top:0;bottom:0;left:var(--tree-split);width:1px;
+  opacity:0;transition:opacity .12s ease;pointer-events:none;z-index:1;
+  background:var(--ec-fg-32);}
+.treewrap:has(.tsplit-handle:hover) .tsplit-line,
+.treewrap.splitting .tsplit-line{opacity:1;}
+.tsplit-handle{position:absolute;top:0;bottom:0;left:var(--tree-split);width:9px;margin-left:-4px;
+  cursor:col-resize;touch-action:none;z-index:2;}
+/* the identity half ends at the split; the facts half starts clear of it */
+.treewrap .tlayer{flex:0 0 calc(var(--tree-split) - 14px);}
+.treewrap .pslot{padding-left:14px;}
+.tree{display:flex;flex-direction:column;gap:2px;overflow:auto;}
+
+/* ===== Simulate tab: code tree + the simulation bar on the 3D view ===== */
+/* no inspector in simulation — the code tree takes the full dock height */
+.dock.sim .panel-insp,.dock.sim .dock-resizer{display:none !important;}
+.dock.sim .panel-tree{flex:1 1 auto !important;}
+/* in sim mode the machining chrome hides; the code tree takes the panel */
+.panel-tree.sim .toolbar,.panel-tree.sim .sortrow,.panel-tree.sim .treewrap,
+.panel-tree.sim .singleop,.panel-tree.sim .inner > .line{display:none !important;}
+.simwrap{display:flex;flex-direction:column;gap:6px;flex:1 1 0;min-height:0;}
+.simwrap[hidden]{display:none !important;}
+.simtree{flex:1 1 0;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:1px;}
+.simrow{display:flex;align-items:center;gap:4px;padding:2px;border-radius:6px;cursor:pointer;}
+.simrow:hover{background:var(--ec-fg-4);}
+.simrow.ssel{background:var(--ec-fg-8);}
+.simrow .shev{width:12px;height:20px;flex:0 0 12px;transition:transform .12s ease;}
+.simrow.closed .shev{transform:rotate(-90deg);}
+.simrow .lbl{flex:1 1 0;min-width:0;color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.simrow.op .lbl{font-weight:500;}
+/* code lines: quiet by default, rapids red, feed moves blue */
+.simrow.code{cursor:default;}
+.simrow.code .lbl{color:var(--ec-fg-72);}
+.simrow.code.c-red .lbl{color:#ff7072;}
+.simrow.code.c-blue .lbl{color:#46acff;}
+.simrow.grp .lbl{color:var(--ec-fg-96);}
+/* right status column */
+.sim-ring{width:12px;height:12px;border-radius:50%;flex:0 0 12px;box-sizing:border-box;
+  border:2px solid var(--cc,#ebda84);}
+.sim-dot{width:4px;height:4px;border-radius:50%;background:var(--ec-fg-24);flex:0 0 4px;
+  margin:0 6px;}
+/* the system error glyph on a code line: red diamond with a dot inside */
+.sim-dot.err{position:relative;width:8px;height:8px;flex:0 0 8px;margin:0 4px;
+  border-radius:2px;background:#ff5c5e;transform:rotate(45deg);}
+.sim-dot.err::after{content:'';position:absolute;inset:0;margin:auto;
+  width:2.5px;height:2.5px;border-radius:50%;background:var(--ec-bg);}
+.simrow .i16{flex:0 0 16px;}
+.sim-ind1{padding-left:14px;}  /* Part */
+.sim-ind2{padding-left:14px;}  /* operations under Part */
+.sim-ind3{padding-left:44px;}  /* code lines */
+.sim-ind4{padding-left:60px;}  /* lines inside Header/Approach */
+
+/* simulation panel on the 3D view: control row on top, timeline below.
+   Stretched across the viewport width, same panel finish as the dock. */
+.simbar{position:absolute;left:8px;right:8px;bottom:8px;z-index:20;
+  display:flex;flex-direction:column;align-items:stretch;gap:2px;padding:2px;border-radius:8px;
+  background:color-mix(in srgb, #f5f5f5 8%, var(--ec-bg));border:1px solid var(--ec-fg-12);}
+.simbar > .simbar__row{padding:4px 6px;}
+.simbar[hidden]{display:none !important;}
+.simbar__row{display:flex;align-items:center;gap:8px;}
+/* the status group (op · time · collisions · gear) anchors to the right edge */
+.sb-sep--push{margin-left:auto;}
+.sb-time{font:400 11px/16px var(--ec-font);color:var(--ec-fg-56);
+  font-variant-numeric:tabular-nums;white-space:nowrap;padding:0 2px;}
+
+/* editor-style timeline in the dark inset of the panel (same pattern as
+   .inner in the dock): ruler on top, one clip per operation below */
+.sim-timeline{display:flex;gap:6px;align-items:flex-end;
+  background:var(--ec-bg);border-radius:6px;padding:6px 8px 8px;}
+.sim-timeline[hidden]{display:none !important;}
+.tl-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+/* the machine anchor: click = jump to the very start of the program */
+.tl-mach{width:24px;height:22px;display:flex;align-items:center;justify-content:center;
+  border-radius:4px;cursor:pointer;color:var(--ec-fg-56);}
+.tl-mach:hover{background:var(--ec-fg-8);}
+.tl-mark--setup{width:2px;background:var(--ec-fg-96);height:16px;}
+.tl-ruler .tl-su{transform:none;margin-left:4px;color:var(--st-green);}
+.tl-ruler{position:relative;height:12px;font:400 9px/12px var(--ec-font);
+  color:var(--ec-fg-32);}
+.tl-ruler b{position:absolute;top:0;transform:translateX(-50%);font-weight:400;}
+.tl-ruler b:first-child{transform:none;}
+.tl-ruler b:last-child{transform:translateX(-100%);}
+.tl-ruler i{position:absolute;bottom:0;width:1px;height:4px;background:var(--ec-fg-16);}
+.tl-track{position:relative;display:flex;gap:2px;height:22px;border-radius:6px;
+  cursor:pointer;touch-action:none;}
+/* the clip is a slim colored line; the full-height element stays as the
+   hover / hit area. Hovering shows the name at the start of the line,
+   the label plate visually "breaks" the line under it */
+.tl-track .clip{position:relative;height:100%;min-width:0;
+  display:flex;align-items:center;overflow:hidden;}
+/* upcoming operations are bland gray; hover tints them with the op color,
+   the current one is bright, finished ones keep a muted tint */
+.tl-track .clip::before{content:'';position:absolute;left:0;right:0;top:50%;
+  height:3px;transform:translateY(-50%);border-radius:2px;
+  background:var(--ec-fg-16);transition:height .1s;}
+.tl-track .clip.cur::before{height:7px;border-radius:3px;}
+.tl-track .clip span{position:relative;z-index:1;margin-left:14px;padding:0 6px;
+  min-width:0;font:400 11px/16px var(--ec-font);border-radius:3px;
+  background:var(--ec-bg);color:var(--ec-fg-80);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  opacity:0;transition:opacity .1s;}
+.tl-track .clip:hover span{opacity:1;}
+.tl-track .clip:hover::before{background:color-mix(in srgb, var(--cc) 62%, var(--ec-bg));}
+.tl-track .clip.done::before{background:color-mix(in srgb, var(--cc) 38%, var(--ec-bg));}
+.tl-track .clip.cur::before{background:color-mix(in srgb, var(--cc) 72%, var(--ec-bg));}
+.tl-track .clip.cur span{color:var(--ec-fg-100);}
+/* event markers on the track: red = collision, white = tool change.
+   The bg-colored halo "breaks" the operation line around the marker */
+.tl-mark{position:absolute;top:50%;height:12px;transform:translateY(-50%);
+  width:3px;margin-left:-1.5px;border-radius:1px;pointer-events:none;z-index:1;
+  box-shadow:0 0 0 3px var(--ec-bg);}
+/* collisions use the system error glyph: a red diamond with a dot inside */
+.tl-mark--coll{width:9px;height:9px;margin-left:-7.5px;border-radius:2px;
+  transform:translateY(-50%) rotate(45deg);background:#ff5c5e;
+  border:3px solid var(--ec-bg);box-shadow:none;box-sizing:content-box;}
+.tl-mark--coll::after{content:'';position:absolute;inset:0;margin:auto;
+  width:3px;height:3px;border-radius:50%;background:var(--ec-bg);}
+.tl-mark--tool{width:2px;background:var(--ec-fg-56);}
+/* playhead: full-height caret with a cap; the tip shows the timecode */
+.tl-track .ph{position:absolute;top:-5px;bottom:-3px;width:2px;margin-left:-1px;
+  background:var(--ec-fg-100);pointer-events:none;z-index:2;
+  box-shadow:1px 0 0 var(--ec-bg), -1px 0 0 var(--ec-bg);}
+.tl-track .ph::before{content:'';position:absolute;top:-1px;left:50%;
+  transform:translateX(-50%);width:0;height:0;
+  border:5px solid transparent;border-top:6px solid var(--ec-fg-100);}
+/* parked on a collision: the whole line turns red with a soft glow */
+.tl-track.atcoll .clip::before{
+  background:color-mix(in srgb, #ff5c5e 34%, var(--ec-bg));
+  box-shadow:0 0 10px rgba(255, 92, 94, .35);}
+.tl-track.atcoll .clip.cur::before{
+  background:color-mix(in srgb, #ff5c5e 62%, var(--ec-bg));
+  box-shadow:0 0 12px rgba(255, 92, 94, .55);}
+/* the playhead turns red while parked on a collision */
+.tl-track .ph.atcoll{background:#ff5c5e;}
+.tl-track .ph.atcoll::before{border-top-color:#ff5c5e;}
+.tl-track .ph.atcoll .ph-tip{color:#ff8384;border-color:rgba(255,112,114,.4);}
+.ph-tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  padding:1px 6px;border-radius:4px;background:var(--ec-popover, #1e2223);
+  border:1px solid var(--ec-fg-16);color:var(--ec-fg-96);
+  font:500 10px/14px var(--ec-font);white-space:nowrap;
+  opacity:0;transition:opacity .12s;}
+.tl-track:hover .ph-tip,.sim-timeline.scrubbing .ph-tip,
+.simbar.playing .ph-tip{opacity:1;}
+
+/* ---- control bar extras ---- */
+.ss-val{font:400 11px/16px var(--ec-font);color:var(--ec-fg-72);min-width:30px;
+  font-variant-numeric:tabular-nums;}
+.sim-speed.capped ~ .ss-val{color:var(--ec-amber, #ebc14a);}
+/* the play button is the one accent on the bar */
+.sb-btn.play{width:40px;background:var(--ec-green);color:#04150e;border-radius:5px;}
+.sb-btn.play:hover{background:#00b578;color:#04150e;}
+/* stop-conditions chip */
+.sb-stops{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 8px;
+  border-radius:4px;border:1px solid var(--ec-fg-16);cursor:pointer;
+  font:400 11px/16px var(--ec-font);color:var(--ec-fg-72);white-space:nowrap;}
+.sb-stops:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+.sb-stops svg{width:14px;height:14px;color:var(--ec-fg-56);flex:0 0 14px;}
+/* current-operation status chip */
+.sb-op{display:inline-flex;align-items:center;gap:6px;font:400 11px/16px var(--ec-font);
+  white-space:nowrap;min-width:0;}
+.sb-op__ring{width:10px;height:10px;border-radius:50%;box-sizing:border-box;flex:0 0 10px;
+  border:2.5px solid var(--cc, #ebda84);}
+.sb-op__name{font-weight:400;color:var(--ec-fg-96);max-width:110px;overflow:hidden;
+  text-overflow:ellipsis;}
+.sb-op__tno{font-style:normal;color:var(--st-green);font-variant-numeric:tabular-nums;}
+.sb-op__tname{color:var(--ec-fg-56);max-width:260px;overflow:hidden;text-overflow:ellipsis;}
+/* collision badge — click jumps to the next collision */
+.sb-coll{display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 7px;
+  border-radius:4px;border:1px solid rgba(255,112,114,.4);color:#ff8384;cursor:pointer;
+  font:500 11px/16px var(--ec-font);font-variant-numeric:tabular-nums;}
+.sb-coll:hover{background:rgba(255,112,114,.1);}
+.sb-coll svg{width:13px;height:13px;}
+/* ---- simulation parameters popover ---- */
+/* two columns so the whole set fits on screen without scrolling */
+.simpop{position:fixed;z-index:1000;width:600px;
+  background:var(--ec-bg-96);border:1px solid var(--ec-fg-12);border-radius:10px;
+  padding:10px 12px;box-shadow:0 8px 28px rgba(0,0,0,.5);}
+.simpop[hidden]{display:none !important;}
+.sp-cols{display:flex;gap:14px;align-items:flex-start;}
+.sp-col{flex:1;min-width:0;}
+.sp-colsep{width:1px;align-self:stretch;background:var(--ec-fg-8);flex:0 0 1px;}
+.sp-sec--first{margin-top:0;}
+.sp-row{display:flex;align-items:center;gap:8px;min-height:28px;
+  font:400 12px/16px var(--ec-font);color:var(--ec-fg-80);}
+.sp-row > span:first-child{flex:1;min-width:0;}
+.sp-row .tgl{margin-left:auto;flex:0 0 24px;cursor:pointer;}
+.sp-master b{flex:1;font:600 13px/18px var(--ec-font);color:var(--ec-fg-96);}
+.sp-sec{margin:6px 0 2px;font:500 11px/14px var(--ec-font);color:var(--ec-fg-56);}
+.sp-div{height:1px;background:var(--ec-fg-8);margin:10px 0;}
+/* collision level: 3 stops on a short slider */
+.sp-levels{padding:2px 2px 6px;}
+.sp-lvl-labels{display:flex;justify-content:space-between;
+  font:400 11px/14px var(--ec-font);color:var(--ec-fg-48);margin-bottom:8px;}
+.sp-lvl-labels span{cursor:pointer;}
+.sp-lvl-labels span.on{color:var(--ec-fg-96);}
+.sp-lvl-track{position:relative;height:14px;margin:0 4px;cursor:pointer;}
+.sp-lvl-track::before{content:'';position:absolute;left:0;right:0;top:6px;height:2px;
+  border-radius:2px;background:var(--ec-fg-16);}
+.sp-lvl-track .fill{position:absolute;left:0;top:6px;height:2px;border-radius:2px;
+  background:var(--st-green);}
+.sp-lvl-track .dot{position:absolute;top:5px;width:4px;height:4px;margin-left:-2px;
+  border-radius:50%;background:var(--ec-fg-32);}
+.sp-lvl-track .knob{position:absolute;top:1px;width:12px;height:12px;margin-left:-6px;
+  border-radius:50%;background:var(--st-green);transition:left .12s;}
+/* description card under the level slider */
+.sp-note{margin:2px 0 6px;padding:8px 10px;border-radius:6px;background:var(--ec-fg-6);}
+.sp-note b{display:block;font:600 11px/14px var(--ec-font);color:var(--st-green);}
+.sp-note span{display:block;margin-top:2px;font:400 11px/15px var(--ec-font);
+  color:var(--ec-fg-64);}
+/* tolerance sliders */
+.sp-tol{display:flex;align-items:center;gap:8px;padding:0 2px 4px;
+  font:400 11px/14px var(--ec-font);color:var(--ec-fg-48);}
+.sp-tol-track{position:relative;flex:1;height:14px;cursor:pointer;touch-action:none;}
+.sp-tol-track::before{content:'';position:absolute;left:0;right:0;top:6px;height:2px;
+  border-radius:2px;background:var(--ec-fg-16);}
+.sp-tol-track .fill{position:absolute;left:0;top:6px;height:2px;border-radius:2px;
+  background:var(--st-green);}
+.sp-tol-track .knob{position:absolute;top:1px;width:12px;height:12px;margin-left:-6px;
+  border-radius:50%;background:var(--st-green);}
+.sp-sub{padding-left:2px;}
+.sp-sub .tgl{margin-left:0;}
+.sp-input{margin-left:auto;display:inline-flex;align-items:center;gap:4px;
+  background:var(--ec-fg-4);border-radius:4px;padding:2px 6px;}
+.sp-input input{width:44px;background:transparent;border:0;outline:none;text-align:right;
+  color:var(--ec-fg-96);font:400 11px/14px var(--ec-font);}
+.sp-input em{font-style:normal;font:400 11px/14px var(--ec-font);color:var(--ec-fg-48);}
+.sp-input.is-off input{color:var(--ec-fg-32);}
+.sp-val{margin-left:auto;font:500 12px/16px var(--ec-font);color:var(--st-green);
+  cursor:pointer;padding:2px 6px;border-radius:4px;}
+.sp-val:hover{background:var(--ec-fg-8);}
+
+/* current code line while stepping / playing */
+.simrow.code.cur,.simrow.grp.cur{background:var(--ec-fg-8);}
+.simrow.code.cur .lbl{color:var(--ec-fg-100);}
+/* speed slider: chunky track with detent dots and a large knob; the ghost
+   marker keeps the hand-set value visible while the zoom cap (25%) holds */
+.sim-speed{position:relative;flex:1 1 190px;min-width:150px;max-width:360px;height:28px;cursor:pointer;touch-action:none;
+  flex:0 0 190px;}
+.ss-track{position:absolute;left:0;right:0;top:10px;height:8px;border-radius:999px;
+  background:var(--ec-fg-12);}
+.ss-fill{position:absolute;left:0;top:10px;height:8px;border-radius:999px;
+  background:var(--st-green);transition:width .1s;}
+.ss-dot{position:absolute;top:12.5px;width:3px;height:3px;margin-left:-1.5px;border-radius:50%;
+  background:var(--ec-bg-80);}
+/* a panel-colored ring around the knob "cuts" the track — the line reads
+   as broken around the handle, like in the reference */
+.ss-knob{position:absolute;top:6px;width:16px;height:16px;margin-left:-8px;border-radius:50%;
+  background:var(--ec-fg-100);transition:left .1s;
+  box-shadow:0 0 0 4px color-mix(in srgb, #f5f5f5 8%, var(--ec-bg));}
+.sim-speed:hover .ss-knob{transform:scale(1.12);}
+/* value bubble above the knob — visible on hover and while dragging */
+.ss-tip{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);
+  padding:2px 7px;border-radius:5px;background:var(--ec-bg-96);border:1px solid var(--ec-fg-12);
+  color:var(--ec-fg-96);font:500 11px/14px var(--ec-font);white-space:nowrap;
+  opacity:0;pointer-events:none;transition:opacity .12s;}
+.sim-speed:hover .ss-tip,.sim-speed.dragging .ss-tip{opacity:1;}
+/* the zoom cap is on: the effective value reads amber in the bubble */
+.sim-speed.capped .ss-tip{color:var(--ec-amber, #ebc14a);}
+/* ghost of the hand-set value: quiet ring on the track */
+.ss-ghost{position:absolute;top:8px;width:12px;height:12px;margin-left:-6px;border-radius:50%;
+  box-sizing:border-box;border:2px solid var(--ec-fg-48);
+  background:color-mix(in srgb, #f5f5f5 8%, var(--ec-bg));
+  box-shadow:0 0 0 3px color-mix(in srgb, #f5f5f5 8%, var(--ec-bg));}
+.sb-sep{width:1px;height:16px;background:var(--ec-fg-12);}
+.sb-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  border-radius:4px;cursor:pointer;color:var(--ec-fg-72);}
+.sb-btn:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+.sb-btn svg{width:16px;height:16px;}
+.sb-btn.stop{color:#ff7072;}
+.sb-btn.scope{color:var(--st-green);}
+.sb-btn.play .sp-pause{display:none;}
+.simbar.playing .sb-btn.play .sp-play{display:none;}
+.simbar.playing .sb-btn.play .sp-pause{display:block;}
+
+/* ===== Single-operation mode (double-click on the dock resizer) =====
+   A PANEL MODE, not a tree widget: the whole tree panel collapses to
+   tabs + toolbar + one operation card; the inspector takes the rest. */
+.dock.single .panel-tree{flex:0 0 auto !important;}
+/* .inner normally has flex-basis 0 (it fills the panel) — in single mode the
+   panel is sized BY the content, so the inner must size by content too */
+.panel-tree.single .inner{flex:0 0 auto;}
+.panel-tree.single .treewrap,.panel-tree.single .sortrow{display:none !important;}
+.singleop{display:flex;align-items:stretch;gap:6px;}
+/* display:flex would defeat the hidden attribute — enforce it */
+.singleop[hidden]{display:none !important;}
+.so-nav{display:flex;flex-direction:column;justify-content:center;gap:1px;flex:0 0 20px;}
+.so-btn{width:20px;height:16px;display:flex;align-items:center;justify-content:center;
+  border-radius:4px;cursor:pointer;color:var(--ec-fg-56);}
+.so-btn:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+.so-btn svg{width:12px;height:12px;}
+.so-main{flex:1 1 0;min-width:0;display:flex;}
+/* the operation card: quiet plate, two lines */
+.so-card{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:2px;
+  background:var(--ec-fg-4);border-radius:6px;padding:6px 8px;}
+.so-row{display:flex;align-items:center;gap:6px;min-width:0;}
+.so-num{color:var(--ec-fg-48);font:400 12px/16px var(--ec-font);flex:0 0 auto;
+  font-variant-numeric:tabular-nums;}
+.so-name{flex:1 1 0;min-width:0;color:var(--ec-fg-96);font:600 12px/16px var(--ec-font);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.so-tag{flex:0 0 auto;padding:1px 6px;border-radius:4px;background:var(--ec-fg-8);
+  color:var(--ec-fg-72);font:400 11px/16px var(--ec-font);}
+.so-icons{display:flex;align-items:center;gap:2px;flex:0 0 auto;}
+.so-tool{color:var(--ec-fg-56);font:400 11px/14px var(--ec-font);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.trow{display:flex;align-items:center;gap:4px;padding:2px;border-radius:6px;width:100%;cursor:pointer;}
+.trow:hover{background:var(--ec-fg-4);}
+.trow.tsel{background:var(--ec-fg-8);}
+.trow.dragging{opacity:.45;}
+.trow.drop-before{box-shadow:inset 0 2px 0 var(--ec-green);}
+.trow.drop-after{box-shadow:inset 0 -2px 0 var(--ec-green);}
+.tlayer{display:flex;align-items:center;flex:1 1 0;min-width:0;}
+.tlayer.i1{padding-left:8px}.tlayer.i2{padding-left:16px}
+.shev{width:12px;height:20px;flex:0 0 12px;transition:transform .12s ease;}
+.trow.collapsed .shev{transform:rotate(-90deg);}
+.shev.exp{cursor:pointer;}
+.micn{width:20px;height:20px;flex:0 0 20px}
+.rlabel{display:flex;align-items:center;height:20px;padding:0 2px;min-width:0;}
+.rlabel span{color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pslot{display:flex;align-items:center;justify-content:flex-end;gap:2px;flex:1 1 0;min-width:0;overflow:hidden;}
+.bicn{display:flex;align-items:center;justify-content:center;padding:2px;border-radius:4px;flex:0 0 auto;}
+/* tool number reads green, like in the live ENCY tree */
+.toolno{padding:2px;border-radius:4px;color:var(--st-green);font:400 12px/16px var(--ec-font);flex:0 0 auto;}
+.tlink{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:2px;padding:2px 4px;border-radius:4px;}
+.tlink span{flex:1;min-width:0;color:var(--ec-fg-64);font:400 12px/16px var(--ec-font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.grip{cursor:grab;}
+
+/* ===== Inspector ===== */
+.rail{display:flex;flex-direction:column;justify-content:space-between;height:100%;width:28px;flex:0 0 28px;}
+.rail-top{display:flex;flex-direction:column;gap:2px;width:28px;}
+.rbtn{display:flex;align-items:center;padding:4px;border-radius:8px;cursor:pointer;}
+.rbtn:hover{background:var(--ec-fg-4);}
+.rbtn.active{background:var(--ec-fg-16);}
+.ricn{width:20px;height:20px}
+.title-row{display:flex;align-items:center;gap:4px;padding:2px 2px 2px 8px;border-radius:6px;}
+.title-row .t{color:var(--ec-fg-96);font:600 14px/20px var(--ec-font);padding-right:8px;}
+.title-ctl{flex:1 1 0;display:flex;justify-content:flex-end;min-width:0;gap:4px;}
+.title-ctl .dropdown{flex:0 1 auto;max-width:300px;}
+.irows{display:flex;flex-direction:column;gap:2px;overflow:auto;flex:1 1 0;min-height:0;}
+.irows > *{flex:0 0 auto;}
+.irow{display:flex;align-items:center;gap:2px;padding:2px;border-radius:6px;width:100%;cursor:pointer;}
+.irow:hover{background:var(--ec-fg-8);}
+.irow.sel{background:var(--ec-fg-12);}
+.ilbl{display:flex;align-items:center;flex:1 1 0;min-width:0;}
+.hint{width:12px;height:20px;flex:0 0 12px;visibility:hidden;}
+.irow:hover .hint,.irow.sel .hint{visibility:visible;}
+.itl{display:flex;align-items:center;flex:1 1 0;min-width:0;}
+.itl.i1{padding-left:8px}.itl.i2{padding-left:16px}
+.ictl{display:flex;align-items:center;justify-content:flex-end;gap:2px;flex:1 1 0;min-width:0;overflow:hidden;}
+.ictl.between{justify-content:space-between;}
+.dropdown{background:var(--ec-fg-4);display:flex;align-items:center;justify-content:space-between;
+  flex:1 1 0;min-width:0;padding:2px 2px 2px 4px;border-radius:4px;cursor:pointer;}
+.dropdown:hover{background:var(--ec-fg-8);}
+.dropdown.dd-open{background:var(--ec-fg-8);box-shadow:inset 0 0 0 1px var(--ec-fg-16);}
+.dropdown .v,.input .v{color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dropdown .v{flex:1;min-width:0;}
+.input{background:var(--ec-fg-4);display:flex;align-items:center;flex:1 1 0;min-width:0;padding:2px 2px 2px 4px;border-radius:4px;}
+.icn11{width:12px;height:20px;flex:0 0 12px;cursor:pointer;visibility:hidden;}
+.irow:hover .icn11,.irow.sel .icn11{visibility:visible;}
+.tgl{width:24px;height:14px;flex:0 0 24px;cursor:pointer;}
+.ipair{display:flex;align-items:center;gap:2px;width:85.75px;flex:0 0 85.75px;}
+/* ---- Tool tab extras ---- */
+.rlabel span.b{font-weight:400;}
+.roval{flex:1 1 0;min-width:0;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);padding:2px 4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.irow.roparam .rlabel span{color:var(--ec-fg-56);}
+.irow .shev.exp{cursor:pointer;}
+.irow.collapsed .shev.exp{transform:rotate(-90deg);}
+.irows .line{margin:4px 0;}
+.icap{padding:2px 4px 2px 28px;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);}
+.search-row{display:flex;padding:2px;}
+.search-box{flex:1 1 0;padding:0;}
+.search-box input{flex:1 1 0;min-width:0;background:transparent;border:0;outline:none;
+  color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);padding:2px 8px;}
+.search-box input::placeholder{color:var(--ec-fg-56);}
+.ilist-item{padding:3px 6px 3px 26px;border-radius:4px;color:var(--ec-fg-72);
+  font:400 12px/16px var(--ec-font);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ilist-item:hover{background:var(--ec-fg-8);}
+.ilist-item.sel{background:var(--ec-fg-12);color:var(--ec-fg-96);}
+/* ---- Tool Assembly workflow ---- */
+.tact{border:0;background:transparent;color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);
+  padding:3px 8px;border-radius:4px;cursor:pointer;}
+.tact:hover{color:var(--ec-fg-96);background:var(--ec-fg-8);}
+.tact.apply{background:var(--ec-fg-16);color:var(--ec-fg-96);}
+.tact.apply:hover{background:var(--ec-fg-24);}
+.tact.ticn{padding:0;width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--ec-fg-72);}
+.tact.tback{display:inline-flex;align-items:center;gap:3px;padding-left:4px;}
+.asm-list{display:flex;flex-direction:column;padding-top:2px;}
+.asm-list .ilist-item{padding-left:6px;} /* no hierarchy here: items align with the group heading */
+.asm-item{display:flex;align-items:center;}
+.asm-item .asm-name{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.asm-item .asm-cur{flex:0 0 16px;display:flex;align-items:center;justify-content:center;
+  margin-left:6px;color:var(--ec-green);}
+.asm-item.cur{color:var(--ec-fg-100);}
+.asm-item.cur .dd-pre{color:var(--ec-green);}
+.asm-item.active{background:var(--ec-fg-12);box-shadow:inset 0 0 0 1px var(--ec-fg-16);}
+.ref-head{padding:6px 6px 2px 28px;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);}
+.opitem{display:flex;align-items:center;gap:8px;padding:2px 6px 2px 28px;color:var(--ec-fg-56);
+  font:400 12px/16px var(--ec-font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.opitem .op-dot{flex:0 0 4px;width:4px;height:4px;border-radius:50%;background:var(--ec-fg-24);}
+.opitem .op-name{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+.tool-sel{display:flex;align-items:center;gap:4px;padding:2px;}
+.spark{flex:0 0 24px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;
+  border:0;border-radius:4px;background:var(--ec-green);color:#0e1010;cursor:pointer;}
+.spark:hover{filter:brightness(1.1);}
+.selbox{flex:1 1 0;min-width:0;min-height:24px;}
+.selbox .movh{display:flex;align-items:center;justify-content:center;color:var(--ec-fg-56);flex:0 0 16px;margin-right:2px;}
+.edittool{flex:0 0 24px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;
+  border:0;border-radius:4px;background:var(--ec-fg-8);color:var(--ec-fg-72);cursor:pointer;}
+.edittool:hover{background:var(--ec-fg-16);color:var(--ec-fg-96);}
+/* read-only applies ONLY to lockable rows (Tool/Adapter); Station block always editable */
+.irows.ro .lockable .dropdown{pointer-events:none;background:transparent;}
+.irows.ro .lockable .dropdown .v{color:var(--ec-fg-56);}
+.irows.ro .lockable .dropdown .i16{display:none;}
+.irows.ro .lockable .rowbtn{display:none;}
+.ictl .duo-a{flex:1 1 0;min-width:0;}
+.ictl .duo-b{flex:0 0 52px;}
+.rowbtn{flex:0 0 20px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;
+  border:0;border-radius:4px;background:transparent;color:var(--ec-fg-56);cursor:pointer;padding:0;}
+.rowbtn:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+.rowbtn.on{background:var(--ec-fg-12);color:var(--ec-fg-96);}
+
+/* ===== Popover menu ===== */
+.dd-menu{position:fixed;z-index:1000;background:var(--ec-bg-96);border:1px solid var(--ec-fg-12);
+  border-radius:4px;padding:2px;display:flex;flex-direction:column;gap:1px;
+  box-shadow:0 6px 20px rgba(0,0,0,.5);}
+.dd-opt{padding:4px 6px;border-radius:3px;color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);
+  cursor:pointer;white-space:nowrap;}
+.dd-opt:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+.dd-opt.cur{color:var(--ec-fg-100);}
+.dd-sep{height:1px;background:var(--ec-fg-12);margin:2px 0;}
+.dd-head{padding:5px 6px 2px;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);}
+.dd-pre{display:inline-block;min-width:28px;margin-right:6px;color:var(--ec-fg-56);
+  font-variant-numeric:tabular-nums;}
+.dd-sw{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px;vertical-align:-2px;}
+
+/* ===== Viewport + filters + status panel ===== */
+/* the viewport is the frameless 3D scene itself */
+.viewport{position:absolute;inset:0;background:var(--ec-bg);}
+.vp-hint{position:absolute;inset:0;pointer-events:none;display:grid;place-items:center;color:var(--ec-fg-8);font-size:13px;letter-spacing:.04em;}
+
+/* filters float next to the dock */
+/* same panel pattern as the dock: light base, header on it, dark inset body */
+.filters{position:absolute;top:8px;left:357px;border:1px solid var(--ec-fg-12);
+  background:color-mix(in srgb, #f5f5f5 8%, var(--ec-bg));
+  border-radius:8px;padding:2px;display:flex;flex-direction:column;gap:2px;width:67px;}
+.f-head{border:0;background:transparent;cursor:pointer;width:100%;padding:6px 4px;border-radius:6px;
+  color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);text-align:center;}
+.f-head:hover{background:var(--ec-fg-8);}
+.f-body{display:none;background:var(--ec-bg);border-radius:6px;padding:4px;flex-direction:column;gap:8px;}
+.filters.open .f-body{display:flex;}
+.f-cols{display:flex;gap:4px;}
+.f-col{flex:1 1 0;display:flex;flex-direction:column;gap:2px;}
+.f-cell{width:100%;height:27.5px;display:flex;align-items:center;justify-content:center;padding:2px;
+  border-radius:6px;background:transparent;cursor:pointer;}
+.f-cell:hover{background:var(--ec-fg-8);}
+.f-cell.on{background:var(--ec-fg-16);}
+.f20{width:20px;height:20px}
+.f-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:2px;}
+.f-grid .f-cell{height:28px;}
+
+/* Status panel — opens on a status-circle click in the tree */
+.stpanel{position:absolute;top:8px;left:357px;display:none;flex-direction:column;gap:8px;width:300px;
+  background:var(--ec-bg-96);border:1px solid var(--ec-fg-12);border-radius:10px;padding:12px;
+  box-shadow:0 8px 28px rgba(0,0,0,.5);z-index:50;}
+.stpanel.open{display:flex;}
+.stp-head{display:flex;align-items:center;gap:8px;}
+.stp-title{flex:1;min-width:0;color:var(--ec-fg-96);font:600 14px/20px var(--ec-font);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.stp-close{border:0;background:transparent;cursor:pointer;color:var(--ec-fg-56);display:grid;
+  place-items:center;width:20px;height:20px;border-radius:4px;padding:0;}
+.stp-close:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+.stp-close svg{width:14px;height:14px;}
+.stp-sec{color:var(--ec-fg-96);font:600 12px/16px var(--ec-font);margin-top:2px;}
+.stp-list{display:flex;flex-direction:column;gap:6px;}
+.stp-row{display:flex;align-items:center;gap:8px;}
+.stp-lbl{flex:1;min-width:0;color:var(--ec-fg-80);font:400 12px/16px var(--ec-font);}
+.stp-meta{color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);white-space:nowrap;}
+
+#assetbank{display:none}

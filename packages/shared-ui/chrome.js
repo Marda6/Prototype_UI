@@ -54,7 +54,8 @@
       '<div class="hbtn" title="Menu"><img class="hicn-act hicn-logo" src="' + BASE + 'hdr-logo.svg" alt=""></div>' +
       '<div class="hdiv"></div>' +
       '<div class="hgroup-left">' +
-        '<div class="hbtn' + (AREA === 'home' ? ' on' : '') + '" title="Home">' +
+        '<div class="hbtn' + (AREA === 'home' ? ' on' : '') + '" title="Home"' +
+          (AREA === 'project' ? ' data-app="../clouds/"' : '') + '>' +
           '<img class="hicn-act" src="' + BASE + 'hdr-home.svg" alt=""></div>' +
         '<div class="hbtn" title="List"><img class="hicn-act" src="' + BASE + 'hdr-list.svg" alt=""></div>' +
         '<div class="hbtn" title="New file"><img class="hicn-act" src="' + BASE + 'hdr-file.svg" alt=""></div>' +
@@ -64,7 +65,8 @@
       '<div class="hdiv"></div>' +
       '<div class="htabs">' +
         // in the home area no project tab is active — Home is active
-        '<div class="htab' + (AREA === 'project' ? ' active' : '') + '">' +
+        '<div class="htab' + (AREA === 'project' ? ' active' : '') + '"' +
+          (AREA === 'project' ? '' : ' data-app="../project/"') + '>' +
           '<span class="htab-t">Turn part probing 2</span>' +
           '<img class="htab-x" src="' + BASE + 'hdr-tabclose.svg" alt=""></div>' +
         '<div class="htab"><span class="htab-t">New project 2</span>' +
@@ -161,19 +163,23 @@
   if (!app || !workspace) return;
 
   app.insertAdjacentHTML('afterbegin', topbar());
-  workspace.insertAdjacentHTML('afterbegin', sidebar());
+  // the home sidebar exists only outside a project
+  if (AREA !== 'project') workspace.insertAdjacentHTML('afterbegin', sidebar());
 
   // sidebar pin: state lives in localStorage so it doesn't reset
   // when navigating between sections (which is a full page reload)
-  try { if (localStorage.getItem('ency.sidebar.pinned') === '1') app.classList.add('pinned'); } catch(e){}
-  document.getElementById('pinBtn').addEventListener('click', function(e){
-    e.stopPropagation();
-    var on = app.classList.toggle('pinned');
-    try { localStorage.setItem('ency.sidebar.pinned', on ? '1' : '0'); } catch(e){}
-  });
+  var pinBtn = document.getElementById('pinBtn');
+  if (pinBtn) {
+    try { if (localStorage.getItem('ency.sidebar.pinned') === '1') app.classList.add('pinned'); } catch(e){}
+    pinBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var on = app.classList.toggle('pinned');
+      try { localStorage.setItem('ency.sidebar.pinned', on ? '1' : '0'); } catch(e){}
+    });
+  }
 
   // navigation between sections: the relative path works both on Pages and locally
-  document.querySelectorAll('.srow[data-app]').forEach(function(r){
+  document.querySelectorAll('[data-app]').forEach(function(r){
     r.addEventListener('click', function(){ location.href = r.dataset.app; });
   });
 

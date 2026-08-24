@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>ENCY Core — Project preview</title>
+  <!-- Prototype target screen: 1920×1080 at 125% system scale
+       → working CSS area of 1536×864 logical px. -->
+  <meta name="ency-target-viewport" content="1536x864">
+  <link rel="stylesheet" href="../shared-ui/tokens.css">
+  <link rel="stylesheet" href="../shared-ui/chrome.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+<!-- read-only project view ported from the Setup Sheet v2 prototype;
+     opened from the Preview button on a Clouds project card -->
+<!-- area:"project" — the shell skips the home sidebar; back = arrow in the
+     project header, straight to the Clouds library -->
+<script>window.ENCY_APP = {id: "project-preview", area: "project"};</script>
+
+<!-- ===================== ICON SPRITE (ENCY PwIcons + operation-icons) ===================== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-chevdown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></symbol>
+  <symbol id="i-dotsv" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10m0 0l-4-4m4 4l4-4M5 19h14"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.3 7.6L4 21l1.9-4.7A8.5 8.5 0 1 1 21 11.5z"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.9.4-1.5 1-1.5 2M12 17h.01"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="2.5"/></symbol>
+  <symbol id="i-cube" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3zM12 3v18M4 7.5l8 4.5 8-4.5"/></symbol>
+  <symbol id="i-sheet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="16" rx="1.5"/><path d="M3.5 9h17M3.5 14.5h17M9 9v11M15 9v11"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 16.5l9 5 9-5"/></symbol>
+  <symbol id="i-grid-view" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14a0 0 0 0 1 0 0H6a0 0 0 0 1 0 0V3z"/><path d="M14 3v4h4"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 6.5a3 3 0 0 1 0 6M21 19a5 5 0 0 0-3.5-4.8"/></symbol>
+  <symbol id="i-toolbit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3h4v9l-2 3-2-3z"/><path d="M12 15v6"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-wand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19l9-9M14.5 5.5l1 1M17 3l.6 1.8L19.5 5.5l-1.6 1L17 8.5l-.9-2L14.5 5.5z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l4 4 12-11"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z" fill="currentColor"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="7.5" y="5" width="3" height="14" rx="1" fill="currentColor"/><rect x="13.5" y="5" width="3" height="14" rx="1" fill="currentColor"/></symbol>
+  <symbol id="i-skip-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L9 12l9 6zM6 5v14"/></symbol>
+  <symbol id="i-skip-fwd" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l9 6-9 6zM18 5v14"/></symbol>
+  <symbol id="i-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
+  <symbol id="i-axes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V5M5 19h14M5 9l-2 2M5 5l-2 2M19 19l2-2M15 19l2 2"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16M4 15h16M9 4v16M15 4v16"/></symbol>
+  <symbol id="i-ruler" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="7" width="19" height="10" rx="1.5"/><path d="M7 7v3M11 7v4M15 7v3M19 7v4"/></symbol>
+  <symbol id="i-measure" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15.5L15.5 3l5.5 5.5L8.5 21z"/><path d="M7.5 12l2 2M11 8.5l2 2M14.5 5l2 2"/></symbol>
+  <symbol id="i-part" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><circle cx="12" cy="12" r="3.2"/></symbol>
+  <symbol id="i-machine" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 20.5h17"/><path d="M5.5 20.5v-15h13v15"/><path d="M9.5 5.5v5.5h5V5.5"/><path d="M12 11v3.5"/></symbol>
+  <symbol id="i-context" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2.2 2.6"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3zM12 3v18M4 7.5l8 4.5 8-4.5"/></symbol>
+  <symbol id="i-holder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5h4V7h3.5L13 20.5h-2L6.5 7H10V3.5z"/></symbol>
+  <symbol id="i-normals" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17.5h16"/><path d="M12 17.5V7"/><path d="M8.5 10.5L12 7l3.5 3.5"/></symbol>
+  <symbol id="i-points" viewBox="0 0 24 24" fill="currentColor"><circle cx="5.5" cy="17.5" r="1.5"/><circle cx="10" cy="12.5" r="1.5"/><circle cx="15" cy="9" r="1.5"/><circle cx="19.5" cy="6" r="1.5"/></symbol>
+  <symbol id="i-panel-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M14.5 4.5v15"/></symbol>
+  <symbol id="i-panel-bottom" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 13.5h17"/></symbol>
+  <symbol id="i-mesh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8c4 3 12 3 16 0M4 12c4 3 12 3 16 0M4 16c4 3 12 3 16 0"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-minimize" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10h-6V4"/><path d="M4 14h6v6"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h8M15 6h6M11 4v4"/><path d="M3 12h4M11 12h10M7 10v4"/><path d="M3 18h12M19 18h2M15 16v4"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="1.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.8l7.6-4.1M8.2 13.2l7.6 4.1"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8.5a6 6 0 0 0-12 0c0 6.5-2.5 8-2.5 8h17s-2.5-1.5-2.5-8"/><path d="M10.3 20a2 2 0 0 0 3.4 0"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="1.5"/><path d="M6.5 15h-1A1.5 1.5 0 0 1 4 13.5v-8A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5v1"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7A1.5 1.5 0 0 1 5 5.5h4L11 8h8a1.5 1.5 0 0 1 1.5 1.5V18a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 18z"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4H6.5A1.5 1.5 0 0 0 5 5.5v13A1.5 1.5 0 0 0 6.5 20H13"/><path d="M17 8l4 4-4 4M21 12H10"/></symbol>
+  <!-- ENCY logo (brand, from assets/Referens/logo.svg, 24x24) -->
+  <symbol id="i-ency" viewBox="0 0 24 24" fill="none">
+    <path d="M10.5938 18.0938H7.89844C6.79818 18.0938 5.90625 17.2018 5.90625 16.1016C5.90625 15.0013 6.79818 14.1094 7.89844 14.1094H10.5938C10.9821 14.1094 11.2969 13.7946 11.2969 13.4062C11.2969 13.0179 10.9821 12.7031 10.5938 12.7031H7.89844C6.02153 12.7031 4.5 14.2247 4.5 16.1016C4.5 17.9785 6.02153 19.5 7.89844 19.5H10.5938C10.9821 19.5 11.2969 19.1852 11.2969 18.7969C11.2969 18.4085 10.9821 18.0938 10.5938 18.0938Z" fill="currentColor"/>
+    <path d="M14.1094 10.5937L14.1094 7.89844C14.1094 6.79818 15.0013 5.90625 16.1016 5.90625C17.2018 5.90625 18.0937 6.79818 18.0937 7.89844L18.0937 10.5937C18.0937 10.9821 18.4085 11.2969 18.7969 11.2969C19.1852 11.2969 19.5 10.9821 19.5 10.5938L19.5 7.89844C19.5 6.02153 17.9785 4.5 16.1016 4.5C14.2247 4.5 12.7031 6.02153 12.7031 7.89844L12.7031 10.5937C12.7031 10.9821 13.0179 11.2969 13.4062 11.2969C13.7946 11.2969 14.1094 10.9821 14.1094 10.5937Z" fill="currentColor"/>
+    <path d="M18.0938 13.4062L18.0938 16.1016C18.0938 17.2018 17.2018 18.0937 16.1016 18.0937L13.4063 18.0937C13.0179 18.0937 12.7031 18.4085 12.7031 18.7969C12.7031 19.1852 13.0179 19.5 13.4063 19.5L16.1016 19.5C17.9785 19.5 19.5 17.9785 19.5 16.1016L19.5 13.4062C19.5 13.0179 19.1852 12.7031 18.7969 12.7031C18.4086 12.7031 18.0938 13.0179 18.0938 13.4062Z" fill="currentColor"/>
+    <path d="M13.4064 12.7031C13.018 12.7031 12.7031 13.018 12.7031 13.4064C12.7031 13.6006 12.7818 13.7764 12.9091 13.9037L15.6041 16.5987C15.7314 16.726 15.9072 16.8047 16.1014 16.8047C16.4898 16.8047 16.8047 16.4898 16.8047 16.1014C16.8047 15.9072 16.726 15.7314 16.5987 15.6041L13.9037 12.9091C13.7764 12.7818 13.6006 12.7031 13.4064 12.7031Z" fill="currentColor"/>
+    <path d="M10.5938 9.89062H7.89844C6.79818 9.89062 5.90625 8.99869 5.90625 7.89844C5.90625 6.79818 6.79818 5.90625 7.89844 5.90625H9.59938L8.22071 7.28493C8.09346 7.41217 8.01476 7.58795 8.01476 7.78211C8.01476 8.17044 8.32956 8.48524 8.71789 8.48524C8.91205 8.48524 9.08783 8.40654 9.21507 8.2793L11.0909 6.40343C11.2182 6.27619 11.2969 6.10041 11.2969 5.90625V5.20312C11.2969 4.8148 10.9821 4.5 10.5938 4.5H7.89844C6.02153 4.5 4.5 6.02153 4.5 7.89844C4.5 9.77534 6.02153 11.2969 7.89844 11.2969H10.5938C10.9821 11.2969 11.2969 10.9821 11.2969 10.5937C11.2969 10.2054 10.9821 9.89062 10.5938 9.89062Z" fill="currentColor"/>
+  </symbol>
+  <symbol id="i-maximize" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M10 20H4v-6"/></symbol>
+  <symbol id="i-rows" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3L5.5 13.5H11L10 21l7.5-10.5H12L13 3z"/></symbol>
+  <symbol id="i-hash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 4.5l-2.4 15M16.9 4.5l-2.4 15M4.5 9.2h15.4M4.1 14.8h15.4"/></symbol>
+
+  <symbol id="op-machine" viewBox="0 0 20 20">
+    <path d="M14.584 4.583c.46 0 .833.374.833.834v5.766c0 .09-.015.178-.043.263-.253.76-1.327.76-1.58 0a.833.833 0 0 1-.044-.263V5.417c0-.46.374-.834.834-.834z" fill="var(--operation-icon-fill)" stroke="var(--operation-icon-accent)" stroke-width=".833" stroke-linejoin="round"/>
+    <rect x="2.916" y="5.417" width="6.667" height="11.667" rx="1.25" fill="var(--operation-icon-fill)" stroke="var(--operation-icon-accent)" stroke-width=".833" stroke-linejoin="round"/>
+    <rect x="2.916" y="13.749" width="14.167" height="4.167" rx="1.25" fill="var(--operation-icon-fill)" stroke="var(--operation-icon-accent)" stroke-width=".833" stroke-linejoin="round"/>
+    <rect x="8.75" y="3.749" width="4.167" height="4.167" rx="1.25" fill="var(--operation-icon-fill)" stroke="var(--operation-icon-accent)" stroke-width=".833" stroke-linejoin="round"/>
+    <rect x="12.083" y="2.083" width="5" height="6.667" rx="1.25" fill="var(--operation-icon-fill)" stroke="var(--operation-icon-accent)" stroke-width=".833" stroke-linejoin="round"/>
+    <rect x="5.416" y="2.083" width="4.167" height="8.333" rx="1.25" fill="var(--operation-icon-fill)" stroke="var(--operation-icon-accent)" stroke-width=".833" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="op-setup" viewBox="0 0 20 20">
+    <circle cx="10" cy="10" r="7.083" fill="#F6F6F6" stroke="#3B3E48" stroke-width=".833"/>
+    <path d="M17.5 10c0-.985-.194-1.96-.571-2.87A7.5 7.5 0 0 0 10 2.5V10h7.5z" fill="#3B3E48"/>
+    <path d="M2.5 10a7.5 7.5 0 0 0 7.5 7.5V10H2.5z" fill="#3B3E48"/>
+  </symbol>
+  <symbol id="op-part" viewBox="0 0 20 20">
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M9.554 2.121a.9.9 0 0 1 .892 0l6.111 3.552c.274.16.443.453.443.77v7.116a.89.89 0 0 1-.443.769l-6.111 3.552a.9.9 0 0 1-.892 0l-6.111-3.552A.89.89 0 0 1 3 13.558V6.442c0-.317.169-.61.442-.769L9.554 2.121zM9.999 6.948a3.052 3.052 0 1 0 0 6.104 3.052 3.052 0 0 0 0-6.104z" fill="var(--operation-icon-fill)"/>
+  </symbol>
+  <symbol id="op-operation" viewBox="0 0 20 20">
+    <rect x=".625" y=".625" width="18.75" height="18.75" rx="1.875" stroke="var(--operation-icon-fill)" stroke-width="1.25"/>
+    <path d="M11.25 8.75h1.25V2.5h-1.25z" fill="var(--operation-icon-fill)"/>
+    <path d="M12.5 8.75h1.25V2.5H12.5z" fill="var(--operation-icon-fill)"/>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M2.5 17.5h6.25V15A5 5 0 0 1 8.75 5V2.5H2.5z" fill="var(--operation-icon-fill)"/>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M7.5 10 10 10V7.5A2.5 2.5 0 0 0 7.5 10z" fill="var(--operation-icon-fill)"/>
+    <path d="M7.5 10a2.5 2.5 0 0 0 2.5 2.5V10z" fill="var(--operation-icon-fill)"/>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M10 7.5h2.5V10H10z" fill="var(--operation-icon-fill)"/>
+    <path d="M10 12.5h2.5V10H10z" fill="var(--operation-icon-fill)"/>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M15 7.5V10h-2.5V7.5z" fill="var(--operation-icon-fill)"/>
+    <path d="M12.5 12.5H15V10h-2.5z" fill="var(--operation-icon-fill)"/>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M15 10V7.5A2.5 2.5 0 0 1 17.5 10z" fill="var(--operation-icon-fill)"/>
+    <path d="M15 12.5A2.5 2.5 0 0 0 17.5 10H15z" fill="var(--operation-icon-fill)"/>
+  </symbol>
+</svg>
+
+<!-- Каркас: header + левая панель на всю высоту + две панели справа 50/50 -->
+<!-- operations list display options (anchored to the panel's sliders button) -->
+<div class="statsmenu" id="statsMenu" hidden></div>
+
+<div class="app" id="app">
+  <div class="workspace">
+    <main class="content">
+  <header class="header">
+    <button class="header__back" title="Back"><svg><use href="#i-back"/></svg></button>
+    <div class="header__title">Sequential machining (WIP)</div>
+    <span class="chip-num"># 2356</span>
+    <span class="header__sep"></span>
+    <span class="header__date header__date--created" title="Created"><svg><use href="#i-calendar"/></svg>Jun 4, 2026</span>
+    <button class="header__date header__date--upd" id="updBtn" title="Updated"><svg><use href="#i-clock"/></svg>Jun 29, 2026</button>
+    <!-- compact header: who updated last + when the project was created -->
+    <div class="pdetails datepop" id="datePanel" hidden>
+      <div class="datepop__label">Last update</div>
+      <div class="member">
+        <span class="avatar" style="--av:#9584eb">RT<i class="st st--on" title="Online"></i></span>
+        <div class="member__text">
+          <div class="member__name">Ravil Test</div>
+          <div class="member__mail">Jun 29, 2026 · 14:32</div>
+        </div>
+      </div>
+      <div class="pdetails__div"></div>
+      <div class="datepop__created"><svg><use href="#i-calendar"/></svg>Created Jun 4, 2026</div>
+    </div>
+    <div class="header__spacer"></div>
+    <button class="avatars" id="membersBtn" title="Project members">
+      <span class="avatar" style="--av:#84c9eb">KB</span>
+      <span class="avatar" style="--av:#ff7072">AK</span>
+      <span class="avatar" style="--av:#9584eb">RT</span>
+      <span class="avatar" style="--av:#84ebb8">RM</span>
+      <span class="avatar avatar--more">+1</span>
+    </button>
+    <button class="btn-primary header__cl" id="clBtn" title="Setup checklist" hidden><svg><use href="#i-check"/></svg><span class="header__cl-word">Setup checklist</span><span class="header__cl-num" id="clBtnNum"></span></button>
+    <button class="btn-secondary"><svg><use href="#i-share"/></svg>Share</button>
+    <button class="btn-secondary"><svg><use href="#i-download"/></svg>Download</button>
+    <button class="btn-primary header__encybtn" title="Open in ENCY">Open</button>
+    <span class="header__sep"></span>
+    <button class="header__iconbtn header__chat" title="Chat"><svg><use href="#i-chat"/></svg></button>
+    <button class="header__iconbtn" id="moreBtn" title="More"><svg><use href="#i-more"/></svg></button>
+    <div class="hmenu" id="moreMenu" hidden>
+      <button><svg><use href="#i-bell"/></svg>Notifications</button>
+      <button><svg><use href="#i-share"/></svg>Share</button>
+      <button><svg><use href="#i-copy"/></svg>Duplicate to My Projects</button>
+      <button><svg><use href="#i-folder"/></svg>Collections<svg class="chev"><use href="#i-chev"/></svg></button>
+      <div class="hmenu__sep"></div>
+      <button class="is-danger"><svg><use href="#i-logout"/></svg>Leave project</button>
+    </div>
+
+    <!-- Members popover (opens from the members stack) -->
+    <div class="pdetails" id="membersPanel" hidden>
+      <div class="pdetails__head">
+        <div class="pdetails__title">Members <span class="pdetails__cnt">5</span></div>
+        <button class="header__iconbtn" id="pdClose" title="Close"><svg><use href="#i-close"/></svg></button>
+      </div>
+
+      <div class="member">
+        <span class="avatar" style="--av:#84c9eb">KB<i class="st" title="Offline"></i></span>
+        <div class="member__text">
+          <div class="member__name">Kirill Belousov</div>
+          <div class="member__mail">k.belousov@encycam.com</div>
+        </div>
+        <button class="inforow__copy" data-copy="k.belousov@encycam.com" title="Copy email"><svg><use href="#i-copy"/></svg></button>
+        <span class="role role--owner">Owner</span>
+      </div>
+      <div class="member">
+        <span class="avatar" style="--av:#ff7072">AK<i class="st" title="Offline"></i></span>
+        <div class="member__text">
+          <div class="member__name">Andrei Kharatsidi</div>
+          <div class="member__mail">a.kh@encycam.com</div>
+        </div>
+        <button class="inforow__copy" data-copy="a.kh@encycam.com" title="Copy email"><svg><use href="#i-copy"/></svg></button>
+        <span class="role">Can edit</span>
+      </div>
+      <div class="member">
+        <span class="avatar" style="--av:#9584eb">RT<i class="st st--on" title="Online"></i></span>
+        <div class="member__text">
+          <div class="member__name">Ravil Test</div>
+          <div class="member__mail">raviltest@encycam.com</div>
+        </div>
+        <button class="inforow__copy" data-copy="raviltest@encycam.com" title="Copy email"><svg><use href="#i-copy"/></svg></button>
+        <span class="role">Can edit</span>
+      </div>
+      <div class="pdetails__hidden" hidden>
+        <div class="member">
+          <span class="avatar" style="--av:#84ebb8">RM<i class="st st--on" title="Online"></i></span>
+          <div class="member__text">
+            <div class="member__name">Ruslan M</div>
+            <div class="member__mail">ruslan.m@encycam.com</div>
+          </div>
+          <button class="inforow__copy" data-copy="ruslan.m@encycam.com" title="Copy email"><svg><use href="#i-copy"/></svg></button>
+          <span class="role">Can view</span>
+        </div>
+        <div class="member">
+          <span class="avatar" style="--av:#ebda84">KE<i class="st" title="Offline"></i></span>
+          <div class="member__text">
+            <div class="member__name">Kate Esseeva</div>
+            <div class="member__mail">k.esseeva@encycam.com</div>
+          </div>
+          <button class="inforow__copy" data-copy="k.esseeva@encycam.com" title="Copy email"><svg><use href="#i-copy"/></svg></button>
+          <span class="role">Can view</span>
+        </div>
+      </div>
+      <button class="pdetails__more" id="pdMore"><span class="pdetails__moreico"><svg><use href="#i-chevdown"/></svg></span>+2 more</button>
+
+      <div class="pdetails__div"></div>
+      <div class="pdetails__sect">Project details</div>
+
+      <div class="inforow"><span class="inforow__label">Number ID</span><span class="inforow__val">2356</span>
+        <button class="inforow__copy" data-copy="2356" title="Copy"><svg><use href="#i-copy"/></svg></button></div>
+      <div class="inforow"><span class="inforow__label">Machine</span><span class="inforow__val">HAAS DT-2</span>
+        <button class="inforow__copy" data-copy="HAAS DT-2" title="Copy"><svg><use href="#i-copy"/></svg></button></div>
+      <div class="inforow"><span class="inforow__label">Description</span><span class="inforow__val inforow__val--empty">no comments</span></div>
+    </div>
+  </header>
+  <div class="main">
+    <aside class="panel panel--left" id="leftPanel" data-view="operations">
+      <header class="panel__head"></header>
+      <div class="panel__vlabel" title="Expand panel"></div>
+      <div class="panel__body"><div class="ghost"></div></div>
+    </aside>
+    <div class="divider divider--v" id="dividerV" title="Drag to resize"></div>
+    <div class="rightcol">
+      <section class="panel" id="topPanel" data-view="viewer">
+        <header class="panel__head"></header>
+        <div class="panel__body"><div class="ghost"></div></div>
+      </section>
+      <div class="divider divider--h" id="dividerH" title="Drag to resize"></div>
+      <section class="panel" id="bottomPanel" data-view="tools">
+        <header class="panel__head"></header>
+        <div class="panel__body"><div class="ghost"></div></div>
+      </section>
+    </div>
+  </div>
+  <!-- checklist mode: a fixed two-panel layout replacing the workspace;
+       the left panel is a REAL panel with the view combobox (Overview by
+       default, switchable to 3D Viewer / Tool table / Operations) -->
+  <div class="clmode" id="clMode">
+    <section class="panel clmode__ov" data-view="overview">
+      <header class="panel__head"></header>
+      <div class="panel__body"><div class="ghost"></div></div>
+    </section>
+    <div class="divider divider--v" id="clDividerV" title="Drag to resize"></div>
+    <section class="panel clmode__list">
+      <header class="panel__head">
+        <div class="clmode__title">Setup checklist</div>
+        <div class="panel__hspacer"></div>
+        <button class="header__iconbtn" id="clClose" title="Exit checklist"><svg><use href="#i-close"/></svg></button>
+      </header>
+      <div class="panel__body" id="clListBody"></div>
+    </section>
+  </div>
+    </main>
+  </div>
+</div>
+
+<script src="../shared-ui/chrome.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

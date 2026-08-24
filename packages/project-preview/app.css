@@ -1,0 +1,763 @@
+/* ============================================================================
+   ENCY Core — v2 (clean redesign, built step by step).
+   Tokens only; components are added as we design them.
+   ========================================================================= */
+
+/* fonts come from the shell (shared-ui/tokens.css font stack) */
+
+:root {
+  --ec-bg:#0e1010; --ec-bg-80:rgba(14,16,16,.80); --ec-bg-96:rgba(14,16,16,.96);
+  --ec-rail:#121415; --ec-card:#16191a; --ec-card-2:#1b1f20; --ec-popover:#1e2223;
+  --ec-fg-100:#f5f5f5; --ec-fg-96:rgba(245,245,245,.96); --ec-fg-80:rgba(245,245,245,.80);
+  --ec-fg-72:rgba(245,245,245,.72); --ec-fg-64:rgba(245,245,245,.64); --ec-fg-56:rgba(245,245,245,.56);
+  --ec-fg-48:rgba(245,245,245,.48); --ec-fg-32:rgba(245,245,245,.32); --ec-fg-24:rgba(245,245,245,.24);
+  --ec-fg-16:rgba(245,245,245,.16); --ec-fg-12:rgba(245,245,245,.12); --ec-fg-8:rgba(245,245,245,.08);
+  --ec-fg-6:rgba(245,245,245,.06); --ec-fg-4:rgba(245,245,245,.04);
+  --ec-green:#00a36d; --ec-green-08:rgba(0,163,109,.08); --ec-green-16:rgba(0,163,109,.16);
+  /* notification badges/dots: brighter than the accent so they pop on dark */
+  --ec-badge:#00cf8a;
+  --ec-blue:#1269d9; --ec-blue-soft:#46acff; --ec-blue-tint:rgba(18,105,217,.18);
+  --ec-amber:#ebc14a; --ec-sel:#ff8a4c;
+  --op-yellow:#ebda84; --op-blue:#84c9eb; --op-coral:#ff7072; --op-green:#84ebb8; --op-violet:#9584eb;
+  --operation-icon-fill:#d8dade; --operation-icon-accent:#3b3e48;
+  --ec-font:'Inter',system-ui,-apple-system,sans-serif;
+  /* radii: 4px is the base (buttons/controls); nesting adds the 4px-multiple
+     inset outward: control 4 + inset 4 = container 8, etc. */
+  --ec-radius:4px; --ec-radius-md:8px; --ec-radius-lg:12px;
+  --divider:var(--ec-fg-8); --border:var(--ec-fg-16);
+  --ec-shadow:0 12px 40px rgba(0,0,0,.5);
+}
+
+/* ============================== LIGHT THEME ==============================
+   The whole UI runs on tokens, so the light theme is a token flip. What
+   deliberately STAYS dark: the 3D viewport and the part-preview plates —
+   they are windows into the machine. */
+:root[data-theme="light"] {
+  --ec-bg:#e9ebec; --ec-bg-80:rgba(252,253,253,.85); --ec-bg-96:rgba(252,253,253,.96);
+  --ec-rail:#f4f5f6; --ec-card:#fbfcfc; --ec-card-2:#eef0f1; --ec-popover:#ffffff;
+  --ec-fg-100:#16191b; --ec-fg-96:rgba(22,25,27,.96); --ec-fg-80:rgba(22,25,27,.82);
+  --ec-fg-72:rgba(22,25,27,.74); --ec-fg-64:rgba(22,25,27,.66); --ec-fg-56:rgba(22,25,27,.58);
+  --ec-fg-48:rgba(22,25,27,.5); --ec-fg-32:rgba(22,25,27,.36); --ec-fg-24:rgba(22,25,27,.28);
+  --ec-fg-16:rgba(22,25,27,.2); --ec-fg-12:rgba(22,25,27,.14); --ec-fg-8:rgba(22,25,27,.09);
+  --ec-fg-6:rgba(22,25,27,.07); --ec-fg-4:rgba(22,25,27,.05);
+  --operation-icon-fill:#4d5460; --operation-icon-accent:#e6e8ea;
+  --ec-badge:var(--ec-green); /* the accent reads fine on light backgrounds */
+  --ec-shadow:0 12px 32px rgba(20,26,30,.2);
+}
+:root[data-theme="light"] .avatar--more { background:#dde0e2; color:var(--ec-fg-72); }
+/* on light, the grey card-2 plate reads dirty — header and every panel sit on
+   the white card, and the page background alone separates them */
+:root[data-theme="light"] .header,
+:root[data-theme="light"] .panel { background:var(--ec-card); }
+
+* { box-sizing:border-box; margin:0; padding:0; }
+html,body { height:100%; }
+body { font-family:var(--ec-font); font-size:12px; line-height:16px; color:var(--ec-fg-100);
+  background:var(--ec-bg); -webkit-font-smoothing:antialiased; overflow:hidden;
+  /* app UI, not a document: no long-press text selection / tap flash on touch */
+  -webkit-user-select:none; user-select:none;
+  -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
+input, textarea { -webkit-user-select:text; user-select:text; }
+button { font-family:inherit; cursor:pointer; border:none; background:none; color:inherit; }
+svg { display:block; }
+ul { list-style:none; }
+input { font-family:inherit; }
+[hidden] { display:none !important; }
+
+/* neat 4px thumbs in an 8px gutter, transparent track
+   (no scrollbar-width/color: they'd disable ::-webkit-scrollbar styling in Chrome) */
+::-webkit-scrollbar { width:8px; height:8px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-corner { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--ec-fg-12); border-radius:999px; border:2px solid transparent; background-clip:content-box; }
+::-webkit-scrollbar-thumb:hover { background:var(--ec-fg-24); background-clip:content-box; }
+
+/* ================================================================ SKELETON === */
+/* The project view lives inside the shell's rounded .content plate:
+   its own header on top, below the left panel + right column 50/50.
+   The shell (.app/.workspace) comes from shared-ui — don't restyle it here. */
+.content { background:var(--ec-bg); }
+
+.header { height:48px; flex-shrink:0; display:flex; align-items:center; gap:8px; padding:0 12px;
+  background:var(--ec-rail); border-bottom:1px solid var(--divider); }
+.header__back { display:grid; place-items:center; width:24px; height:24px; flex-shrink:0;
+  border-radius:var(--ec-radius); color:var(--ec-fg-64); transition:color .12s,background .12s; }
+.header__back:hover { background:var(--ec-fg-8); color:var(--ec-fg-100); }
+.header__back svg { width:16px; height:16px; }
+.header__title { font-size:13px; font-weight:500; color:var(--ec-fg-100); min-width:0;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.chip-num { display:inline-flex; align-items:center; height:24px; padding:0 10px; flex-shrink:0;
+  border:1px solid var(--border); border-radius:999px; font-size:12px; color:var(--ec-fg-72); }
+.header__sep { width:1px; height:14px; background:var(--ec-fg-12); flex-shrink:0; }
+.header__date { display:inline-flex; align-items:center; gap:5px; flex-shrink:0;
+  font-size:12px; color:var(--ec-fg-56); white-space:nowrap; }
+.header__date svg { width:14px; height:14px; color:var(--ec-fg-48); }
+.header__date--upd { height:24px; padding:0 6px; border-radius:var(--ec-radius); cursor:default; }
+/* compact header: the created date collapses into the update-date popover */
+@media (max-width:1080px) {
+  .header__date--created { display:none; }
+  .header__date--upd { cursor:pointer; transition:background .12s,color .12s; }
+  .header__date--upd:hover { background:var(--ec-fg-8); color:var(--ec-fg-80); }
+}
+.datepop { width:auto; min-width:224px; padding:8px; }
+.datepop__label { margin:0 4px 4px; font-size:11px; color:var(--ec-fg-48); }
+.datepop .member { padding:0 4px; }
+.datepop .pdetails__div { margin:6px -8px; }
+.datepop__created { display:flex; align-items:center; gap:6px; min-height:24px; padding:0 4px;
+  font-size:12px; color:var(--ec-fg-80); }
+.datepop__created svg { width:14px; height:14px; color:var(--ec-fg-48); flex-shrink:0; }
+.header__spacer { flex:1; }
+
+/* members */
+.avatars { display:flex; align-items:center; flex-shrink:0; cursor:pointer;
+  border-radius:999px; padding:2px; margin:-2px 0; transition:background .12s; }
+.avatars:hover { background:var(--ec-fg-8); }
+.avatar { position:relative; width:24px; height:24px; border-radius:999px; margin-left:-6px;
+  background:var(--av, var(--op-violet)); color:#0e1010; border:2px solid var(--ec-rail);
+  display:grid; place-items:center; font-size:9px; font-weight:700; }
+.avatar:first-child { margin-left:0; }
+.avatar--more { background:#2a2e30; color:var(--ec-fg-80); }
+
+/* ---- project details popover ---- */
+.pdetails { position:fixed; z-index:40; width:320px; padding:12px;
+  border-radius:var(--ec-radius-md); background:var(--ec-popover); border:1px solid var(--border);
+  box-shadow:var(--ec-shadow); }
+.pdetails__head { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+.pdetails__title { font-size:14px; font-weight:600; color:var(--ec-fg-100); }
+.pdetails__cnt { font-weight:400; font-size:12px; color:var(--ec-fg-48); margin-left:2px; }
+.pdetails__sect { margin:12px 0 4px; font-size:12px; font-weight:400; color:var(--ec-fg-48); }
+.pdetails__div { height:1px; background:var(--divider); margin:8px -12px; }
+
+.member { display:flex; align-items:center; gap:8px; padding:4px 0; min-height:36px; }
+.member .avatar { border-color:var(--ec-popover); margin-left:0; }
+.member .st { position:absolute; right:-3px; bottom:-3px; width:9px; height:9px; border-radius:999px;
+  background:#6b7072; border:2px solid var(--ec-popover); }
+.member .st--on { background:var(--ec-green); }
+.member__text { flex:1; min-width:0; }
+.member__name { font-size:12px; font-weight:500; color:var(--ec-fg-100);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.member__mail { font-size:11px; line-height:14px; color:var(--ec-fg-48);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.role { display:inline-flex; align-items:center; justify-content:center; width:64px; height:20px;
+  flex-shrink:0; border-radius:var(--ec-radius); background:var(--ec-fg-8); color:var(--ec-fg-72);
+  font-size:11px; font-weight:500; }
+.role--owner { background:var(--ec-amber); color:#1a1405; }
+
+/* icon box is 24px wide so the chevron sits on the avatars' axis,
+   and the text starts where the member names do */
+.pdetails__more { display:inline-flex; align-items:center; gap:8px; height:24px; padding:0;
+  border-radius:var(--ec-radius); font-size:12px; color:var(--ec-fg-56); transition:color .12s; }
+.pdetails__more:hover { color:var(--ec-fg-100); }
+.pdetails__moreico { width:24px; display:grid; place-items:center; }
+.pdetails__more svg { width:13px; height:13px; transition:transform .15s; }
+.pdetails__more.is-open svg { transform:rotate(180deg); }
+
+.inforow { display:flex; align-items:center; gap:8px; min-height:28px; }
+.inforow__label { width:96px; flex-shrink:0; font-size:12px; color:var(--ec-fg-56); }
+.inforow__val { flex:1; min-width:0; font-size:12px; color:var(--ec-fg-100);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.inforow__val--empty { color:var(--ec-fg-48); }
+.inforow__copy { display:grid; place-items:center; width:24px; height:24px; flex-shrink:0;
+  border-radius:var(--ec-radius); color:var(--ec-fg-48); opacity:0; transition:color .12s,opacity .12s; }
+.inforow:hover .inforow__copy, .member:hover .inforow__copy { opacity:1; }
+.inforow__copy:hover { color:var(--ec-fg-100); }
+.inforow__copy svg { width:14px; height:14px; }
+.header__iconbtn { display:grid; place-items:center; width:24px; height:24px; flex-shrink:0;
+  border-radius:var(--ec-radius); color:var(--ec-fg-64); transition:color .12s,background .12s; }
+.header__iconbtn:hover { background:var(--ec-fg-8); color:var(--ec-fg-100); }
+.header__iconbtn svg { width:16px; height:16px; }
+.btn-primary { display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 12px;
+  border-radius:var(--ec-radius); background:var(--ec-green); color:#04150e;
+  font-size:12px; font-weight:500; white-space:nowrap; }
+.btn-primary:hover { background:#00b578; }
+.btn-primary svg { width:14px; height:14px; }
+.btn-secondary { display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 10px;
+  border-radius:var(--ec-radius); background:var(--ec-fg-12); border:1px solid var(--border);
+  color:var(--ec-fg-100); font-size:12px; font-weight:400; white-space:nowrap;
+  transition:background .12s; }
+.btn-secondary:hover { background:var(--ec-fg-16); }
+.btn-secondary svg { width:14px; height:14px; color:var(--ec-fg-64); }
+/* square logo button — same hover as the other header icon buttons */
+.header__encybtn { display:grid; place-items:center; width:24px; height:24px; flex-shrink:0;
+  color:var(--ec-green); border-radius:var(--ec-radius); transition:background .12s; }
+.header__encybtn:hover { background:var(--ec-fg-8); }
+.header__encybtn svg { width:24px; height:24px; }
+
+/* header "more" dropdown */
+.hmenu { position:fixed; z-index:40; min-width:200px; padding:4px;
+  display:flex; flex-direction:column; gap:2px;
+  border-radius:var(--ec-radius-md); background:var(--ec-popover); border:1px solid var(--border);
+  box-shadow:var(--ec-shadow); }
+.hmenu button { display:flex; align-items:center; gap:9px; height:30px; padding:0 9px;
+  border-radius:var(--ec-radius); font-size:12px; color:var(--ec-fg-80); text-align:left; }
+.hmenu button:hover { background:var(--ec-fg-8); color:var(--ec-fg-100); }
+.hmenu button svg { width:15px; height:15px; color:var(--ec-fg-56); flex-shrink:0; }
+.hmenu button .chev { margin-left:auto; }
+.hmenu button.is-danger { color:var(--op-coral); }
+.hmenu button.is-danger svg { color:var(--op-coral); }
+.hmenu button.is-danger:hover { background:rgba(255,112,114,.08); color:var(--op-coral); }
+.hmenu__sep { height:1px; background:var(--divider); margin:2px 4px; }
+
+.main { flex:1; min-height:0; display:flex; padding:10px; }
+
+.panel { background:var(--ec-card-2); border:1px solid var(--border); border-radius:var(--ec-radius-md);
+  min-height:0; overflow:hidden; display:flex; flex-direction:column; }
+.panel--left { width:340px; flex-shrink:0; }
+
+/* panel head: view combobox top-left */
+.panel__head { display:flex; align-items:center; gap:4px; height:36px; flex-shrink:0;
+  padding:0 4px; border-bottom:1px solid var(--divider); position:relative; }
+.panel__sep { width:1px; height:14px; background:var(--ec-fg-12); flex-shrink:0; }
+/* button 4 + inset 4 = panel 8 */
+.panel__switch { display:inline-flex; align-items:center; gap:7px; height:24px; padding:0 8px;
+  border-radius:var(--ec-radius); font-size:12px; font-weight:400; color:var(--ec-fg-100); }
+.panel__switch:hover { background:var(--ec-fg-8); }
+.panel__switch .caret { width:13px; height:13px; color:var(--ec-fg-56); }
+/* fixed so it escapes the panel's overflow:hidden even when collapsed; JS anchors it */
+.panel__menu { position:fixed; z-index:40; min-width:170px; padding:4px;
+  display:flex; flex-direction:column; gap:2px;
+  border-radius:var(--ec-radius-md); background:var(--ec-popover); border:1px solid var(--border);
+  box-shadow:var(--ec-shadow); }
+.panel__menu button { display:flex; align-items:center; width:100%; height:30px; padding:0 9px;
+  border-radius:var(--ec-radius); font-size:12px; color:var(--ec-fg-80); }
+.panel__menu button:hover { background:var(--ec-fg-8); color:var(--ec-fg-100); }
+.panel__menu button.is-active { background:var(--ec-fg-6); color:var(--ec-fg-100); }
+.panel__body { flex:1; min-height:0; overflow:auto; }
+
+/* list display options (visible only for the Operations view) */
+.panel__hspacer { flex:1; }
+.panel__settings, .panel__pv { display:grid; place-items:center; width:24px; height:24px; flex-shrink:0;
+  border-radius:var(--ec-radius); color:var(--ec-fg-56); transition:background .12s,color .12s; }
+.panel__settings:hover, .panel__pv:hover { background:var(--ec-fg-8); color:var(--ec-fg-100); }
+.panel__settings svg, .panel__pv svg { width:15px; height:15px; }
+.panel__pv.is-active { background:var(--ec-fg-8); color:var(--ec-fg-100); }
+
+.statsmenu { position:fixed; z-index:40; width:232px; padding:8px;
+  border-radius:var(--ec-radius-md); background:var(--ec-popover); border:1px solid var(--border);
+  box-shadow:var(--ec-shadow); }
+.statsmenu__label { font-size:11px; color:var(--ec-fg-48); margin:0 4px 6px; }
+.statsmenu .hmenu__sep { margin:10px -8px; }
+/* quiet divider between meaning-groups inside one list */
+.statsmenu__sep { height:1px; background:var(--divider); margin:4px -8px; }
+.statsmenu__preset { display:flex; align-items:center; gap:8px; width:100%; height:28px; padding:0 8px;
+  border-radius:var(--ec-radius); font-size:12px; color:var(--ec-fg-80); }
+.statsmenu__preset:hover { background:var(--ec-fg-8); color:var(--ec-fg-100); }
+/* the picked preset inverts — solid accent, white text — so it reads as the
+   current state, not as a hover */
+.statsmenu__preset.is-active { background:var(--ec-green); color:#fff; font-weight:500; }
+.statsmenu__preset.is-active:hover { background:color-mix(in srgb, #fff 12%, var(--ec-green)); color:#fff; }
+.statsmenu__preset.is-active svg { color:#fff; }
+.statsmenu__preset.is-active .statsmenu__sub { color:rgba(255,255,255,.72); }
+.statsmenu__preset svg { width:14px; height:14px; color:var(--ec-fg-56); }
+.statsmenu__sub { margin-left:auto; padding-left:8px; font-size:10px; color:var(--ec-fg-32); white-space:nowrap; }
+.statsmenu__preset + .statsmenu__preset { margin-top:2px; }
+.statsmenu__chips { display:flex; flex-wrap:wrap; gap:4px; padding:0 4px; }
+.chip { height:24px; padding:0 8px; border-radius:var(--ec-radius); border:1px solid var(--border);
+  background:var(--ec-fg-4); font-size:11px; color:var(--ec-fg-72); transition:background .12s,color .12s; }
+.chip:hover { background:var(--ec-fg-8); color:var(--ec-fg-100); }
+/* selected chips are a state, not a hint — fill them so the set of picked
+   stats reads at a glance instead of as a tinted outline */
+.chip.is-active { background:var(--ec-green); border-color:var(--ec-green); color:#fff; font-weight:500; }
+.chip.is-active:hover { background:color-mix(in srgb, #fff 12%, var(--ec-green)); color:#fff; }
+.statsmenu__hint { margin:8px 4px 0; font-size:11px; line-height:14px; color:var(--ec-fg-48); }
+
+/* collapse button (narrow, left of the combobox); hover = icon brightness only */
+.panel__collapse { display:grid; place-items:center; width:24px; height:24px; flex-shrink:0;
+  border-radius:var(--ec-radius); color:var(--ec-fg-48); transition:color .12s; }
+.panel__collapse:hover { color:var(--ec-fg-100); }
+.panel__collapse svg { width:16px; height:16px; }
+.panel__collapse .ic-exp { display:none; }
+.panel.is-collapsed .panel__collapse .ic-min { display:none; }
+.panel.is-collapsed .panel__collapse .ic-exp { display:block; }
+
+/* collapsed states */
+.panel.is-collapsed .panel__body { display:none; }
+.panel.is-collapsed .panel__head { border-bottom:none; }
+/* collapsed panels shrink to their head content */
+.rightcol .panel.is-collapsed { flex:0 0 auto; }
+.panel--left.is-collapsed { width:max-content !important; }
+
+/* collapsed left panel: vertical label with the assigned view */
+.panel__vlabel { display:none; }
+.panel--left.is-collapsed .panel__vlabel { display:block; margin:6px auto 0;
+  writing-mode:vertical-rl; font-size:12px; color:var(--ec-fg-64); cursor:pointer;
+  transition:color .12s; }
+.panel--left.is-collapsed .panel__vlabel:hover { color:var(--ec-fg-100); }
+.panel--left.is-collapsed .panel__switch,
+.panel--left.is-collapsed .panel__sep { display:none; }
+.panel.is-collapsed .panel__settings, .panel.is-collapsed .panel__pv { display:none; }
+
+/* dividers stay active next to collapsed panels: drag or click re-opens them */
+
+.rightcol { flex:1; min-width:0; display:flex; flex-direction:column; }
+.rightcol .panel { flex:1 1 50%; }
+
+/* draggable dividers (double as the 10px gap between panels);
+   hover/drag: ENCY violet gradient line along the full length */
+.divider { flex-shrink:0; position:relative; touch-action:none; }
+/* fingers need a wider grab zone than 10px — extend the hit area invisibly
+   on coarse pointers (layout and the mouse experience stay unchanged) */
+@media (pointer:coarse) {
+  .divider::before { content:''; position:absolute; z-index:1; }
+  .divider--v::before { inset:0 -8px; }
+  .divider--h::before { inset:-8px 0; }
+}
+.divider::after { content:''; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  border-radius:999px; background:var(--ec-fg-12); transition:background .12s; }
+.divider--v { width:10px; cursor:col-resize; }
+.divider--v::after { width:3px; height:40px; }
+.divider--h { height:10px; cursor:row-resize; }
+.divider--h::after { width:40px; height:3px; }
+.divider--h:hover::after, .divider--h.is-active::after { width:100%; height:2px;
+  background:linear-gradient(90deg, rgba(149,132,235,0), var(--op-violet) 50%, rgba(149,132,235,0));
+  box-shadow:0 0 8px rgba(149,132,235,.55); }
+.divider--v:hover::after, .divider--v.is-active::after { height:100%; width:2px;
+  background:linear-gradient(180deg, rgba(149,132,235,0), var(--op-violet) 50%, rgba(149,132,235,0));
+  box-shadow:0 0 8px rgba(149,132,235,.55); }
+
+/* temporary ghost labels while the panels are empty */
+.ghost { height:100%; display:grid; place-items:center; color:var(--ec-fg-24); font-size:13px; }
+
+/* ---- overview (collapsible sections separated by dividers) ---- */
+.overview { padding:0 8px; }
+.acc { border-bottom:1px solid var(--divider); }
+.acc:last-child { border-bottom:none; }
+.acc__head { display:flex; align-items:center; height:32px; cursor:pointer;
+  font-size:12px; font-weight:500; color:var(--ec-fg-80); }
+.acc__head:hover { color:var(--ec-fg-100); }
+.acc__head .chev { display:grid; place-items:center; margin-left:auto; color:var(--ec-fg-48); }
+.acc__head .chev svg { width:14px; height:14px; transition:transform .15s; }
+.acc.is-collapsed .acc__head .chev svg { transform:rotate(-90deg); }
+/* group content is indented from the group title */
+.acc__body { padding:0 0 8px 8px; }
+.acc.is-collapsed .acc__body { display:none; }
+
+/* two clean columns: 96px labels, values all start on the same axis and fill
+   the column; when the panel is too narrow the value wraps below the label
+   at full width instead of clipping (no min-width:0 → content sets the minimum) */
+.kv { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; min-height:28px; padding:2px 0; }
+.kv__label { width:96px; flex-shrink:0; font-size:12px; color:var(--ec-fg-56); }
+.kv__value { flex:1 1 160px; display:flex; align-items:center; gap:4px; }
+.kv__value > * { flex:1; }
+.selectish { display:inline-flex; align-items:center; justify-content:space-between; gap:8px;
+  height:24px; padding:0 8px; border-radius:var(--ec-radius); background:var(--ec-fg-4);
+  border:1px solid transparent; color:var(--ec-fg-100); font-size:12px; transition:border-color .12s; }
+.selectish:hover { border-color:var(--ec-fg-16); }
+.selectish svg { width:13px; height:13px; color:var(--ec-fg-48); flex-shrink:0; }
+.value-tag { display:inline-flex; align-items:center; height:24px; padding:0 8px;
+  border-radius:var(--ec-radius); background:var(--ec-fg-4); font-size:12px; color:var(--ec-fg-100);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.val-ok { font-size:12px; color:var(--ec-green); }
+.field { width:100%; height:24px; padding:0 8px; border-radius:var(--ec-radius);
+  background:var(--ec-fg-4); border:1px solid transparent; color:var(--ec-fg-100); font-size:12px; }
+.field::placeholder { color:var(--ec-fg-48); }
+.field:focus { outline:none; border-color:var(--ec-fg-16); }
+.coord { display:inline-flex; align-items:center; gap:3px; height:24px; padding:0 6px;
+  border-radius:var(--ec-radius); background:var(--ec-fg-4); font-size:11px; color:var(--ec-fg-100);
+  font-variant-numeric:tabular-nums; }
+.coord b { font-size:9px; font-weight:600; color:var(--ec-fg-48); }
+.linklike { display:inline-flex; align-items:center; height:24px; padding:0 8px;
+  border-radius:var(--ec-radius); border:1px solid var(--border); background:var(--ec-fg-4);
+  color:var(--ec-fg-80); font-size:12px; transition:background .12s,color .12s; }
+.linklike:hover { background:var(--ec-fg-8); color:var(--ec-fg-100); }
+
+.preview { margin-top:8px; border-radius:var(--ec-radius); overflow:hidden;
+  border:1px solid var(--border); background:#0b0d0e; aspect-ratio:16/10; }
+.preview img { width:100%; height:100%; object-fit:cover; display:block; }
+
+/* Setup view: on a wide panel the setup preview docks BESIDE the fields
+   instead of below them (container query — panel width, not window width) */
+.acc--wp { container-type:inline-size; }
+@container (min-width: 760px) {
+  .acc__body--wp { display:flex; gap:12px; align-items:flex-start; }
+  .acc__body--wp .acc__kvs { flex:1; min-width:0; }
+  .acc__body--wp .preview { margin-top:2px; flex:0 0 300px; }
+}
+
+.issue { display:flex; align-items:center; gap:8px; padding:8px; border:1px solid var(--border);
+  border-radius:var(--ec-radius); }
+.issue svg { width:16px; height:16px; color:var(--ec-amber); flex-shrink:0; }
+.issue__text { min-width:0; }
+.issue__title { font-size:12px; font-weight:500; color:var(--ec-fg-100); }
+.issue__sub { font-size:11px; line-height:14px; color:var(--ec-fg-48); margin-top:1px; }
+
+/* ---- operations tree (Setup → Part → operation) ---- */
+.optree { padding:4px; }
+.setup-row { display:flex; align-items:center; gap:6px; height:28px; padding:0 8px 0 4px;
+  border-radius:var(--ec-radius); cursor:pointer; }
+.setup-row:hover { background:var(--ec-fg-4); }
+.setup-row__chev { display:grid; place-items:center; width:16px; color:var(--ec-fg-48); }
+.setup-row__chev svg { width:14px; height:14px; transition:transform .15s; }
+.setup.is-collapsed .setup-row__chev svg { transform:rotate(-90deg); }
+.setup-row__ico { width:16px; height:16px; flex-shrink:0; }
+.setup-row__name { font-size:12px; font-weight:500; color:var(--ec-fg-100); }
+.setup-row__meta { margin-left:auto; font-size:11px; color:var(--ec-fg-48);
+  font-variant-numeric:tabular-nums; white-space:nowrap; }
+.setup.is-collapsed .setup__body { display:none; }
+
+.part-row { display:flex; align-items:center; gap:6px; height:24px; padding:0 8px 0 28px;
+  font-size:12px; color:var(--ec-fg-56); }
+.part-row svg { width:14px; height:14px; opacity:.7; }
+
+.op-row { display:flex; align-items:center; gap:6px; height:24px; padding:0 8px 0 44px;
+  border-radius:var(--ec-radius); cursor:pointer; }
+.op-row:hover { background:var(--ec-fg-4); }
+.op-row.is-selected { background:var(--ec-fg-8); }
+.op-row__ico { width:16px; height:16px; flex-shrink:0; }
+/* the name is a capped column, not a spring: stat columns line up right after
+   it on every row instead of drifting to the panel's far edge when it is wide */
+.op-row__name { flex:0 1 240px; min-width:0; font-size:12px; color:var(--ec-fg-80);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.op-row:hover .op-row__name, .op-row.is-selected .op-row__name { color:var(--ec-fg-100); }
+.op-row__time { width:40px; flex-shrink:0; text-align:right; font-size:11px; color:var(--ec-fg-48);
+  font-variant-numeric:tabular-nums; }
+
+/* table mode: aligned stat columns */
+.op-cell { flex-shrink:0; display:inline-flex; align-items:baseline; justify-content:flex-end; gap:3px;
+  width:56px; font-size:11px; color:var(--ec-fg-64); font-variant-numeric:tabular-nums; }
+.op-cell i { font-style:normal; font-size:10px; color:var(--ec-fg-48); }
+.op-cell--tool { display:block; width:96px; text-align:left; overflow:hidden;
+  white-space:nowrap; text-overflow:ellipsis; }
+
+/* the tool sits on the name line, right side (narrow mode + compact rows) */
+.op-row__tool { flex-shrink:0; max-width:45%; font-size:11px; color:var(--ec-fg-48);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* stacked mode: stats under the name */
+.op-row--stack { height:38px; }
+.op-row__text { flex:1; min-width:0; }
+.op-row__line1 { display:flex; align-items:center; gap:8px; }
+.op-row__line1 .op-row__name { flex:1; min-width:0; display:block; }
+.op-row__sub { margin-top:2px; font-size:11px; line-height:13px; color:var(--ec-fg-48);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* ---- tool table (table ↔ cards with a 2D/3D tool preview) ---- */
+/* head toggle, visible only for the Tool table view */
+.panel__mode { display:flex; gap:2px; }
+.panel__mode button { display:grid; place-items:center; width:24px; height:24px;
+  border-radius:var(--ec-radius); color:var(--ec-fg-48); transition:background .12s,color .12s; }
+.panel__mode button:hover { color:var(--ec-fg-100); }
+.panel__mode button.is-active { background:var(--ec-fg-8); color:var(--ec-fg-100); }
+.panel__mode button svg { width:15px; height:15px; }
+.panel.is-collapsed .panel__mode { display:none; }
+
+.dtable { width:100%; border-collapse:collapse; font-size:12px; }
+.dtable th { position:sticky; top:0; z-index:1; height:28px; padding:0 8px; text-align:left;
+  background:var(--ec-card-2); font-size:11px; font-weight:400; color:var(--ec-fg-48);
+  border-bottom:1px solid var(--divider); white-space:nowrap; }
+.dtable td { height:28px; padding:0 8px; border-bottom:1px solid var(--ec-fg-4);
+  color:var(--ec-fg-80); white-space:nowrap; font-variant-numeric:tabular-nums; }
+.dtable th:first-child, .dtable td:first-child { padding-left:12px; }
+.dtable tbody tr[data-tool] { cursor:pointer; }
+.dtable tbody tr[data-tool]:hover td { background:var(--ec-fg-4); }
+.dtable tbody tr.is-selected td { background:var(--ec-fg-8); color:var(--ec-fg-100); }
+.dtable__name { display:inline-flex; align-items:center; gap:6px; color:var(--ec-fg-100); }
+.dtable__name svg { width:14px; height:14px; color:var(--ec-fg-48); flex-shrink:0; }
+.tag-tno { display:inline-flex; align-items:center; height:20px; padding:0 6px; flex-shrink:0;
+  border-radius:var(--ec-radius); background:var(--ec-fg-8); font-size:11px; font-weight:500;
+  color:var(--ec-fg-80); font-variant-numeric:tabular-nums; }
+
+/* ---- tool cards + shared preview pane (right of either representation) ---- */
+.toolswrap { height:100%; display:flex; min-width:0; }
+.toolslist { flex:1; min-width:0; min-height:0; overflow:auto; }
+.toolside { width:248px; flex-shrink:0; display:flex; flex-direction:column;
+  border-left:1px solid var(--divider); overflow:auto; padding:8px; }
+.toolside__info { display:flex; flex-direction:column; }
+
+/* bottom mode: the pane becomes a strip under the list — one header row
+   (name left, controls right), the preview takes the full strip width */
+.toolswrap--bottom { flex-direction:column; }
+.toolswrap--bottom .toolside { width:auto; height:236px;
+  border-left:none; border-top:1px solid var(--divider); }
+.toolswrap--bottom .toolside__info { flex-direction:row; align-items:center; gap:8px;
+  margin-bottom:8px; }
+.toolswrap--bottom .toolside__name { flex:1; min-width:0; margin:0 0 0 4px; }
+.toolswrap--bottom .tool__modes { margin:0; }
+.toolside__name { margin:2px 4px 6px; font-size:12px; font-weight:600; color:var(--ec-fg-100);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+/* the preview plate takes all remaining pane height — a tall pane means a
+   tall tool, especially in 3D */
+.toolside .tool__preview { flex:1; min-height:0; min-width:0; }
+.toolside .toolpv { flex:1; min-height:180px; height:auto; width:100%; }
+.toolswrap--bottom .toolside .toolpv { min-height:0; }
+
+/* real cards: quiet plate, radius 8 (chip 4 + 4px rhythm), 8px gaps */
+.toolsx { padding:8px; display:flex; flex-direction:column; gap:8px; }
+.tool { padding:8px; border:1px solid transparent; border-radius:var(--ec-radius-md);
+  background:var(--ec-fg-4); cursor:pointer; transition:background .12s,border-color .12s; }
+.tool:hover { background:var(--ec-fg-6); }
+.tool.is-selected { background:var(--ec-fg-8); border-color:var(--ec-fg-16); }
+/* T# is the same chip as in the table view */
+.tool__line1 { display:flex; align-items:center; gap:8px; min-width:0; }
+.tool__name { min-width:0; font-size:12px; font-weight:600; color:var(--ec-fg-100);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tool__kind { font-size:11px; color:var(--ec-fg-48); white-space:nowrap; flex-shrink:0; }
+/* cutting time is a project fact, not tool geometry — it lives at the header edge */
+.tool__time { margin-left:auto; padding-left:8px; flex-shrink:0; font-size:11px;
+  color:var(--ec-fg-48); font-variant-numeric:tabular-nums; }
+/* header is divided from the params only when params follow */
+.tool__line1:not(:last-child) { padding-bottom:7px; border-bottom:1px solid var(--ec-fg-6);
+  margin-bottom:7px; }
+/* definition columns: labels in a fixed 26px column so values sit on one
+   axis; the machine-offsets column is quieter behind a hairline */
+.tool__body { display:flex; gap:2px 16px; min-width:0; overflow:hidden; }
+.tool__col { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.tool__col--quiet { border-left:1px solid var(--divider); padding-left:16px; }
+/* wide cards: params in one row (labels back to natural width), the
+   geometry|machine divider stays; wraps instead of clipping if it must */
+.toolsx--row .tool__body { flex-wrap:wrap; gap:4px 16px; }
+.toolsx--row .tool__col { flex-direction:row; flex-wrap:wrap; gap:4px 16px; }
+.toolsx--row .tspec i { width:auto; }
+.tspec { display:inline-flex; align-items:baseline; gap:6px; height:18px;
+  font-size:12px; color:var(--ec-fg-96); font-variant-numeric:tabular-nums;
+  white-space:nowrap; }
+.tool__col--quiet .tspec { font-size:11px; color:var(--ec-fg-64); }
+.tspec i { font-style:normal; font-size:10px; color:var(--ec-fg-48); width:26px; flex-shrink:0; }
+.tool__modes { display:flex; align-items:center; gap:8px; margin:0 4px 8px; }
+/* segments: inner radius 2 + 2px inset = container 4 */
+.seg { display:flex; gap:2px; padding:2px; border-radius:var(--ec-radius); background:var(--ec-fg-4); }
+.seg button { height:20px; min-width:36px; padding:0 8px; border-radius:2px;
+  font-size:11px; font-weight:500; color:var(--ec-fg-56); transition:background .12s,color .12s; }
+.seg button:hover { color:var(--ec-fg-100); }
+/* same inversion as the stats menu: the picked segment is solid accent */
+.seg button.is-active { background:var(--ec-green); color:#fff; font-weight:500; }
+.seg button.is-active:hover { background:color-mix(in srgb, #fff 12%, var(--ec-green)); color:#fff; }
+.tool__holder { height:24px; padding:0 12px; border-radius:var(--ec-radius);
+  background:var(--ec-fg-4); font-size:11px; font-weight:500; color:var(--ec-fg-56); }
+.tool__holder:disabled { opacity:.45; cursor:default; }
+.tool__expand { display:grid; place-items:center; width:24px; height:24px;
+  border-radius:var(--ec-radius); color:var(--ec-fg-56); transition:background .12s,color .12s; }
+.tool__expand:hover { background:var(--ec-fg-8); color:var(--ec-fg-100); }
+.tool__expand svg { width:14px; height:14px; }
+
+.tool__preview { margin:0 4px; padding:16px 8px 12px; border-radius:var(--ec-radius-md);
+  background:var(--ec-fg-4); display:flex; flex-direction:column; align-items:center; gap:12px; }
+.toolpv { height:180px; }
+.tool__cap { text-align:center; }
+.tool__cap b { display:block; font-size:13px; font-weight:600; color:var(--ec-fg-100); }
+.tool__cap span { display:block; margin-top:2px; font-size:11px; color:var(--ec-fg-48); }
+
+/* 2D drawing: filled sections + dimension lines */
+.toolpv--2d .s2 { fill:var(--ec-fg-8); stroke:var(--ec-fg-64); stroke-width:1; }
+.toolpv--2d .s3 { fill:var(--ec-fg-16); stroke:var(--ec-fg-64); stroke-width:1; }
+.toolpv--2d .dim { stroke:var(--ec-fg-48); stroke-width:.8; fill:none; }
+.toolpv--2d .dimt { fill:var(--ec-fg-80); font-size:8.5px; font-family:var(--ec-font); }
+
+/* ---- 3D viewer (canvas + floating bars + simulation timeline); the UI
+   always fits the panel — no inner scrolling ---- */
+.viewer { position:relative; height:100%; background:#0b0d0e; overflow:hidden; }
+.viewer__canvas { position:absolute; inset:0; width:100%; height:100%;
+  cursor:grab; touch-action:none; }
+.viewer__canvas:active { cursor:grabbing; }
+
+/* top row hosts the view bar and the filters bar; clicks fall through the gaps */
+.viewer__top { position:absolute; top:8px; left:8px; right:8px;
+  display:flex; align-items:flex-start; gap:8px; pointer-events:none; }
+.viewer--slim .viewer__top { display:none; }
+
+/* floating glass bars: 24px controls + 4px inset = radius 8 */
+.viewer__bar, .viewer__filters, .viewer__timeline { display:flex; align-items:center; gap:2px;
+  padding:4px; border-radius:var(--ec-radius-md); background:var(--ec-bg-80);
+  border:1px solid var(--border); backdrop-filter:blur(10px); pointer-events:auto; }
+.viewer__bar, .viewer__filters { flex-shrink:0; }
+.viewer__timeline { position:absolute; }
+.viewer__bar button, .viewer__filters button, .viewer__timeline button { display:grid; place-items:center;
+  width:24px; height:24px; border-radius:var(--ec-radius); color:var(--ec-fg-64);
+  transition:background .12s,color .12s; }
+.viewer__bar button:hover, .viewer__filters button:hover, .viewer__timeline button:hover { background:var(--ec-fg-8); color:var(--ec-fg-100); }
+.viewer__bar button svg, .viewer__filters button svg, .viewer__timeline button svg { width:15px; height:15px; }
+/* dimensions/measure are stateful modes */
+.viewer__bar button.is-active { background:var(--ec-fg-8); color:var(--ec-fg-100); }
+/* filter toggles: hidden layers read dimmed */
+.viewer__filters [data-vshow]:not(.is-on) { color:var(--ec-fg-24); }
+
+.viewer__timeline { left:50%; bottom:10px; transform:translateX(-50%);
+  width:min(520px, calc(100% - 20px)); }
+.viewer__play .ic-pause { display:none; }
+.viewer.is-playing .viewer__play .ic-play { display:none; }
+.viewer.is-playing .viewer__play .ic-pause { display:block; }
+.viewer__track { position:relative; flex:1; height:24px; margin:0 8px; min-width:60px;
+  cursor:pointer; touch-action:none; }
+.viewer__rail { position:absolute; left:0; right:0; top:50%; height:3px; transform:translateY(-50%);
+  border-radius:999px; background:var(--ec-fg-12); }
+.viewer__fill { position:absolute; left:0; top:50%; height:3px; transform:translateY(-50%);
+  border-radius:999px; background:var(--ec-green); }
+.viewer__thumb { position:absolute; top:50%; width:10px; height:10px; transform:translate(-50%,-50%);
+  border-radius:999px; background:var(--ec-fg-100); box-shadow:0 1px 4px rgba(0,0,0,.5); }
+.viewer__time { flex-shrink:0; padding:0 6px 0 2px; font-size:11px; color:var(--ec-fg-64);
+  font-variant-numeric:tabular-nums; white-space:nowrap; }
+
+/* ====================================================== SETUP CHECKLIST === */
+/* a separate MODE, not a panel view: the workspace is swapped for a fixed
+   two-panel layout — Overview (reference) on the left, the checklist right */
+.header__cl-num { font-variant-numeric:tabular-nums; opacity:.75; }
+.header__cl-num:empty { display:none; }
+/* the CTA is a mode toggle: solid green = "start checklist", pressed state
+   (green tint + green ring, the selected pattern) = "you are in the mode" */
+.header__cl.is-active { background:var(--ec-green-08);
+  box-shadow:inset 0 0 0 1px var(--ec-green); color:var(--ec-fg-100); }
+.header__cl.is-active:hover { background:var(--ec-green-16); }
+.header__cl.is-active svg { color:var(--ec-green); }
+.header__cl.is-active .header__cl-num { opacity:1; color:var(--ec-green); }
+
+.clmode { display:none; }
+body.is-clmode .main { display:none; }
+/* no gap: the draggable divider doubles as the 10px spacing, like in .main */
+body.is-clmode .clmode { flex:1; min-height:0; display:flex; padding:10px; }
+.clmode__ov { flex:1.2; min-width:0; }
+.clmode__list { flex:1; min-width:0; }
+/* the reference panel can't collapse (there is no second panel to yield to) */
+.clmode__ov .panel__collapse, .clmode__ov .panel__collapse + .panel__sep { display:none; }
+.clmode__title { padding-left:8px; font-size:12px; font-weight:500; color:var(--ec-fg-100); }
+
+/* deliberate density exception below: the checklist is read at the machine,
+   often on touch — rows are taller than the 24px app standard */
+
+.cl { padding:0 8px 12px; }
+/* sticky header: flow controls + progress + section tabs stay in reach */
+.cl__head { position:sticky; top:0; z-index:2; padding-bottom:8px;
+  background:var(--ec-card-2); }
+.cl__progress { display:flex; align-items:center; gap:10px; padding:10px 4px; }
+/* sections overview: one card per section (scales to 10+ setups) — name,
+   done count and a hairline progress fill along the bottom edge */
+.cl__cards { display:flex; flex-direction:column; gap:6px; }
+.cl__card { position:relative; display:flex; align-items:center; gap:8px; width:100%;
+  min-height:44px; padding:0 10px 0 12px; border-radius:var(--ec-radius-md);
+  background:var(--ec-fg-4); overflow:hidden; cursor:pointer;
+  transition:background .12s; }
+.cl__card:hover { background:var(--ec-fg-8); }
+.cl__card-name { flex:1; min-width:0; text-align:left; font-size:12px; font-weight:500;
+  color:var(--ec-fg-96); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cl__card-cnt { display:inline-flex; align-items:center; gap:4px; flex-shrink:0;
+  font-size:11px; color:var(--ec-fg-48); font-variant-numeric:tabular-nums; }
+.cl__card-cnt.is-done { color:var(--ec-green); }
+.cl__card-cnt svg { width:12px; height:12px; }
+.cl__card-chev { width:14px; height:14px; flex-shrink:0; color:var(--ec-fg-32); }
+.cl__card-bar { position:absolute; left:0; bottom:0; height:2px;
+  background:var(--ec-green); transition:width .18s; }
+
+/* breadcrumb inside a section: back to the overview + name + count */
+.cl__crumb { display:flex; align-items:center; gap:8px; padding:0 0 8px 4px; }
+.cl__crumb-name { font-size:12px; font-weight:500; color:var(--ec-fg-100); }
+.cl__crumb-cnt { font-size:11px; color:var(--ec-fg-48); font-variant-numeric:tabular-nums; }
+/* the bar is split into one segment per section (Tools + each setup) —
+   every segment fills with its own section's progress */
+.cl__bar { flex:1; display:flex; gap:3px; }
+.cl__seg { flex:1; height:4px; border-radius:999px; background:var(--ec-fg-8); overflow:hidden; }
+.cl__seg i { display:block; height:100%; border-radius:999px; background:var(--ec-green);
+  transition:width .18s; }
+.cl__count { font-size:11px; color:var(--ec-fg-56); font-variant-numeric:tabular-nums; }
+.cl__reset { height:20px; padding:0 6px; border-radius:var(--ec-radius); font-size:11px;
+  color:var(--ec-fg-48); transition:background .12s,color .12s; }
+.cl__reset:hover { background:var(--ec-fg-8); color:var(--ec-fg-100); }
+/* sticky flow control: Next marks the active step done and advances —
+   always in reach, no aiming at checkboxes; sits right of the progress bar */
+.cl__next { height:28px; padding:0 14px; flex-shrink:0; }
+.cl__next:disabled { opacity:.4; pointer-events:none; }
+
+.cl__step { display:flex; align-items:center; gap:10px; min-height:36px; padding:2px 8px;
+  border-radius:var(--ec-radius); cursor:pointer; }
+.cl__step:hover { background:var(--ec-fg-4); }
+/* the CURRENT step: the row and its card fuse into one block (shared fill,
+   split radii); the state itself is told by the stepper rail on the left */
+.cl__step.is-open { background:var(--ec-fg-4);
+  border-radius:var(--ec-radius-md) var(--ec-radius-md) 0 0; }
+.cl__step.is-open:not(:has(+ .cl__detail)) { border-radius:var(--ec-radius-md); }
+.cl__step.is-open .cl__label { color:var(--ec-fg-100); font-weight:500; }
+
+/* stepper rail left of the checkboxes: a line through the section with a dot
+   per step — grey ring (todo) / green ring (current) / green fill (done) */
+.cl__steps { position:relative; padding-left:24px; }
+.cl__step { position:relative; }
+.cl__step::before, .cl__detail::before { content:''; position:absolute; left:-19px;
+  top:0; bottom:0; width:2px; background:var(--ec-fg-8); }
+.cl__detail::before { bottom:-8px; } /* bridge the card's bottom margin */
+.cl__steps > .cl__step:first-child::before { top:50%; }
+.cl__steps > .cl__step:last-child::before { bottom:50%; }
+.cl__steps > .cl__detail:last-child::before { display:none; }
+.cl__step::after { content:''; position:absolute; left:-23px; top:50%; margin-top:-5px;
+  width:10px; height:10px; border-radius:50%; box-sizing:border-box;
+  background:var(--ec-card-2); border:2px solid var(--ec-fg-24); }
+/* the current ring breathes — a soft green ripple, slow and small */
+.cl__step.is-open::after { border-color:var(--ec-green);
+  animation:cl-pulse 2s ease-out infinite; }
+.cl__step.is-done::after { border-color:var(--ec-green); background:var(--ec-green); animation:none; }
+@keyframes cl-pulse {
+  0%   { box-shadow:0 0 0 0 rgba(0,163,109,.55); }
+  70%  { box-shadow:0 0 0 8px rgba(0,163,109,0); }
+  100% { box-shadow:0 0 0 0 rgba(0,163,109,0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cl__step.is-open::after { animation:none; }
+}
+.cl__detail { position:relative; }
+.cl__box { display:grid; place-items:center; width:18px; height:18px; flex-shrink:0;
+  border-radius:var(--ec-radius); border:1.5px solid var(--ec-fg-24); color:transparent;
+  transition:background .12s,border-color .12s; }
+.cl__box:hover { border-color:var(--ec-fg-48); }
+.cl__box svg { width:12px; height:12px; }
+.cl__step.is-done .cl__box { background:var(--ec-green); border-color:var(--ec-green); color:#04150e; }
+.cl__label { min-width:0; font-size:12px; color:var(--ec-fg-96);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cl__step.is-done .cl__label { color:var(--ec-fg-48); }
+.cl__tag { flex-shrink:0; padding:1px 6px; border-radius:999px; border:1px solid var(--ec-fg-12);
+  font-size:10px; color:var(--ec-fg-48); }
+.cl__val { margin-left:auto; flex-shrink:0; font-size:11px; color:var(--ec-fg-48);
+  white-space:nowrap; font-variant-numeric:tabular-nums; }
+.cl__chev { width:14px; height:14px; flex-shrink:0; color:var(--ec-fg-32); transition:transform .15s; }
+.cl__step.is-open .cl__chev { transform:rotate(180deg); }
+
+/* expanded step: the context lives inside the row (self-contained on phones);
+   the card continues the open row — no gap, top corners square, same fill,
+   so the pair reads as one block */
+.cl__detail { margin:0 0 8px; padding:10px 12px;
+  border-radius:0 0 var(--ec-radius-md) var(--ec-radius-md);
+  background:var(--ec-fg-4); }
+.cl__coords { display:flex; flex-wrap:wrap; gap:4px; }
+/* tool card: a tidy 3×2 spec grid — geometry on the first row (⌀ / OAL / LOC),
+   machine data on the second (Z / H# / D#); the drawing opens from the icon
+   at the right into the shared .toolzoom overlay */
+.cl__tool { display:flex; align-items:center; gap:16px; }
+.cl__specs { flex:1; display:grid; grid-template-columns:repeat(3, minmax(88px, max-content));
+  gap:8px 24px; align-content:center; }
+.cl__pv { width:28px; height:28px; border:1px solid var(--ec-fg-12); }
+.cl__pv svg { width:15px; height:15px; }
+
+.cl__done { display:flex; align-items:center; gap:8px; margin:0 0 8px; padding:10px 12px;
+  border-radius:var(--ec-radius-md); border:1px solid var(--ec-green);
+  background:var(--ec-green-08); font-size:12px; }
+.cl__done svg { width:16px; height:16px; color:var(--ec-green); flex-shrink:0; }
+.cl__done b { color:var(--ec-fg-100); font-weight:600; }
+.cl__done span { color:var(--ec-fg-56); }
+
+/* ================================================================ PHONE === */
+/* one full-screen panel; its view combobox is the content switcher — the
+   hidden panels keep holding state for the swap logic */
+@media (max-width:640px) {
+  .main { padding:8px; padding-bottom:calc(8px + env(safe-area-inset-bottom)); }
+  .panel--left, #bottomPanel, .divider { display:none !important; }
+  .rightcol .panel, .rightcol .panel.is-collapsed { flex:1 1 auto; }
+  .rightcol .panel.is-collapsed .panel__body { display:block; }
+  /* collapsing the only panel makes no sense */
+  .panel__collapse, .panel__collapse + .panel__sep { display:none; }
+  /* compact header: back + title + avatars + icon-only actions + more */
+  .chip-num, .header__sep, .header__date, .header__encybtn, .header__chat { display:none; }
+  .btn-secondary { font-size:0; gap:0; padding:0 6px; }
+  /* checklist CTA keeps only the icon + live counter */
+  .header__cl-word { display:none; }
+  /* checklist mode: the reference panel yields — the checklist IS the screen */
+  .clmode__ov { display:none; }
+  /* touch: bigger checklist rows, checkboxes and flow controls */
+  .cl__step { min-height:44px; }
+  .cl__box { width:20px; height:20px; }
+  .cl__label { font-size:13px; white-space:normal; line-height:16px; }
+  .cl__next { height:36px; padding:0 18px; }
+}
+
+/* expanded preview overlay */
+.toolzoom { position:fixed; inset:0; z-index:60; display:grid; place-items:center;
+  background:rgba(11,13,14,.72); cursor:zoom-out; }
+.toolzoom__card { display:flex; flex-direction:column; align-items:center; gap:16px;
+  padding:24px; border-radius:var(--ec-radius-md); background:var(--ec-card);
+  border:1px solid var(--border); box-shadow:var(--ec-shadow); }
+.toolzoom__card .toolpv { height:min(64vh, 520px); }

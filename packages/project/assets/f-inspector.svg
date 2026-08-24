@@ -1,0 +1,19 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="icn_inspector">
+<g id="Vector 1331">
+</g>
+<rect id="Rectangle 6075" x="0.5" y="-0.5" width="11" height="6" rx="0.5" transform="matrix(1 0 0 -1 4 13)" stroke="var(--stroke-0, #F5F5F5)"/>
+<g id="Rectangle 6076">
+<mask id="path-2-inside-1_0_110" fill="white">
+<path d="M6 16C6 16.5523 6.44772 17 7 17H13C13.5523 17 14 16.5523 14 16V15H6V16Z"/>
+</mask>
+<path d="M5 16C5 17.1046 5.89543 18 7 18H13C14.1046 18 15 17.1046 15 16H13H7H5ZM14 15H6H14ZM5 15V16C5 17.1046 5.89543 18 7 18V16V15H5ZM13 18C14.1046 18 15 17.1046 15 16V15H13V16V18Z" fill="var(--stroke-0, #F5F5F5)" mask="url(#path-2-inside-1_0_110)"/>
+</g>
+<g id="Rectangle 6077">
+<mask id="path-4-inside-2_0_110" fill="white">
+<path d="M7 6H13V4C13 3.44772 12.5523 3 12 3H8C7.44772 3 7 3.44772 7 4V6Z"/>
+</mask>
+<path d="M7 6H13H7ZM14 4C14 2.89543 13.1046 2 12 2H8C6.89543 2 6 2.89543 6 4H8H12H14ZM8 2C6.89543 2 6 2.89543 6 4V6H8V4V2ZM14 6V4C14 2.89543 13.1046 2 12 2V4V6H14Z" fill="var(--stroke-0, #F5F5F5)" mask="url(#path-4-inside-2_0_110)"/>
+</g>
+</g>
+</svg>

@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENCY — Turn part probing 2</title>
+<!-- Prototype target screen: 1920×1080 at 125% system scale
+     → working CSS area of 1536×864 logical px. -->
+<meta name="ency-target-viewport" content="1536x864">
+<link rel="stylesheet" href="../shared-ui/tokens.css">
+<link rel="stylesheet" href="../shared-ui/chrome.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<!-- area: 'project' — the screen inside an open project; the shell activates
+     the first project tab and skips the home sidebar -->
+<script>window.ENCY_APP = {id: "project", area: "project"};</script>
+<div class="app" id="app">
+  <div class="workspace">
+
+    <aside class="dock">
+
+      <!-- ===== Tree panel ===== -->
+      <section class="panel16 panel-tree">
+        <div class="tabs" data-group="mode">
+          <button class="seg">Model</button>
+          <button class="seg active">Machining</button>
+          <button class="seg">Simulation</button>
+        </div>
+
+        <div class="inner">
+          <div class="toolbar">
+            <!-- icons exported from the Figma mockup (node 1269-2185) -->
+            <div class="b24 arrange" title="Panel"><img class="i28" src="assets/fig-arrange.svg" alt=""></div>
+            <div class="tb-group">
+              <div class="tb-ic" title="Parameters"><img class="i28" src="assets/fig-hex.svg" alt=""></div>
+              <div class="tb-ic" id="resetBtn" title="Reset statuses"><img class="i18" src="assets/fig-reset.svg" alt=""></div>
+              <div class="b24 calc" title="Calculate"><img class="i12" src="assets/fig-calc.svg" alt=""><span class="calc-txt">Calculate</span></div>
+              <div class="b24 more" title="Add"><span class="more-plus"><img class="i16" src="assets/fig-plus.svg" alt=""></span><span class="more-chev"><img class="chev7" src="assets/tb-chev.svg" alt=""></span></div>
+            </div>
+          </div>
+
+          <!-- second toolbar row: sort + approach/return (toggled by the left button) -->
+          <div class="sortrow" id="sortRow" hidden>
+            <div class="sr-sort" id="srSort" title="Sort">
+              <img class="i28" src="assets/fig-sort.svg" alt="">
+              <span class="sr-val" id="srVal">Sort</span>
+              <img class="chev7" src="assets/tb-chev.svg" alt="">
+            </div>
+            <div class="sr-div"></div>
+            <span class="sr-lbl">Approach/Return</span>
+            <button class="sr-auto on" id="srAuto">Auto</button>
+            <div class="sr-btn" title="Approach"><img class="i28" src="assets/fig-appr1.svg" alt=""></div>
+            <div class="sr-btn" title="Return"><img class="i28" src="assets/fig-appr2.svg" alt=""></div>
+          </div>
+
+          <div class="line"></div>
+
+          <div class="treewrap" id="treewrap">
+          <div class="tsplit-line"></div>
+          <div class="tsplit-handle" id="treeSplit" title="Drag to resize"></div>
+          <div class="tree" id="tree">
+            <div class="trow" data-id="machine" data-type="machine">
+              <div class="tlayer"><img class="micn" src="assets/tree-machine.svg" alt=""><span class="rlabel"><span>Cutting machine</span></span></div>
+              <div class="pslot"><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+            </div>
+            <div class="trow" data-id="setup1" data-parent="machine" data-type="setup" data-expandable="1">
+              <div class="tlayer"><img class="shev" src="assets/t-shev-open.svg" alt=""><span class="rlabel"><span>Setup 1</span></span></div>
+              <div class="pslot"><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+            </div>
+            <!-- Turning demo program: one tool number per physical tool —
+                 shared tools keep the same T# across operations and setups -->
+            <div class="trow" data-id="part1" data-parent="setup1" data-type="part" data-expandable="1">
+              <div class="tlayer i1"><img class="shev" src="assets/t-shev-open.svg" alt=""><span class="rlabel"><span>Part 1</span></span></div>
+              <div class="pslot"><span class="bicn"><img class="i16" src="assets/opcolor.svg" alt=""></span><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+            </div>
+            <div class="trow" data-id="op1" data-parent="part1" data-type="operation" draggable="true">
+              <div class="tlayer i2"><img class="shev" src="assets/t-shev1.svg" alt=""><span class="rlabel"><span>Lathe facing</span></span></div>
+              <div class="pslot"><span class="toolno">T#1</span><span class="tlink"><span>CNMG 12 04 08-WF/DCLNR 2020K-12</span></span><span class="bicn"><img class="i16" src="assets/opcolor.svg" alt=""></span><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+            </div>
+            <div class="trow" data-id="op2" data-parent="part1" data-type="operation" draggable="true">
+              <div class="tlayer i2"><img class="shev" src="assets/t-shev2.svg" alt=""><span class="rlabel"><span>OD roughing</span></span></div>
+              <div class="pslot"><span class="toolno">T#1</span><span class="tlink"><span>CNMG 12 04 08-WF/DCLNR 2020K-12</span></span><span class="bicn"><img class="i16" src="assets/opcolor.svg" alt=""></span><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+            </div>
+            <div class="trow" data-id="op3" data-parent="part1" data-type="operation" draggable="true">
+              <div class="tlayer i2"><img class="shev" src="assets/t-shev2.svg" alt=""><span class="rlabel"><span>OD grooving</span></span></div>
+              <div class="pslot"><span class="toolno">T#2</span><span class="tlink"><span>N123G2-0300-0002-CM/RF123G079</span></span><span class="bicn"><img class="i16" src="assets/opcolor.svg" alt=""></span><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+            </div>
+            <div class="trow" data-id="op4" data-parent="part1" data-type="operation" draggable="true">
+              <div class="tlayer i2"><img class="shev" src="assets/t-shev2.svg" alt=""><span class="rlabel"><span>OD finishing</span></span></div>
+              <div class="pslot"><span class="toolno">T#3</span><span class="tlink"><span>DNMX 15 04 04-WF/DDJNR 2020K-15</span></span><span class="bicn"><img class="i16" src="assets/opcolor.svg" alt=""></span><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+            </div>
+            <div class="trow" data-id="setup2" data-parent="machine" data-type="setup" data-expandable="1">
+              <div class="tlayer"><img class="shev" src="assets/t-shev-open.svg" alt=""><span class="rlabel"><span>Setup 2</span></span></div>
+              <div class="pslot"><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+            </div>
+            <div class="trow" data-id="part3" data-parent="setup2" data-type="part" data-expandable="1">
+              <div class="tlayer i1"><img class="shev" src="assets/t-shev-open.svg" alt=""><span class="rlabel"><span>Part 1</span></span></div>
+              <div class="pslot"><span class="bicn"><img class="i16" src="assets/opcolor.svg" alt=""></span><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+            </div>
+            <div class="trow" data-id="op5" data-parent="part3" data-type="operation" draggable="true">
+              <div class="tlayer i2"><img class="shev" src="assets/t-shev1.svg" alt=""><span class="rlabel"><span>Drilling</span></span></div>
+              <div class="pslot"><span class="toolno">T#4</span><span class="tlink"><span>SCD 080-044-080 AP5</span></span><span class="bicn"><img class="i16" src="assets/opcolor.svg" alt=""></span><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+            </div>
+            <div class="trow" data-id="op6" data-parent="part3" data-type="operation" draggable="true">
+              <div class="tlayer i2"><img class="shev" src="assets/t-shev2.svg" alt=""><span class="rlabel"><span>ID boring</span></span></div>
+              <div class="pslot"><span class="toolno">T#5</span><span class="tlink"><span>CCMT 09 T3 04-PF/A20S-SCLCR 09</span></span><span class="bicn"><img class="i16" src="assets/opcolor.svg" alt=""></span><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+            </div>
+            <div class="trow" data-id="op7" data-parent="part3" data-type="operation" draggable="true">
+              <div class="tlayer i2"><img class="shev" src="assets/t-shev2.svg" alt=""><span class="rlabel"><span>Thread turning</span></span></div>
+              <div class="pslot"><span class="toolno">T#6</span><span class="tlink"><span>266RG-16MM01A150M/266RFA-2525-16</span></span><span class="bicn"><img class="i16" src="assets/opcolor.svg" alt=""></span><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+            </div>
+            <div class="trow" data-id="op8" data-parent="part3" data-type="operation" draggable="true">
+              <div class="tlayer i2"><img class="shev" src="assets/t-shev2.svg" alt=""><span class="rlabel"><span>Parting off</span></span></div>
+              <div class="pslot"><span class="toolno">T#2</span><span class="tlink"><span>N123G2-0300-0002-CM/RF123G079</span></span><span class="bicn"><img class="i16" src="assets/opcolor.svg" alt=""></span><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+            </div>
+          </div>
+          </div><!-- /treewrap -->
+
+          <!-- Simulate tab: the tree shows the full posted code per operation -->
+          <div class="simwrap" id="simWrap" hidden>
+            <div class="simtree" id="simTree"></div>
+          </div>
+
+          <!-- single-operation mode (double-click on the dock resizer):
+               the tree collapses to the selected operation + step arrows -->
+          <div class="singleop" id="singleOp" hidden>
+            <div class="so-nav">
+              <div class="so-btn" data-so="prev" title="Previous operation"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.5L6 4l3.5 3.5"/></svg></div>
+              <div class="so-btn" data-so="list" title="Back to the tree"><svg viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M2 3.5h8M2 6h8M2 8.5h8"/></svg></div>
+              <div class="so-btn" data-so="next" title="Next operation"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg></div>
+            </div>
+            <div class="so-main" id="soMain"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Dock resizer ===== -->
+      <div class="dock-resizer" id="dockResizer" title="Drag to resize"></div>
+
+      <!-- ===== Inspector panel ===== -->
+      <section class="panel16 panel-insp">
+        <div class="rail">
+          <div class="rail-top">
+            <div class="rbtn" data-tab="Setup" title="Setup"><img class="ricn" src="assets/rail-setup.svg" alt=""></div>
+            <div class="rbtn active" data-tab="Tool" title="Tool"><img class="ricn" src="assets/rail-tool.svg" alt=""></div>
+            <div class="rbtn" data-tab="Speeds" title="Speeds"><img class="ricn" src="assets/rail-speeds.svg" alt=""></div>
+            <div class="rbtn" data-tab="Strategy" title="Strategy"><img class="ricn" src="assets/rail-strategy.svg" alt=""></div>
+            <div class="rbtn" data-tab="Fixture" title="Fixture"><img class="ricn" src="assets/rail-fixture.svg" alt=""></div>
+            <div class="rbtn" data-tab="Links" title="Links"><img class="ricn" src="assets/rail-links.svg" alt=""></div>
+          </div>
+          <div class="rail-top">
+            <div class="rbtn" data-tab="More" title="More"><img class="ricn" src="assets/rail-more.svg" alt=""></div>
+          </div>
+        </div>
+
+        <div class="inner">
+          <div class="title-row"><span class="t" id="inspTitle">Tool Assembly</span><span class="title-ctl" id="titleCtl"></span></div>
+          <div class="line"></div>
+          <div class="irows" id="irows"></div>
+        </div>
+      </section>
+    </aside>
+
+    <!-- ===== Viewport ===== -->
+    <main class="viewport">
+      <div class="filters" id="filters">
+        <button class="f-head" id="filtersBtn">Filters</button>
+        <div class="f-body">
+          <div class="f-cols">
+            <div class="f-col">
+              <div class="f-cell on" title="Inspector"><img class="f20" src="assets/f-inspector.svg" alt=""></div>
+              <div class="f-cell on" title="Part" data-ftype="part"><img class="f20" src="assets/f-part.svg" alt=""></div>
+              <div class="f-cell on" title="Job" data-ftype="setup"><img class="f20" src="assets/f-job.svg" alt=""></div>
+              <div class="f-cell" title="Workpiece"><img class="f20" src="assets/f-workpiece.svg" alt=""></div>
+              <div class="f-cell on" title="Result" data-ftype="operation"><img class="f20" src="assets/f-result.svg" alt=""></div>
+            </div>
+            <div class="f-col">
+              <div class="f-cell" title="Tool"><img class="f20" src="assets/f-tool1.svg" alt=""></div>
+              <div class="f-cell on" title="Tool"><img class="f20" src="assets/f-tool2.svg" alt=""></div>
+              <div class="f-cell" title="Fixtures"><img class="f20" src="assets/f-fixtures.svg" alt=""></div>
+              <div class="f-cell" title="Machine" data-ftype="machine"><img class="f20" src="assets/f-machine1.svg" alt=""></div>
+              <div class="f-cell" title="Machine"><img class="f20" src="assets/f-machine2.svg" alt=""></div>
+            </div>
+          </div>
+          <div class="line"></div>
+          <div class="f-grid">
+            <div class="f-cell on" title="Dot"><img class="f20" src="assets/f-dot.svg" alt=""></div>
+            <div class="f-cell on" title="Curve"><img class="f20" src="assets/f-curve.svg" alt=""></div>
+            <div class="f-cell on" title="Face"><img class="f20" src="assets/f-face.svg" alt=""></div>
+            <div class="f-cell on" title="Mech"><img class="f20" src="assets/f-mech.svg" alt=""></div>
+          </div>
+        </div>
+      </div>
+      <div class="vp-hint">3D viewport</div>
+
+      <!-- simulation control panel on the 3D view: speed strip + four
+           buttons — reset, back, play, forward -->
+      <!-- simulation panel: control row on top, editor-style timeline below -->
+      <div class="simbar" id="simBar" hidden>
+        <div class="simbar__row">
+
+        <!-- simulation scope actions: selected op / from start to selected / all -->
+        <div class="sb-btn scope" data-scope="current" title="Simulate selected operation"><svg viewBox="0 0 18 18">
+          <rect x="6" y="1.8" width="10" height="2.4" rx="1" fill="currentColor"/>
+          <path d="M2 4.9l4.2 2.5L2 9.9z" fill="currentColor"/>
+          <rect x="8" y="6" width="8" height="2.4" rx="1" fill="currentColor"/>
+          <rect x="6" y="10.2" width="10" height="2.4" rx="1" fill="var(--ec-fg-80)"/>
+          <rect x="6" y="14.4" width="10" height="2.4" rx="1" fill="var(--ec-fg-80)"/></svg></div>
+        <div class="sb-btn scope" data-scope="tocurrent" title="Simulate from start to selected"><svg viewBox="0 0 18 18">
+          <rect x="6" y="1.8" width="10" height="2.4" rx="1" fill="currentColor"/>
+          <rect x="6" y="6" width="10" height="2.4" rx="1" fill="currentColor"/>
+          <path d="M2 9.1l4.2 2.5L2 14.1z" fill="currentColor"/>
+          <rect x="8" y="10.2" width="8" height="2.4" rx="1" fill="var(--ec-fg-80)"/>
+          <rect x="6" y="14.4" width="10" height="2.4" rx="1" fill="var(--ec-fg-80)"/></svg></div>
+        <div class="sb-btn scope" data-scope="all" title="Simulate all operations"><svg viewBox="0 0 18 18">
+          <rect x="2.6" y="1.8" width="2.2" height="10" rx="1" fill="currentColor"/>
+          <path d="M1.2 11.4h5l-2.5 5z" fill="currentColor"/>
+          <rect x="6" y="1.8" width="10" height="2.4" rx="1" fill="currentColor"/>
+          <rect x="6" y="6" width="10" height="2.4" rx="1" fill="currentColor"/>
+          <rect x="6" y="10.2" width="10" height="2.4" rx="1" fill="currentColor"/>
+          <rect x="6" y="14.4" width="10" height="2.4" rx="1" fill="currentColor"/></svg></div>
+
+        <div class="sb-sep"></div>
+
+        <div class="sb-btn" id="simReset" title="Reset simulation">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 6.6A5.2 5.2 0 1 1 2.8 9.4"/><path d="M3 3.4v3.4h3.4"/></svg>
+        </div>
+        <div class="sb-btn" id="simToStart" title="To operation start">
+          <svg viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="4" width="1.8" height="8" rx="0.9"/><path d="M13 4v8l-6.4-4z"/></svg>
+        </div>
+        <div class="sb-btn" id="simStepB" title="Step back (code line)">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.8 3.5L5.3 8l4.5 4.5"/></svg>
+        </div>
+        <div class="sb-btn play" id="simPlay" title="Play">
+          <svg class="sp-play" viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 2.8l8.5 5.2-8.5 5.2z"/></svg>
+          <svg class="sp-pause" viewBox="0 0 16 16" fill="currentColor"><rect x="3.6" y="3" width="3.2" height="10" rx="1"/><rect x="9.2" y="3" width="3.2" height="10" rx="1"/></svg>
+        </div>
+        <div class="sb-btn" id="simStepF" title="Step forward (code line)">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.2 3.5L10.7 8l-4.5 4.5"/></svg>
+        </div>
+        <div class="sb-btn" id="simToNext" title="Next operation">
+          <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 4v8l6.4-4z"/><rect x="11.2" y="4" width="1.8" height="8" rx="0.9"/></svg>
+        </div>
+
+        <div class="sb-sep"></div>
+
+        <div class="sim-speed" id="simSpeed" title="Simulation speed">
+          <div class="ss-track"></div>
+          <div class="ss-fill" id="ssFill"></div>
+          <i class="ss-dot" style="left:25%"></i>
+          <i class="ss-dot" style="left:50%"></i>
+          <i class="ss-dot" style="left:75%"></i>
+          <div class="ss-ghost" id="ssGhost" hidden></div>
+          <div class="ss-knob" id="ssKnob"><span class="ss-tip" id="ssTip">50%</span></div>
+        </div>
+        <span class="ss-val" id="ssVal">50%</span>
+
+        <div class="sb-sep"></div>
+
+        <div class="sb-stops" id="simStops" title="Stop conditions">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="4.6" y="2.6" width="6.8" height="6.8" rx="1" transform="rotate(45 8 6)"/><path d="M8 12.4v1.4"/></svg>
+          <span id="simStopsLbl">Pause: collision, T</span>
+          <img class="chev7" src="assets/tb-chev.svg" alt="">
+        </div>
+
+        <div class="sb-sep"></div>
+
+        <span class="sb-op" id="sbOp"><i class="sb-op__ring"></i><b class="sb-op__name">—</b><em class="sb-op__tno">T#1</em><span class="sb-op__tname">—</span></span>
+        <span class="sb-time" id="simTime">0:00 / 0:00</span>
+
+        <div class="sb-sep sb-sep--push"></div>
+
+        <span class="sb-coll" id="sbColl" title="Go to the next collision">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.6l6 10.8H2z"/><path d="M8 7v3M8 11.6v.01"/></svg>
+          <span id="sbCollN">2</span>
+        </span>
+        <div class="sb-btn" id="simCfg" title="Simulation settings">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M12.4 3.6L11 5M5 11l-1.4 1.4"/></svg>
+        </div>
+
+        </div><!-- /simbar__row -->
+
+        <div class="sim-timeline" id="simTlWrap" hidden>
+          <div class="tl-mach" id="tlMach" title="Machine — to the very start">
+            <img class="i16" src="assets/tree-machine.svg" alt="">
+          </div>
+          <div class="tl-main">
+            <div class="tl-ruler" id="tlRuler"></div>
+            <div class="tl-track" id="simTl"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stpanel" id="statusPanel">
+        <div class="stp-head">
+          <span class="stp-title" id="stpTitle">Operation</span>
+          <button class="stp-close" id="stpClose" title="Close">
+            <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="stp-sec">Status:</div>
+        <div class="stp-list">
+          <div class="stp-row"><img class="i16" src="assets/status.svg" alt=""><span class="stp-lbl">Toolpath</span><span class="stp-meta">Not calculated</span></div>
+          <div class="stp-row"><img class="i16" src="assets/status-complete.svg" alt=""><span class="stp-lbl">Machining result</span></div>
+          <div class="stp-row"><img class="i16" src="assets/status-prog2.svg" alt=""><span class="stp-lbl">Tool holder collision detection</span></div>
+          <div class="stp-row"><img class="i16" src="assets/status-done.svg" alt=""><span class="stp-lbl">Machine collision detection</span></div>
+          <div class="stp-row"><img class="i16" src="assets/status-done.svg" alt=""><span class="stp-lbl">Hidden nodes collision detection</span></div>
+        </div>
+      </div>
+    </main>
+
+  </div>
+</div>
+
+<!-- simulation parameters popover (opened from the ! button and the gear) -->
+<div class="simpop" id="simPop" hidden>
+<div class="sp-cols">
+<div class="sp-col">
+
+  <div class="sp-row sp-master"><b>Collision detection</b><img class="tgl" data-tgl src="assets/toggle-on.svg" alt=""></div>
+  <div class="sp-levels">
+    <div class="sp-lvl-labels">
+      <span data-lvl="0">Holder</span><span data-lvl="1" class="on">Machine</span><span data-lvl="2">Hidden nodes</span>
+    </div>
+    <div class="sp-lvl-track" id="spLvlTrack">
+      <i class="dot" style="left:0%"></i><i class="dot" style="left:50%"></i><i class="dot" style="left:100%"></i>
+      <i class="fill" id="spLvlFill" style="width:50%"></i>
+      <i class="knob" id="spLvlKnob" style="left:50%"></i>
+    </div>
+  </div>
+  <div class="sp-note"><b id="spNoteT">Holder + machine</b><span id="spNoteS">Checks holder and machine components. Balanced option for daily work.</span></div>
+  <div class="sp-sec">Check for:</div>
+  <div class="sp-row"><span>Part gouge</span><img class="tgl" data-tgl src="assets/toggle-on.svg" alt=""></div>
+  <div class="sp-sec">Stop at:</div>
+  <div class="sp-row"><span>Optional stop command</span><img class="tgl" data-tgl src="assets/toggle-off.svg" alt=""></div>
+  <div class="sp-row"><span>End of operation</span><img class="tgl" data-tgl src="assets/toggle-off.svg" alt=""></div>
+  <div class="sp-row"><span>Error/collision/gouge</span><img class="tgl" data-tgl src="assets/toggle-off.svg" alt=""></div>
+
+</div><!-- /sp-col -->
+<div class="sp-colsep"></div>
+<div class="sp-col">
+
+  <div class="sp-sec sp-sec--first">Tolerances</div>
+  <div class="sp-row"><span>Toolpath tolerance</span></div>
+  <div class="sp-tol" data-tol><span class="lo">Low</span>
+    <div class="sp-tol-track"><i class="fill" style="width:45%"></i><i class="knob" style="left:45%"></i></div>
+    <span class="hi">High</span></div>
+  <div class="sp-row sp-sub"><img class="tgl" data-tgl data-abs src="assets/toggle-off.svg" alt=""><span>Use absolute tolerance</span>
+    <span class="sp-input is-off"><input type="text" value="0.001" disabled><em>mm</em></span></div>
+  <div class="sp-row"><span>Tool/Model tolerance</span></div>
+  <div class="sp-tol" data-tol><span class="lo">Low</span>
+    <div class="sp-tol-track"><i class="fill" style="width:45%"></i><i class="knob" style="left:45%"></i></div>
+    <span class="hi">High</span></div>
+  <div class="sp-row sp-sub"><img class="tgl" data-tgl data-abs src="assets/toggle-off.svg" alt=""><span>Use absolute tolerance</span>
+    <span class="sp-input is-off"><input type="text" value="0.001" disabled><em>mm</em></span></div>
+
+  <div class="sp-div"></div>
+  <div class="sp-sec">Playback</div>
+  <div class="sp-row"><span>Smooth simulation</span><img class="tgl" data-tgl src="assets/toggle-on.svg" alt=""></div>
+  <div class="sp-row"><span>Rapid motion</span><b class="sp-val" id="spRapid" title="Click to change">x16</b></div>
+  <div class="sp-row"><span>Compensation curve</span><img class="tgl" data-tgl src="assets/toggle-off.svg" alt=""></div>
+  <div class="sp-row"><span>Type</span><b class="sp-val" id="spType" title="Click to change">Voxel 5D</b></div>
+
+  <div class="sp-div"></div>
+  <div class="sp-sec">Part copies</div>
+  <div class="sp-row"><span>One model for all copies</span><img class="tgl" data-tgl src="assets/toggle-off.svg" alt=""></div>
+
+</div><!-- /sp-col -->
+</div><!-- /sp-cols -->
+</div>
+
+<!-- asset bank: exposes SVGs to JS as URLs (data URIs after a build) -->
+<div id="assetbank">
+  <img id="a-status-empty" src="assets/status.svg" alt="">
+  <img id="a-status-calc" src="assets/status-calc.svg" alt="">
+  <img id="a-status-complete" src="assets/status-complete.svg" alt="">
+  <img id="a-status-prog1" src="assets/status-prog1.svg" alt="">
+  <img id="a-status-prog2" src="assets/status-prog2.svg" alt="">
+  <img id="a-status-done" src="assets/status-done.svg" alt="">
+  <img id="a-status-warn" src="assets/status-warn.svg" alt="">
+  <img id="a-status-warn2" src="assets/status-warn2.svg" alt="">
+  <img id="a-status-error" src="assets/status-error.svg" alt="">
+  <img id="a-hint" src="assets/hint.svg" alt="">
+  <img id="a-icn11" src="assets/icn11.svg" alt="">
+  <img id="a-ddchev" src="assets/dd-chev.svg" alt="">
+  <img id="a-shev-open" src="assets/i-shev-open.svg" alt="">
+  <img id="a-shev-leaf" src="assets/i-shev1.svg" alt="">
+  <img id="a-shev-right" src="assets/i-shev2.svg" alt="">
+  <img id="a-tgl-off" src="assets/toggle-off.svg" alt="">
+  <img id="a-tgl-on" src="assets/toggle-on.svg" alt="">
+  <img id="a-row-a" src="assets/row-icn-a.svg" alt="">
+  <img id="a-row-b" src="assets/row-icn-b.svg" alt="">
+  <img id="a-opcolor" src="assets/opcolor.svg" alt="">
+  <img id="a-op-yellow" src="assets/op-yellow.svg" alt="">
+  <img id="a-op-blue" src="assets/op-blue.svg" alt="">
+  <img id="a-op-corall" src="assets/op-corall.svg" alt="">
+  <img id="a-op-green" src="assets/op-green.svg" alt="">
+  <img id="a-op-purple" src="assets/op-purple.svg" alt="">
+  <img id="a-t-shev-leaf" src="assets/t-shev1.svg" alt="">
+</div>
+
+<script src="../shared-ui/chrome.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

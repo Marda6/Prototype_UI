@@ -140,7 +140,7 @@
   function projectCard(p, i){
     return '<div class="card" data-name="' + p.name + '">' +
       '<div class="preview">' +
-        '<div class="hovermenu"><button data-open>Open project</button><button>Preview</button></div>' +
+        '<div class="hovermenu"><button data-open>Open project</button><button data-preview>Preview</button></div>' +
         (p.featured ? '<span class="tag">Featured</span>' : '') +
         '<img src="' + part(i) + '" alt="">' +
       '</div>' +
@@ -613,6 +613,12 @@
   document.getElementById('projects').addEventListener('click', function(e){
     if (e.target.hasAttribute && e.target.hasAttribute('data-open')){
       startDownload(e.target.closest('.card'));
+      return;
+    }
+    // Preview = read-only project view, no download
+    if (e.target.hasAttribute && e.target.hasAttribute('data-preview')){
+      var name = e.target.closest('.card').dataset.name;
+      location.href = '../project-preview/?name=' + encodeURIComponent(name);
       return;
     }
     var st = e.target.closest('.btn-star');

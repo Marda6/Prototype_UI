@@ -1,0 +1,10 @@
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="icn_status_operation">
+<g id="Property 1=Variant7">
+<circle id="Ellipse 13" cx="8" cy="8" r="5.5" stroke="#F5F5F5" stroke-opacity="0.8"/>
+<path id="Ellipse 14" d="M8 2.5C9.45869 2.5 10.8576 3.07946 11.8891 4.11091C12.9205 5.14236 13.5 6.54131 13.5 8C13.5 9.45869 12.9205 10.8576 11.8891 11.8891C10.8576 12.9205 9.45869 13.5 8 13.5" stroke="#00A36D"/>
+<rect id="Rectangle 6045" x="5" y="5" width="6" height="6" rx="3" fill="#F5F5F5" fill-opacity="0.8"/>
+<path id="Rectangle 6046" d="M8 5C9.65685 5 11 6.34315 11 8C11 9.65685 9.65685 11 8 11V5Z" fill="#00A36D"/>
+</g>
+</g>
+</svg>
