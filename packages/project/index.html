@@ -315,10 +315,12 @@
 
 <!-- simulation parameters popover (opened from the ! button and the gear) -->
 <div class="simpop" id="simPop" hidden>
+<div class="sp-head">Simulation parameters</div>
+<div class="sp-div sp-div--head"></div>
 <div class="sp-cols">
 <div class="sp-col">
 
-  <div class="sp-row sp-master"><b>Collision detection</b><img class="tgl" data-tgl src="assets/toggle-on.svg" alt=""></div>
+  <div class="sp-h"><span>Collision detection</span><img class="tgl" data-tgl src="assets/toggle-on.svg" alt=""></div>
   <div class="sp-levels">
     <div class="sp-lvl-labels">
       <span data-lvl="0">Holder</span><span data-lvl="1" class="on">Machine</span><span data-lvl="2">Hidden nodes</span>
@@ -330,9 +332,11 @@
     </div>
   </div>
   <div class="sp-note"><b id="spNoteT">Holder + machine</b><span id="spNoteS">Checks holder and machine components. Balanced option for daily work.</span></div>
-  <div class="sp-sec">Check for:</div>
+  <div class="sp-div"></div>
+  <div class="sp-sec">Check for</div>
   <div class="sp-row"><span>Part gouge</span><img class="tgl" data-tgl src="assets/toggle-on.svg" alt=""></div>
-  <div class="sp-sec">Stop at:</div>
+  <div class="sp-div"></div>
+  <div class="sp-sec">Stop at</div>
   <div class="sp-row"><span>Optional stop command</span><img class="tgl" data-tgl src="assets/toggle-off.svg" alt=""></div>
   <div class="sp-row"><span>End of operation</span><img class="tgl" data-tgl src="assets/toggle-off.svg" alt=""></div>
   <div class="sp-row"><span>Error/collision/gouge</span><img class="tgl" data-tgl src="assets/toggle-off.svg" alt=""></div>
@@ -341,14 +345,14 @@
 <div class="sp-colsep"></div>
 <div class="sp-col">
 
-  <div class="sp-sec sp-sec--first">Tolerances</div>
-  <div class="sp-row"><span>Toolpath tolerance</span></div>
+  <div class="sp-h"><span>Tolerances</span></div>
+  <div class="sp-sec">Toolpath tolerance</div>
   <div class="sp-tol" data-tol><span class="lo">Low</span>
     <div class="sp-tol-track"><i class="fill" style="width:45%"></i><i class="knob" style="left:45%"></i></div>
     <span class="hi">High</span></div>
   <div class="sp-row sp-sub"><img class="tgl" data-tgl data-abs src="assets/toggle-off.svg" alt=""><span>Use absolute tolerance</span>
     <span class="sp-input is-off"><input type="text" value="0.001" disabled><em>mm</em></span></div>
-  <div class="sp-row"><span>Tool/Model tolerance</span></div>
+  <div class="sp-sec">Tool/Model tolerance</div>
   <div class="sp-tol" data-tol><span class="lo">Low</span>
     <div class="sp-tol-track"><i class="fill" style="width:45%"></i><i class="knob" style="left:45%"></i></div>
     <span class="hi">High</span></div>
@@ -356,14 +360,14 @@
     <span class="sp-input is-off"><input type="text" value="0.001" disabled><em>mm</em></span></div>
 
   <div class="sp-div"></div>
-  <div class="sp-sec">Playback</div>
+  <div class="sp-h"><span>Playback</span></div>
   <div class="sp-row"><span>Smooth simulation</span><img class="tgl" data-tgl src="assets/toggle-on.svg" alt=""></div>
   <div class="sp-row"><span>Rapid motion</span><b class="sp-val" id="spRapid" title="Click to change">x16</b></div>
   <div class="sp-row"><span>Compensation curve</span><img class="tgl" data-tgl src="assets/toggle-off.svg" alt=""></div>
   <div class="sp-row"><span>Type</span><b class="sp-val" id="spType" title="Click to change">Voxel 5D</b></div>
 
   <div class="sp-div"></div>
-  <div class="sp-sec">Part copies</div>
+  <div class="sp-h"><span>Part copies</span></div>
   <div class="sp-row"><span>One model for all copies</span><img class="tgl" data-tgl src="assets/toggle-off.svg" alt=""></div>
 
 </div><!-- /sp-col -->
