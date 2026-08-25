@@ -309,7 +309,7 @@
 .sb-coll svg{width:13px;height:13px;}
 /* ---- simulation parameters popover ---- */
 /* two columns so the whole set fits on screen without scrolling */
-.simpop{position:fixed;z-index:1000;width:320px;
+.simpop{position:fixed;z-index:1000;width:272px;
   background:var(--pop-bg);border:1px solid var(--ec-fg-12);border-radius:10px;
   padding:10px 12px;box-shadow:0 8px 28px rgba(0,0,0,.5);}
 .simpop[hidden]{display:none !important;}
