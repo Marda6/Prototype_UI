@@ -147,8 +147,13 @@
 .simrow.code.c-blue .lbl{color:#46acff;}
 .simrow.grp .lbl{color:var(--ec-fg-96);}
 /* right status column */
-.sim-ring{width:12px;height:12px;border-radius:50%;flex:0 0 12px;box-sizing:border-box;
-  border:2px solid var(--cc,#ebda84);}
+/* op color ring, same geometry as opcolor.svg on the Machining tab:
+   16px box, r=4.5 circle, 1px stroke, 16% fill of the same color */
+.sim-ring{width:16px;height:16px;flex:0 0 16px;display:flex;
+  align-items:center;justify-content:center;}
+.sim-ring::before{content:'';width:9px;height:9px;border-radius:50%;box-sizing:content-box;
+  border:1px solid var(--cc,#ebda84);
+  background:color-mix(in srgb, var(--cc,#ebda84) 16%, transparent);}
 .sim-dot{width:4px;height:4px;border-radius:50%;background:var(--ec-fg-24);flex:0 0 4px;
   margin:0 6px;}
 /* the system error glyph on a code line: red diamond with a dot inside */
@@ -193,13 +198,15 @@
 .tl-ruler b:first-child{transform:none;}
 .tl-ruler b:last-child{transform:translateX(-100%);}
 .tl-ruler i{position:absolute;bottom:0;width:1px;height:4px;background:var(--ec-fg-16);}
-.tl-track{position:relative;display:flex;gap:2px;height:22px;border-radius:6px;
+.tl-track{position:relative;display:flex;gap:1px;height:22px;border-radius:6px;
   cursor:pointer;touch-action:none;}
 /* the clip is a slim colored line; the full-height element stays as the
    hover / hit area. Hovering shows the name at the start of the line,
-   the label plate visually "breaks" the line under it */
-.tl-track .clip{position:relative;height:100%;min-width:0;
+   the label plate visually "breaks" the line under it. On 100-op programs
+   clips get tiny, so the hovered label overflows its clip on top. */
+.tl-track .clip{position:relative;height:100%;min-width:2px;
   display:flex;align-items:center;overflow:hidden;}
+.tl-track .clip:hover{overflow:visible;z-index:3;}
 /* upcoming operations are bland gray; hover tints them with the op color,
    the current one is bright, finished ones keep a muted tint */
 .tl-track .clip::before{content:'';position:absolute;left:0;right:0;top:50%;
@@ -211,7 +218,9 @@
   background:var(--ec-bg);color:var(--ec-fg-80);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   opacity:0;transition:opacity .1s;}
-.tl-track .clip:hover span{opacity:1;}
+/* absolute on hover so the label is not clipped by a narrow clip */
+.tl-track .clip:hover span{opacity:1;position:absolute;left:10px;top:50%;
+  transform:translateY(-50%);overflow:visible;max-width:none;}
 .tl-track .clip:hover::before{background:color-mix(in srgb, var(--cc) 62%, var(--ec-bg));}
 .tl-track .clip.done::before{background:color-mix(in srgb, var(--cc) 38%, var(--ec-bg));}
 .tl-track .clip.cur::before{background:color-mix(in srgb, var(--cc) 72%, var(--ec-bg));}
@@ -221,12 +230,19 @@
 .tl-mark{position:absolute;top:50%;height:12px;transform:translateY(-50%);
   width:3px;margin-left:-1.5px;border-radius:1px;pointer-events:none;z-index:1;
   box-shadow:0 0 0 3px var(--ec-bg);}
+/* long programs: the diamond does not fit — a plain red tick instead */
+.tl-mark--coll.tick{width:2.5px;height:16px;margin-left:-1.25px;border:0;border-radius:1px;
+  transform:translateY(-50%);background:#ff5c5e;box-shadow:0 0 0 2px var(--ec-bg);
+  box-sizing:border-box;}
+.tl-mark--coll.tick::after{content:none;}
 /* collisions use the system error glyph: a red diamond with a dot inside */
 .tl-mark--coll{width:9px;height:9px;margin-left:-7.5px;border-radius:2px;
   transform:translateY(-50%) rotate(45deg);background:#ff5c5e;
   border:3px solid var(--ec-bg);box-shadow:none;box-sizing:content-box;}
 .tl-mark--coll::after{content:'';position:absolute;inset:0;margin:auto;
   width:3px;height:3px;border-radius:50%;background:var(--ec-bg);}
+/* collision detection off → no collision events anywhere */
+.tl-track.nocoll .tl-mark--coll{display:none;}
 .tl-mark--tool{width:2px;background:var(--ec-fg-56);}
 /* playhead: full-height caret with a cap; the tip shows the timecode */
 .tl-track .ph{position:absolute;top:-5px;bottom:-3px;width:2px;margin-left:-1px;
@@ -255,7 +271,8 @@
 .simbar.playing .ph-tip{opacity:1;}
 
 /* ---- control bar extras ---- */
-.ss-val{font:400 11px/16px var(--ec-font);color:var(--ec-fg-72);min-width:30px;
+.ss-val{font:400 11px/16px var(--ec-font);color:var(--ec-fg-72);min-width:34px;
+  margin-left:8px; /* clear of the knob parked at the right end */
   font-variant-numeric:tabular-nums;}
 .sim-speed.capped ~ .ss-val{color:var(--ec-amber, #ebc14a);}
 /* the play button is the one accent on the bar */
@@ -276,19 +293,42 @@
   text-overflow:ellipsis;}
 .sb-op__tno{font-style:normal;color:var(--st-green);font-variant-numeric:tabular-nums;}
 .sb-op__tname{color:var(--ec-fg-56);max-width:260px;overflow:hidden;text-overflow:ellipsis;}
-/* collision badge — click jumps to the next collision */
+/* collision badge — click opens the collision list */
 .sb-coll{display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 7px;
-  border-radius:4px;border:1px solid rgba(255,112,114,.4);color:#ff8384;cursor:pointer;
+  border-radius:4px;color:#ff8384;cursor:pointer;
   font:500 11px/16px var(--ec-font);font-variant-numeric:tabular-nums;}
 .sb-coll:hover{background:rgba(255,112,114,.1);}
 .sb-coll svg{width:13px;height:13px;}
 /* ---- simulation parameters popover ---- */
 /* two columns so the whole set fits on screen without scrolling */
-.simpop{position:fixed;z-index:1000;width:600px;
+.simpop{position:fixed;z-index:1000;width:320px;
   background:var(--ec-bg-96);border:1px solid var(--ec-fg-12);border-radius:10px;
   padding:10px 12px;box-shadow:0 8px 28px rgba(0,0,0,.5);}
 .simpop[hidden]{display:none !important;}
 .sp-head{font:600 13px/18px var(--ec-font);color:var(--ec-fg-96);padding:2px 2px 8px;}
+/* the stop-conditions popover: icon + label + toggle per row */
+.stopspop{width:280px;}
+.stopspop .sp-row > span:first-child{flex:0 0 auto;}
+.stopspop .sp-row .lb{flex:1;min-width:0;}
+.sp-ic{width:20px;height:20px;display:flex;align-items:center;justify-content:center;
+  color:var(--ec-fg-56);}
+.sp-ic svg{width:16px;height:16px;}
+.sp-ic.ic-red{color:#ff8384;}
+.sp-row.is-disabled{opacity:.4;pointer-events:none;}
+/* the collision list on the red badge: type + where (op · tool · time) */
+.collpop{width:224px;padding:8px 8px;}
+.collpop .sp-head{padding:0 4px 6px;}
+.collpop .sp-div{margin:0 0 6px;}
+#collList{max-height:320px;overflow:auto;}
+.coll-item{display:flex;align-items:flex-start;gap:6px;padding:4px;border-radius:6px;
+  cursor:pointer;}
+.coll-item:hover{background:var(--ec-fg-8);}
+/* the glyph sits on the title line (16px row) */
+.coll-item .sp-ic{height:16px;}
+.ci-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;}
+.ci-body b{font:500 12px/16px var(--ec-font);color:var(--ec-fg-96);}
+.ci-body span{font:400 11px/14px var(--ec-font);color:var(--ec-fg-56);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .sp-div--head{margin-top:0;}
 .sp-cols{display:flex;gap:16px;align-items:flex-start;}
 .sp-col{flex:1;min-width:0;}
@@ -385,6 +425,9 @@
 .sb-btn svg{width:16px;height:16px;}
 .sb-btn.stop{color:#ff7072;}
 .sb-btn.scope{color:var(--st-green);}
+.sb-btn.coll{color:#ff8384;}
+.sb-btn.coll:hover{color:#ff8384;}
+.sb-btn.disabled{color:var(--ec-fg-24);pointer-events:none;}
 .sb-btn.play .sp-pause{display:none;}
 .simbar.playing .sb-btn.play .sp-play{display:none;}
 .simbar.playing .sb-btn.play .sp-pause{display:block;}

@@ -687,53 +687,47 @@
 
   /* ---------- Simulate tab: code tree + the simulation bar on the 3D view ---------- */
   /* per-operation posted code; shared groups (Header/Approach) expand in place */
-  var SIM_OPS = [
-    { name:'Lathe facing', color:'#ebda84', open:true, lines:[
-      { t:'PPFUN: 58, 250, -0.297, -333.853, -1.524, 790.75, 0, 418.3…' },
-      { t:'Header', grp:[
-        'COMMENT: "Lathe facing"',
-        'ORIGIN: G54 - MCS(X0, Y0, Z9.5, A0, B0, C0)',
-        'LOADTL: #1 (0), H#-1, D#1',
-        'COMMENT: "@CNMG 12 04 08-WF"',
-        'PLANE: XY',
-        'SPINDL: On, 199 rpm',
-        'CUTCOM: LC#1 On, Left',
-        'FROM: X0, Y460, Z412.396, Machine X0, Y5…' ] },
-      { t:'Approach', grp:[ 'RAPID: 10000', 'MultiGOTO: X78.465, Y-45.956, Z105.311, B-…' ] },
-      { t:'X42.64, Y0, Z2.959', c:'red' },
-      { t:'PPRINT: "#KeyPoint: StartCutting"', key:true },
-      { t:'RAPID: 10000', c:'red' },
-      { t:'X42.64, Y0, Z0', c:'red' },
-      { t:'COOLNT: On, #1' },
-      { t:'F: WORK 0.5mm/rev.', c:'blue' },
-      { t:'X-0.297, Y0, Z0', c:'blue' },
-      { t:'X2.362, Y0, Z2.659', c:'blue' },
-      { t:'PPFUN: 59, 250, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…' } ] },
-    { name:'OD roughing', color:'#9584eb', lines:[
+  /* stress-test program: 100 generated operations (deterministic, no RNG) */
+  var SIM_OP_KINDS = ['Lathe facing', 'OD roughing', 'OD finishing', 'OD grooving',
+    'ID drilling', 'ID boring', 'Thread turning', 'Face milling', 'Pocket milling',
+    'Contour milling', 'Hole drilling', 'Chamfering', 'Parting off'];
+  var SIM_COLORS = ['#ebda84', '#9584eb', '#84c9eb', '#ff7072', '#7bd8a8',
+    '#e8a06c', '#c98fe0', '#8fb7e8'];
+  var SIM_TOOL_POOL = [
+    'CNMG 12 04 08-WF/DCLNR 2020K-12', 'N123G2-0300-0002-CM/RF123G079',
+    'DNMX 15 04 04-WF/DDJNR 2020K-15', 'SCD 080-044-080 AP5',
+    'CCMT 09 T3 04-PF/A20S-SCLCR 09', '266RG-16MM01A150M/266RFA-2525-16',
+    'R390-020A20-11L/R390-11 T3 08M-PM', '860.1-0500-015A1-PM'];
+  function simMakeLines(name, toolNo){
+    return [
       { t:'PPFUN: 58, 250, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…' },
-      { t:'Header', grp:[ 'COMMENT: "OD roughing"', 'LOADTL: #1 (0), H#-1, D#1', 'SPINDL: On, 240 rpm' ] },
+      { t:'Header', grp:[ 'COMMENT: "' + name + '"', 'LOADTL: #' + toolNo + ' (0), H#-' + toolNo + ', D#' + toolNo,
+        'SPINDL: On, ' + (160 + toolNo * 20) + ' rpm' ] },
       { t:'Approach', grp:[ 'RAPID: 10000', 'MultiGOTO: X64.2, Y0, Z96.4' ] },
       { t:'RAPID: 10000', c:'red' },
       { t:'X41.5, Y0, Z1.2', c:'red' },
       { t:'F: WORK 0.35mm/rev.', c:'blue' },
       { t:'X-0.297, Y0, Z1.2', c:'blue' },
-      { t:'PPFUN: 59, 250, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…' } ] },
-    { name:'OD grooving', color:'#84c9eb', lines:[
-      { t:'PPFUN: 58, 250, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…' },
-      { t:'Header', grp:[ 'COMMENT: "OD grooving"', 'LOADTL: #2 (0), H#-2, D#2', 'SPINDL: On, 180 rpm' ] },
-      { t:'Approach', grp:[ 'RAPID: 10000', 'MultiGOTO: X44.0, Y0, Z-18.5' ] },
-      { t:'RAPID: 10000', c:'red' },
-      { t:'F: WORK 0.12mm/rev.', c:'blue' },
-      { t:'X31.6, Y0, Z-18.5', c:'blue' },
-      { t:'PPFUN: 59, 250, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…' } ] },
-    { name:'OD finishing', color:'#ff7072', lines:[
-      { t:'PPFUN: 58, 250, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…' },
-      { t:'Header', grp:[ 'COMMENT: "OD finishing"', 'LOADTL: #3 (0), H#-3, D#3', 'SPINDL: On, 320 rpm' ] },
-      { t:'Approach', grp:[ 'RAPID: 10000', 'MultiGOTO: X42.8, Y0, Z2.0' ] },
-      { t:'F: WORK 0.15mm/rev.', c:'blue' },
-      { t:'X-0.297, Y0, Z0', c:'blue' },
-      { t:'PPFUN: 59, 250, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…' } ] }
-  ];
+      { t:'X2.362, Y0, Z2.659', c:'blue' },
+      { t:'PPFUN: 59, 250, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…' } ];
+  }
+  var SIM_N = 100;
+  var SIM_OPS = [];
+  (function(){
+    var toolNo = 1, kindIdx = 0;
+    for(var i = 0; i < SIM_N; i++){
+      // the same tool serves 2-4 consecutive operations
+      if(i > 0 && (i * 7) % 3 === 0) toolNo = (toolNo % 8) + 1;
+      var kind = SIM_OP_KINDS[(i * 5) % SIM_OP_KINDS.length];
+      SIM_OPS.push({
+        name: (i + 1) + '. ' + kind,
+        color: SIM_COLORS[i % SIM_COLORS.length],
+        open: i === 0,
+        toolNo: toolNo,
+        lines: simMakeLines(kind, toolNo)
+      });
+    }
+  })();
   var simWrap = document.getElementById('simWrap');
   var simTree = document.getElementById('simTree');
   var simBar = document.getElementById('simBar');
@@ -742,6 +736,7 @@
   // map collision times to their op/line so the code tree can flag them
   function simCollLines(){
     var m = {};
+    if(!collDetOn) return m;
     SIM_COLLISIONS.forEach(function(t){
       var s = 0, oi = 0;
       for(var i = 0; i < SIM_DURS.length; i++){ if(t < s + SIM_DURS[i]){ oi = i; break; } s += SIM_DURS[i]; }
@@ -814,6 +809,7 @@
      auto-caps the speed at 25%; the hand-set value stays as ghost ticks and
      comes back as soon as the zoom returns. */
   var SIM_ZOOM_CAP = 25;    // % — auto-cap while zoomed in
+  var SIM_SPEED_MAX = 200;  // % — the strip goes up to double speed
   var simSpeedUser = 50;    // the hand-set speed, %
   var simZoomed = false;    // zoomed in → the cap is active
   var simPlaying = false;
@@ -824,11 +820,12 @@
   function simEffSpeed(){ return simZoomed ? Math.min(simSpeedUser, SIM_ZOOM_CAP) : simSpeedUser; }
   function simSync(){
     var eff = simEffSpeed(), capped = simZoomed && simSpeedUser > SIM_ZOOM_CAP;
-    ssFill.style.width = eff + '%';
-    ssKnob.style.left = eff + '%';
+    // strip position maps 0..SIM_SPEED_MAX onto 0..100% of the track
+    ssFill.style.width = (eff / SIM_SPEED_MAX * 100) + '%';
+    ssKnob.style.left = (eff / SIM_SPEED_MAX * 100) + '%';
     ssTip.textContent = capped ? eff + '% · zoom' : eff + '%';
     ssGhost.hidden = !capped;
-    ssGhost.style.left = simSpeedUser + '%';
+    ssGhost.style.left = (simSpeedUser / SIM_SPEED_MAX * 100) + '%';
     simSpeed.classList.toggle('capped', capped);
     var ssVal = document.getElementById('ssVal');
     if(ssVal){ ssVal.textContent = eff + '%'; ssVal.style.color = capped ? '#ebc14a' : ''; }
@@ -836,15 +833,16 @@
       + (capped ? ' (hand-set ' + simSpeedUser + '% returns after zoom out)' : '');
     simBar.classList.toggle('playing', simPlaying);
   }
-  // click or drag sets the hand speed; detents snap at 25/50/75/100
+  // click or drag sets the hand speed; detents snap at the round values
   simSpeed.addEventListener('pointerdown', function(e){
     e.preventDefault();
     simSpeed.classList.add('dragging');
     simSpeed.setPointerCapture(e.pointerId);
     var set = function(ev){
       var r = simSpeed.getBoundingClientRect();
-      var v = Math.max(5, Math.min(100, Math.round((ev.clientX - r.left) / r.width * 100)));
-      [25, 50, 75, 100].forEach(function(d){ if(Math.abs(v - d) < 4) v = d; });
+      var v = Math.max(5, Math.min(SIM_SPEED_MAX,
+        Math.round((ev.clientX - r.left) / r.width * SIM_SPEED_MAX)));
+      [25, 50, 75, 100, 150, 200].forEach(function(d){ if(Math.abs(v - d) < 8) v = d; });
       simSpeedUser = v;
       simSync();
     };
@@ -868,22 +866,28 @@
     simSync();
   }, {passive:false});
   /* ---- editor timeline + transport, stop conditions and status ---- */
-  var SIM_DURS = [52, 128, 64, 96]; // seconds per operation, program order
+  // durations 18-88 s per op, deterministic spread
+  var SIM_DURS = SIM_OPS.map(function(op, i){ return 18 + ((i * 37) % 71); });
   var SIM_TOTAL = SIM_DURS.reduce(function(a, b){ return a + b; }, 0);
-  var SIM_TOOLS = ['T#1', 'T#1', 'T#2', 'T#3'];
-  var SIM_TOOLNAMES = ['CNMG 12 04 08-WF/DCLNR 2020K-12', 'CNMG 12 04 08-WF/DCLNR 2020K-12',
-    'N123G2-0300-0002-CM/RF123G079', 'DNMX 15 04 04-WF/DDJNR 2020K-15'];
-  var SIM_BASE_RATE = 40;           // simulated seconds per real second at 100%
-  var SIM_COLLISIONS = [92, 142];   // both inside OD roughing (demo)
-  var SIM_KEYPOINTS = [8];          // PPRINT "#KeyPoint" in Lathe facing
+  var SIM_TOOLS = SIM_OPS.map(function(op){ return 'T#' + op.toolNo; });
+  var SIM_TOOLNAMES = SIM_OPS.map(function(op){ return SIM_TOOL_POOL[op.toolNo - 1]; });
+  var SIM_BASE_RATE = 120;          // simulated seconds per real second at 100%
   function simOpStart(i){ var s = 0; for(var k = 0; k < i; k++) s += SIM_DURS[k]; return s; }
+  // collisions in roughly every 8th operation, some ops get two
+  var SIM_COLLISIONS = [];
+  SIM_OPS.forEach(function(op, i){
+    if(i % 8 === 3) SIM_COLLISIONS.push(simOpStart(i) + SIM_DURS[i] * 0.4);
+    if(i % 24 === 11) SIM_COLLISIONS.push(simOpStart(i) + SIM_DURS[i] * 0.75);
+  });
+  SIM_COLLISIONS.sort(function(a, b){ return a - b; });
+  var SIM_KEYPOINTS = [8];
   // tool changes happen where the next op takes a different tool
   var SIM_TOOLCHANGES = [];
   for(var ti = 1; ti < SIM_TOOLS.length; ti++)
     if(SIM_TOOLS[ti] !== SIM_TOOLS[ti - 1]) SIM_TOOLCHANGES.push(simOpStart(ti));
-  // two setups: ops 0-1 run in Setup 1, ops 2-3 in Setup 2
-  var SIM_SETUPS = [ {name:'Setup 1', op:0}, {name:'Setup 2', op:2} ];
-  var simStopCfg = { collision:true, tool:true, key:false };
+  // three setups across the 100 operations
+  var SIM_SETUPS = [ {name:'Setup 1', op:0}, {name:'Setup 2', op:40}, {name:'Setup 3', op:74} ];
+  var simStopCfg = { collision:true, gouge:false, opt:false, end:false };
   var SIM_EVENTS = SIM_COLLISIONS.map(function(t){ return {t:t, type:'collision'}; })
     .concat(SIM_TOOLCHANGES.map(function(t){ return {t:t, type:'tool'}; }))
     .concat(SIM_KEYPOINTS.map(function(t){ return {t:t, type:'key'}; }))
@@ -898,9 +902,10 @@
     return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
   };
   (function(){
-    // ruler: minute ticks (no time labels) + setup labels at their start
+    // ruler ticks: pick a step that keeps the tick count sane on long programs
+    var step = SIM_TOTAL > 3600 ? 600 : SIM_TOTAL > 1200 ? 300 : 60;
     var rh = '';
-    for(var t = 60; t < SIM_TOTAL; t += 60)
+    for(var t = step; t < SIM_TOTAL; t += step)
       rh += '<i style="left:' + (t / SIM_TOTAL * 100) + '%"></i>';
     document.getElementById('tlRuler').innerHTML = rh;
     // track: clips + event markers + the playhead with a timecode tip
@@ -909,14 +914,10 @@
       h += '<div class="clip" style="--cc:' + op.color + ';flex:' + SIM_DURS[i] + '"' +
         ' title="' + op.name + ' · ' + simFmt(SIM_DURS[i]) + '"><span>' + op.name + '</span></div>';
     });
+    // on long programs the diamond glyph does not fit — draw plain red ticks
+    var collTick = SIM_OPS.length > 24 ? ' tick' : '';
     SIM_COLLISIONS.forEach(function(t){
-      h += '<i class="tl-mark tl-mark--coll" style="left:' + (t / SIM_TOTAL * 100) + '%" title="Collision · ' + simFmt(t) + '"></i>';
-    });
-    var setupStarts = SIM_SETUPS.map(function(su){ return simOpStart(su.op); });
-    // a tool change on a setup boundary is implied — don't double-mark it
-    SIM_TOOLCHANGES.forEach(function(t){
-      if(setupStarts.indexOf(t) !== -1) return;
-      h += '<i class="tl-mark tl-mark--tool" style="left:' + (t / SIM_TOTAL * 100) + '%" title="Tool change · ' + simFmt(t) + '"></i>';
+      h += '<i class="tl-mark tl-mark--coll' + collTick + '" style="left:' + (t / SIM_TOTAL * 100) + '%" title="Collision · ' + simFmt(t) + '"></i>';
     });
     // a vertical bar marks the start of each setup
     SIM_SETUPS.forEach(function(su){
@@ -943,9 +944,14 @@
     }
     var ph = simTl.querySelector('.ph');
     ph.style.left = (simT / SIM_TOTAL * 100) + '%';
-    var atColl = SIM_COLLISIONS.some(function(t){ return Math.abs(t - simT) < 0.3; });
+    var atColl = collDetOn && SIM_COLLISIONS.some(function(t){ return Math.abs(t - simT) < 0.3; });
     ph.classList.toggle('atcoll', atColl);
     simTl.classList.toggle('atcoll', atColl);
+    // collision nav buttons: disabled at the ends (no wrap)
+    var hasNext = SIM_COLLISIONS.some(function(t){ return t > simT + 0.5; });
+    var hasPrev = SIM_COLLISIONS.some(function(t){ return t < simT - 0.5; });
+    document.getElementById('simCollNext').classList.toggle('disabled', !hasNext);
+    document.getElementById('simCollPrev').classList.toggle('disabled', !hasPrev);
     document.getElementById('phTip').textContent = simFmt(simT);
     simTime.textContent = simFmt(simT) + ' / ' + simFmt(SIM_TOTAL);
     // status chip: colored ring + operation name + tool number
@@ -975,7 +981,8 @@
     // stop conditions: pause exactly on the first enabled event we cross
     for(var i = 0; i < SIM_EVENTS.length; i++){
       var ev = SIM_EVENTS[i];
-      if(ev.t > prev && ev.t <= next && simStopCfg[ev.type]){
+      if(ev.t > prev && ev.t <= next && simStopCfg[ev.type] &&
+         (ev.type !== 'collision' || collDetOn)){
         next = ev.t; simPlaying = false; break;
       }
     }
@@ -1050,38 +1057,110 @@
   document.getElementById('simStepB').addEventListener('click', function(){ simStepLine(-1); });
 
   /* stop conditions: a toggle menu on the chip */
-  var STOP_OPTS = [
-    { key:'collision', label:'Collision' },
-    { key:'tool',      label:'Tool change' },
-    { key:'key',       label:'Key point' }
-  ];
+  // gouge is a "check for" flag, not a pause condition — the chip counts stops only
+  var STOP_NAMES = { collision:'collision', opt:'optional stop', end:'stop command' };
   function stopsLbl(){
-    var parts = [];
-    if(simStopCfg.collision) parts.push('collision');
-    if(simStopCfg.tool) parts.push('tool change');
-    if(simStopCfg.key) parts.push('key point');
-    document.getElementById('simStopsLbl').textContent =
-      parts.length ? 'Pause: ' + parts.join(', ') : 'Pause: off';
+    var parts = Object.keys(STOP_NAMES).filter(function(k){ return simStopCfg[k]; });
+    // keep the chip short: name a single condition, count several
+    var lbl = !parts.length ? 'Stop at: off'
+      : parts.length === 1 ? 'Stop at: ' + STOP_NAMES[parts[0]]
+      : 'Stop at: ' + parts.length + ' conditions';
+    document.getElementById('simStopsLbl').textContent = lbl;
   }
+  // the stop-conditions popover: icon + label + toggle per option
+  var stopsPop = document.getElementById('stopsPop');
   document.getElementById('simStops').addEventListener('click', function(e){
     e.stopPropagation();
-    var chip = this;
-    showMenu(chip.getBoundingClientRect(), STOP_OPTS.map(function(o){
-      return { pre: simStopCfg[o.key] ? '✓' : '', label:o.label, cur:simStopCfg[o.key],
-        onPick:function(){ simStopCfg[o.key] = !simStopCfg[o.key]; stopsLbl(); } };
-    }), chip, 150);
+    if(!stopsPop.hidden){ stopsPop.hidden = true; return; }
+    closeMenu();
+    simPop.hidden = true;
+    spOpen(stopsPop, this);
+  });
+  stopsPop.addEventListener('click', function(e){
+    e.stopPropagation();
+    // collision-detection block lives here too: master toggle + level slider
+    var m = e.target.closest('[data-master]');
+    if(m){
+      var mOn = m.getAttribute('src').indexOf('toggle-on') >= 0;
+      m.setAttribute('src', 'assets/toggle-' + (mOn ? 'off' : 'on') + '.svg');
+      applyCollDet(!mOn);
+      return;
+    }
+    var lbl = e.target.closest('[data-lvl]');
+    if(lbl){ spSetLvl(+lbl.dataset.lvl); return; }
+    var track = e.target.closest('#spLvlTrack');
+    if(track){
+      var tr = track.getBoundingClientRect();
+      spSetLvl(Math.max(0, Math.min(2, Math.round((e.clientX - tr.left) / tr.width * 2))));
+      return;
+    }
+    var row = e.target.closest('[data-stop]');
+    if(!row) return;
+    var k = row.dataset.stop;
+    simStopCfg[k] = !simStopCfg[k];
+    row.querySelector('.tgl').setAttribute('src',
+      'assets/toggle-' + (simStopCfg[k] ? 'on' : 'off') + '.svg');
+    stopsLbl();
   });
   stopsLbl();
 
-  /* collision badge: jump to the next collision (wraps around) */
-  document.getElementById('sbColl').addEventListener('click', function(){
-    var next = SIM_COLLISIONS.find(function(t){ return t > simT + 0.5; });
-    simSeek(next != null ? next : SIM_COLLISIONS[0]);
+  /* collision navigation: next / previous (no wrap — ends disable) */
+  function simGotoColl(dir){
+    var t;
+    if(dir > 0){
+      t = SIM_COLLISIONS.find(function(c){ return c > simT + 0.5; });
+    } else {
+      var prevs = SIM_COLLISIONS.filter(function(c){ return c < simT - 0.5; });
+      t = prevs.length ? prevs[prevs.length - 1] : null;
+    }
+    if(t == null) return;
+    simSeek(t);
     simPause();
     // reveal the collision in the code tree: open the op and scroll to the line
     if(!SIM_OPS[simSel].open){ SIM_OPS[simSel].open = true; simRender(); }
     var row = simTree.querySelector('.simrow.cur');
     if(row) row.scrollIntoView({block:'center'});
+  }
+  document.getElementById('simCollPrev').addEventListener('click', function(){ simGotoColl(-1); });
+  document.getElementById('simCollNext').addEventListener('click', function(){ simGotoColl(1); });
+
+  /* the red badge opens the collision list: what happened and where */
+  var collPop = document.getElementById('collPop');
+  function collOpAt(t){
+    var s = 0;
+    for(var i = 0; i < SIM_DURS.length; i++){ if(t < s + SIM_DURS[i]) return i; s += SIM_DURS[i]; }
+    return SIM_DURS.length - 1;
+  }
+  function collListRender(){
+    var h = '';
+    SIM_COLLISIONS.forEach(function(t, i){
+      var oi = collOpAt(t);
+      h += '<div class="coll-item" data-collt="' + t + '">' +
+        '<span class="sp-ic ic-red"><svg viewBox="0 0 16 16"><rect x="5.2" y="5.2" width="5.6" height="5.6" rx="1.2" transform="rotate(45 8 8)" fill="currentColor"/><circle cx="8" cy="8" r="1.1" fill="var(--ec-popover, #1e2223)"/></svg></span>' +
+        '<span class="ci-body"><b>Holder collision</b>' +
+        '<span>' + SIM_OPS[oi].name + ' · ' + SIM_TOOLS[oi] + ' · ' + simFmt(t) + '</span></span>' +
+        '</div>';
+    });
+    document.getElementById('collList').innerHTML = h;
+  }
+  document.getElementById('sbColl').addEventListener('click', function(e){
+    e.stopPropagation();
+    if(!collPop.hidden){ collPop.hidden = true; return; }
+    closeMenu();
+    simPop.hidden = true; stopsPop.hidden = true;
+    collListRender();
+    spOpen(collPop, this, true);
+  });
+  collPop.addEventListener('click', function(e){
+    e.stopPropagation();
+    var it = e.target.closest('[data-collt]');
+    if(!it) return;
+    simSeek(+it.dataset.collt);
+    simPause();
+    if(!SIM_OPS[simSel].open){ SIM_OPS[simSel].open = true; simRender(); }
+    var row = simTree.querySelector('.simrow.cur');
+    if(row) row.scrollIntoView({block:'center'});
+    collPop.hidden = true;
   });
   document.getElementById('sbCollN').textContent = SIM_COLLISIONS.length;
 
@@ -1097,19 +1176,19 @@
     document.getElementById('spLvlKnob').style.left = (i * 50) + '%';
     document.getElementById('spNoteT').textContent = SP_LEVELS[i].t;
     document.getElementById('spNoteS').textContent = SP_LEVELS[i].s;
-    var ls = simPop.querySelectorAll('.sp-lvl-labels span');
+    var ls = stopsPop.querySelectorAll('.sp-lvl-labels span');
     for(var k = 0; k < ls.length; k++) ls[k].classList.toggle('on', k === i);
   }
-  function spOpen(anchor){
-    simPop.hidden = false;
+  function spOpen(pop, anchor, alignLeft){
+    pop.hidden = false;
     var r = anchor.getBoundingClientRect();
-    var w = simPop.offsetWidth, h = simPop.offsetHeight;
-    var left = Math.max(8, Math.min(r.right - w, innerWidth - w - 8));
+    var w = pop.offsetWidth, h = pop.offsetHeight;
+    var left = Math.max(8, Math.min(alignLeft ? r.left : r.right - w, innerWidth - w - 8));
     // open ABOVE the simulation panel, never over it
     var barTop = simBar.getBoundingClientRect().top;
     var top = Math.max(8, barTop - h - 6);
-    simPop.style.left = left + 'px';
-    simPop.style.top = top + 'px';
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
   }
   ['simCfg'].forEach(function(id){
     var b = document.getElementById(id);
@@ -1117,7 +1196,8 @@
       e.stopPropagation();
       if(!simPop.hidden){ simPop.hidden = true; return; }
       closeMenu();
-      spOpen(b);
+      stopsPop.hidden = true;
+      spOpen(simPop, b);
     });
   });
   simPop.addEventListener('click', function(e){
@@ -1132,6 +1212,8 @@
         box.classList.toggle('is-off', on);
         box.querySelector('input').disabled = on;
       }
+      // collision detection master: no detection → no collision events
+      if(t.hasAttribute('data-master')) applyCollDet(!on);
       return;
     }
     var lbl = e.target.closest('[data-lvl]');
@@ -1173,7 +1255,24 @@
       tr.addEventListener('pointerup', up);
     });
   });
-  document.addEventListener('click', function(){ simPop.hidden = true; });
+  document.addEventListener('click', function(){
+    simPop.hidden = true; stopsPop.hidden = true; collPop.hidden = true;
+  });
+
+  /* collision detection off → hide collision markers, badge and nav,
+     grey out the collision stop-condition and skip its pause events */
+  var collDetOn = true;
+  function applyCollDet(on){
+    collDetOn = on;
+    simTl.classList.toggle('nocoll', !on);
+    document.getElementById('sbColl').hidden = !on;
+    document.getElementById('simCollPrev').hidden = !on;
+    document.getElementById('simCollNext').hidden = !on;
+    stopsPop.querySelectorAll('[data-coll]').forEach(function(r){
+      r.classList.toggle('is-disabled', !on);
+    });
+    simTlSync();
+  }
 
   function setSimMode(on){
     document.querySelector('.dock').classList.toggle('sim', on);
