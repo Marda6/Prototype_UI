@@ -6,6 +6,10 @@
    workspace edge to edge and the panels float on top of it */
 .workspace{position:relative;padding:0;gap:0;}
 
+/* elevated overlay surface: popovers sit above the panels, so they are
+   one step lighter than the panel frame (panels are 8% over the bg) */
+:root{--pop-bg:color-mix(in srgb, #f5f5f5 12%, var(--ec-bg));}
+
 /* ===== Dock: tree panel + resizer + inspector panel (floats over the viewport) ===== */
 .dock{position:absolute;top:8px;left:8px;bottom:8px;z-index:10;
   width:341px;display:flex;flex-direction:column;gap:0;}
@@ -126,6 +130,10 @@
 /* no inspector in simulation — the code tree takes the full dock height */
 .dock.sim .panel-insp,.dock.sim .dock-resizer{display:none !important;}
 .dock.sim .panel-tree{flex:1 1 auto !important;}
+/* single-op mode belongs to Machining — the Simulation tab always shows
+   the full code panel, even while the dock still carries .single */
+.dock.sim.single .panel-tree{flex:1 1 auto !important;}
+.panel-tree.sim.single .inner{flex:1 1 0;}
 /* in sim mode the machining chrome hides; the code tree takes the panel */
 .panel-tree.sim .toolbar,.panel-tree.sim .sortrow,.panel-tree.sim .treewrap,
 .panel-tree.sim .singleop,.panel-tree.sim .inner > .line{display:none !important;}
@@ -263,7 +271,7 @@
 .tl-track .ph.atcoll::before{border-top-color:#ff5c5e;}
 .tl-track .ph.atcoll .ph-tip{color:#ff8384;border-color:rgba(255,112,114,.4);}
 .ph-tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
-  padding:1px 6px;border-radius:4px;background:var(--ec-popover, #1e2223);
+  padding:1px 6px;border-radius:4px;background:var(--pop-bg);
   border:1px solid var(--ec-fg-16);color:var(--ec-fg-96);
   font:500 10px/14px var(--ec-font);white-space:nowrap;
   opacity:0;transition:opacity .12s;}
@@ -302,7 +310,7 @@
 /* ---- simulation parameters popover ---- */
 /* two columns so the whole set fits on screen without scrolling */
 .simpop{position:fixed;z-index:1000;width:320px;
-  background:var(--ec-bg-96);border:1px solid var(--ec-fg-12);border-radius:10px;
+  background:var(--pop-bg);border:1px solid var(--ec-fg-12);border-radius:10px;
   padding:10px 12px;box-shadow:0 8px 28px rgba(0,0,0,.5);}
 .simpop[hidden]{display:none !important;}
 .sp-head{font:600 13px/18px var(--ec-font);color:var(--ec-fg-96);padding:2px 2px 8px;}
@@ -357,8 +365,11 @@
   background:var(--st-green);}
 .sp-lvl-track .dot{position:absolute;top:5px;width:4px;height:4px;margin-left:-2px;
   border-radius:50%;background:var(--ec-fg-32);}
+/* white knob with a popover-colored ring, like the speed slider —
+   the ring "cuts" the thin line on both sides */
 .sp-lvl-track .knob{position:absolute;top:1px;width:12px;height:12px;margin-left:-6px;
-  border-radius:50%;background:var(--st-green);transition:left .12s;}
+  border-radius:50%;background:#fff;transition:left .12s;
+  box-shadow:0 0 0 3px var(--pop-bg);}
 /* description card under the level slider */
 .sp-note{margin:2px 0 6px;padding:8px 10px;border-radius:6px;background:var(--ec-fg-6);}
 .sp-note b{display:block;font:600 11px/14px var(--ec-font);color:var(--st-green);}
@@ -373,7 +384,8 @@
 .sp-tol-track .fill{position:absolute;left:0;top:6px;height:2px;border-radius:2px;
   background:var(--st-green);}
 .sp-tol-track .knob{position:absolute;top:1px;width:12px;height:12px;margin-left:-6px;
-  border-radius:50%;background:var(--st-green);}
+  border-radius:50%;background:#fff;
+  box-shadow:0 0 0 3px var(--pop-bg);}
 .sp-sub{padding-left:2px;}
 .sp-sub .tgl{margin-left:0;}
 .sp-input{margin-left:auto;display:inline-flex;align-items:center;gap:4px;
@@ -407,7 +419,7 @@
 .sim-speed:hover .ss-knob{transform:scale(1.12);}
 /* value bubble above the knob — visible on hover and while dragging */
 .ss-tip{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);
-  padding:2px 7px;border-radius:5px;background:var(--ec-bg-96);border:1px solid var(--ec-fg-12);
+  padding:2px 7px;border-radius:5px;background:var(--pop-bg);border:1px solid var(--ec-fg-12);
   color:var(--ec-fg-96);font:500 11px/14px var(--ec-font);white-space:nowrap;
   opacity:0;pointer-events:none;transition:opacity .12s;}
 .sim-speed:hover .ss-tip,.sim-speed.dragging .ss-tip{opacity:1;}
@@ -580,7 +592,7 @@
 .rowbtn.on{background:var(--ec-fg-12);color:var(--ec-fg-96);}
 
 /* ===== Popover menu ===== */
-.dd-menu{position:fixed;z-index:1000;background:var(--ec-bg-96);border:1px solid var(--ec-fg-12);
+.dd-menu{position:fixed;z-index:1000;background:var(--pop-bg);border:1px solid var(--ec-fg-12);
   border-radius:4px;padding:2px;display:flex;flex-direction:column;gap:1px;
   box-shadow:0 6px 20px rgba(0,0,0,.5);}
 .dd-opt{padding:4px 6px;border-radius:3px;color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);
@@ -620,7 +632,7 @@
 
 /* Status panel — opens on a status-circle click in the tree */
 .stpanel{position:absolute;top:8px;left:357px;display:none;flex-direction:column;gap:8px;width:300px;
-  background:var(--ec-bg-96);border:1px solid var(--ec-fg-12);border-radius:10px;padding:12px;
+  background:var(--pop-bg);border:1px solid var(--ec-fg-12);border-radius:10px;padding:12px;
   box-shadow:0 8px 28px rgba(0,0,0,.5);z-index:50;}
 .stpanel.open{display:flex;}
 .stp-head{display:flex;align-items:center;gap:8px;}
