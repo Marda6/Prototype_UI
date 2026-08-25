@@ -356,12 +356,50 @@
           </button>
         </div>
         <div class="stp-sec">Status:</div>
+        <div class="stp-list stp-list--status">
+          <div class="stp-row"><img class="i16" src="assets/status-calc.svg" alt=""><span class="stp-lbl">Toolpath</span><span class="stp-meta">Calculated: 00h 00m 10s</span></div>
+          <div class="stp-row"><img class="i16" src="assets/status-complete.svg" alt=""><span class="stp-lbl">Machining result</span><span class="stp-meta">Done</span></div>
+          <div class="stp-row"><img class="i16" src="assets/status-prog1.svg" alt=""><span class="stp-lbl">Tool holder collision detection</span><span class="stp-meta">Done</span></div>
+          <div class="stp-row"><img class="i16" src="assets/status-done.svg" alt=""><span class="stp-lbl">Machine collision detection</span><span class="stp-meta">Done</span></div>
+          <div class="stp-row"><img class="i16" src="assets/status-done.svg" alt=""><span class="stp-lbl">Hidden nodes collision detection</span><span class="stp-meta">Not required</span></div>
+        </div>
+        <div class="stp-sec">Statistics:</div>
         <div class="stp-list">
-          <div class="stp-row"><img class="i16" src="assets/status.svg" alt=""><span class="stp-lbl">Toolpath</span><span class="stp-meta">Not calculated</span></div>
-          <div class="stp-row"><img class="i16" src="assets/status-complete.svg" alt=""><span class="stp-lbl">Machining result</span></div>
-          <div class="stp-row"><img class="i16" src="assets/status-prog2.svg" alt=""><span class="stp-lbl">Tool holder collision detection</span></div>
-          <div class="stp-row"><img class="i16" src="assets/status-done.svg" alt=""><span class="stp-lbl">Machine collision detection</span></div>
-          <div class="stp-row"><img class="i16" src="assets/status-done.svg" alt=""><span class="stp-lbl">Hidden nodes collision detection</span></div>
+          <div class="stp-grp">
+            <div class="stp-row stp-parent"><span class="stp-chev"><svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></span><img class="i16" src="assets/stat-time.svg" alt=""><span class="stp-lbl">Machining time</span><span class="stp-val">02h 12m 16s</span></div>
+            <div class="stp-kids">
+              <div class="stp-row stp-sub"><img class="i16" src="assets/mv-work.svg" alt=""><span class="stp-lbl">Work</span><span class="stp-val">02h 11m 57s</span></div>
+              <div class="stp-row stp-sub"><img class="i16" src="assets/mv-rapid.svg" alt=""><span class="stp-lbl">Rapid</span><span class="stp-val">00h 00m 07s</span></div>
+              <div class="stp-row stp-sub"><img class="i16" src="assets/mv-return.svg" alt=""><span class="stp-lbl">Return</span><span class="stp-val">00h 00m 05s</span></div>
+              <div class="stp-row stp-sub"><img class="i16" src="assets/mv-next.svg" alt=""><span class="stp-lbl">Next</span><span class="stp-val">00h 02m 37s</span></div>
+              <div class="stp-row stp-sub"><img class="i16" src="assets/mv-aux.svg" alt=""><span class="stp-lbl">Auxiliary</span><span class="stp-val">00h 00m 12s</span></div>
+            </div>
+          </div>
+          <div class="stp-grp">
+            <div class="stp-row stp-parent"><span class="stp-chev"><svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></span><img class="i16" src="assets/stat-length.svg" alt=""><span class="stp-lbl">Toolpath length</span><span class="stp-val">14.076 m</span></div>
+            <div class="stp-kids">
+              <div class="stp-row stp-sub"><img class="i16" src="assets/mv-work.svg" alt=""><span class="stp-lbl">Work</span><span class="stp-val">11.361 m</span></div>
+              <div class="stp-row stp-sub"><img class="i16" src="assets/mv-rapid.svg" alt=""><span class="stp-lbl">Rapid</span><span class="stp-val">1.568 m</span></div>
+              <div class="stp-row stp-sub"><img class="i16" src="assets/mv-return.svg" alt=""><span class="stp-lbl">Return</span><span class="stp-val">0.016 m</span></div>
+              <div class="stp-row stp-sub"><img class="i16" src="assets/mv-next.svg" alt=""><span class="stp-lbl">Next</span><span class="stp-val">0.523 m</span></div>
+              <div class="stp-row stp-sub"><img class="i16" src="assets/mv-engage.svg" alt=""><span class="stp-lbl">Engage</span><span class="stp-val">0.296 m</span></div>
+              <div class="stp-row stp-sub"><img class="i16" src="assets/mv-retract.svg" alt=""><span class="stp-lbl">Retract</span><span class="stp-val">0.296 m</span></div>
+              <div class="stp-row stp-sub"><img class="i16" src="assets/mv-approach.svg" alt=""><span class="stp-lbl">Approach</span><span class="stp-val">0.016 m</span></div>
+            </div>
+          </div>
+          <div class="stp-grp">
+            <div class="stp-row stp-parent"><span class="stp-chev"><svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></span><img class="i16" src="assets/stat-blocks.svg" alt=""><span class="stp-lbl">Nb of NC Blocks</span><span class="stp-val">22896</span></div>
+            <div class="stp-kids">
+              <div class="stp-row stp-sub"><img class="i16" src="assets/mv-lines.svg" alt=""><span class="stp-lbl">Lines</span><span class="stp-val">22745</span></div>
+              <div class="stp-row stp-sub"><img class="i16" src="assets/mv-feeds.svg" alt=""><span class="stp-lbl">Feeds</span><span class="stp-val">97</span></div>
+            </div>
+          </div>
+          <div class="stp-grp">
+            <div class="stp-row stp-parent"><span class="stp-chev"><svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></span><img class="i16" src="assets/stat-volume.svg" alt=""><span class="stp-lbl">Machining result volume</span><span class="stp-val">0.000 cm&sup3;</span></div>
+            <div class="stp-kids">
+              <div class="stp-row stp-sub"><img class="i16" src="assets/mv-removed.svg" alt=""><span class="stp-lbl">Removed volume</span><span class="stp-val">597.145 cm&sup3;</span></div>
+            </div>
+          </div>
         </div>
       </div>
     </main>

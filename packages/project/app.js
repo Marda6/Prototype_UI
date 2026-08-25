@@ -536,20 +536,79 @@
 
   renderTree();
 
+  // measure the real row pitch so the status connector lines touch both circles
+  (function(){
+    var vis = rows.filter(function(r){ return r.style.display !== 'none'; });
+    if(vis.length > 1) tree.style.setProperty('--st-pitch', (vis[1].offsetTop - vis[0].offsetTop) + 'px');
+  })();
+
+  // the tree always has a selection; with nothing else picked it sits on the machine
+  if(!tree.querySelector('.trow.tsel')){
+    var machineRow = tree.querySelector('.trow[data-type="machine"]');
+    if(machineRow) machineRow.classList.add('tsel');
+  }
+
+  /* ---------- Header tabs: "New project N" shows a pristine empty project ---------- */
+  var savedStatuses = null, savedSel = null;
+  document.querySelectorAll('.htabs .htab').forEach(function(t, ti){
+    t.addEventListener('click', function(e){
+      if(e.target.classList.contains('htab-x')) return;
+      if(t.classList.contains('active')) return;
+      document.querySelectorAll('.htabs .htab').forEach(function(x){ x.classList.remove('active'); });
+      t.classList.add('active');
+      var empty = ti > 0;
+      document.getElementById('app').classList.toggle('proj-empty', empty);
+      var sts = tree.querySelectorAll('.st');
+      if(empty){
+        // a fresh project: blank statuses, selection on the machine
+        savedStatuses = Array.prototype.map.call(sts, function(img){ return img.src; });
+        savedSel = tree.querySelector('.trow.tsel');
+        sts.forEach(function(img){ img.src = A['status-empty']; });
+        rows.forEach(function(r){ r.classList.remove('tsel'); });
+        var m = tree.querySelector('.trow[data-type="machine"]');
+        if(m) m.classList.add('tsel');
+      } else {
+        if(savedStatuses) sts.forEach(function(img, i){ if(savedStatuses[i]) img.src = savedStatuses[i]; });
+        if(savedSel){ rows.forEach(function(r){ r.classList.remove('tsel'); }); savedSel.classList.add('tsel'); }
+        renderTree();
+      }
+      closeStatus();
+    });
+  });
+
   /* ---------- Calculate ---------- */
-  var EMPTY = A['status-empty'], P1 = A['status-prog1'], P2 = A['status-prog2'], DONE = A['status-done'];
+  var EMPTY = A['status-empty'], P1 = A['status-prog1'], P2 = A['status-prog2'], CALC = A['status-calc'];
   var calcBtn = document.querySelector('.b24.calc');
   if(calcBtn){
     calcBtn.addEventListener('click', function(){
       if(calcBtn.classList.contains('busy')) return;
+      // scope: operation → just it; setup/part/machine → itself + everything below
+      var sel = tree.querySelector('.trow.tsel');
+      var scope;
+      if(sel && sel.dataset.type === 'operation'){
+        scope = [sel];
+      } else if(sel && (sel.dataset.type === 'setup' || sel.dataset.type === 'part')){
+        scope = [sel];
+        var queue = [sel.dataset.id];
+        while(queue.length){
+          var pid = queue.shift();
+          rows.forEach(function(r){
+            if(r.dataset.parent === pid){ scope.push(r); queue.push(r.dataset.id); }
+          });
+        }
+      } else {
+        scope = Array.prototype.slice.call(tree.querySelectorAll('.trow'));
+      }
+      var stIcons = scope.map(function(r){ return r.querySelector('.st'); }).filter(Boolean);
+      if(!stIcons.length) return;
       calcBtn.classList.add('busy');
-      var stIcons = Array.prototype.slice.call(tree.querySelectorAll('.st'));
+      // Auto approach/return restores the links on recalculation
+      var srAutoBtn = document.getElementById('srAuto');
+      if(srAutoBtn && srAutoBtn.classList.contains('on')) tree.classList.add('linked');
       stIcons.forEach(function(img){ img.src = EMPTY; });
       var step = 160, done = 0;
       stIcons.forEach(function(img, i){
-        setTimeout(function(){ img.src = P1; }, i*step);
-        setTimeout(function(){ img.src = P2; }, i*step + 200);
-        setTimeout(function(){ img.src = DONE; if(++done === stIcons.length) calcBtn.classList.remove('busy'); }, i*step + 440);
+        setTimeout(function(){ img.src = CALC; if(++done === stIcons.length) calcBtn.classList.remove('busy'); }, (i+1)*step);
       });
     });
   }
@@ -567,8 +626,59 @@
   var statusPanel = document.getElementById('statusPanel');
   var stpTitle = document.getElementById('stpTitle');
   var stpClose = document.getElementById('stpClose');
+  var simRan = false; // flips once the simulation has been played
+
+  // panel content per operation state: not calculated → calculated → simulated
+  var STP_STATES = {
+    empty: {
+      icons:['status-empty','status-complete','status-prog1','status-done','status-done'],
+      metas:['Not calculated','','','',''],
+      dim:[false,true,true,true,true],
+      stats:['00h 00m 00s','0.000 m','0','597.145 cm³'],
+      kids:[['00h 00m 00s','00h 00m 00s','00h 00m 00s','00h 00m 00s','00h 00m 00s'],
+            ['0.000 m','0.000 m','0.000 m','0.000 m','0.000 m','0.000 m','0.000 m'],
+            ['0','0'],['0.000 cm³']]
+    },
+    calculated: {
+      icons:['status-calc','status-complete','status-prog1','status-done','status-done'],
+      metas:['Calculated: 00h 00m 10s','','','',''],
+      dim:[false,true,true,true,true],
+      stats:['02h 12m 16s','14.076 m','22896','597.145 cm³'],
+      kids:[['02h 11m 57s','00h 00m 07s','00h 00m 05s','00h 02m 37s','00h 00m 12s'],
+            ['11.361 m','1.568 m','0.016 m','0.523 m','0.296 m','0.296 m','0.016 m'],
+            ['22745','97'],['0.000 cm³']]
+    },
+    simulated: {
+      icons:['status-calc','status-complete','status-prog1','status-done','status-done'],
+      metas:['Calculated: 00h 00m 10s','Done','Done','Done','Not required'],
+      dim:[false,false,false,false,false],
+      stats:['02h 12m 16s','14.076 m','22896','0.000 cm³'],
+      kids:[['02h 11m 57s','00h 00m 07s','00h 00m 05s','00h 02m 37s','00h 00m 12s'],
+            ['11.361 m','1.568 m','0.016 m','0.523 m','0.296 m','0.296 m','0.016 m'],
+            ['22745','97'],['597.145 cm³']]
+    }
+  };
+  function stpApply(state){
+    var s = STP_STATES[state];
+    statusPanel.querySelectorAll('.stp-list--status .stp-row').forEach(function(row, i){
+      row.querySelector('img').src = A[s.icons[i]];
+      row.querySelector('.stp-meta').textContent = s.metas[i];
+      row.classList.toggle('is-dim', s.dim[i]);
+    });
+    statusPanel.querySelectorAll('.stp-grp').forEach(function(grp, gi){
+      grp.querySelector('.stp-parent .stp-val').textContent = s.stats[gi];
+      grp.querySelectorAll('.stp-kids .stp-val').forEach(function(v, ki){
+        v.textContent = s.kids[gi][ki];
+      });
+    });
+  }
   function closeStatus(){ if(statusPanel) statusPanel.classList.remove('open'); }
   if(stpClose) stpClose.addEventListener('click', function(e){ e.stopPropagation(); closeStatus(); });
+  if(statusPanel) statusPanel.addEventListener('click', function(e){
+    var parent = e.target.closest('.stp-parent');
+    if(!parent) return;
+    parent.closest('.stp-grp').classList.toggle('open');
+  });
   var OP_COLORS = [
     {key:'op-yellow', label:'Yellow', color:'#FFDF70'},
     {key:'op-blue',   label:'Blue',   color:'#70CFFF'},
@@ -584,7 +694,17 @@
       var row = bicn.closest('.trow');
       var lbl = row ? row.querySelector('.rlabel span') : null;
       if(stpTitle && lbl) stpTitle.textContent = lbl.textContent;
-      if(statusPanel) statusPanel.classList.add('open');
+      if(statusPanel){
+        var src = bicn.querySelector('.st').src;
+        var state = (src === A['status-empty']) ? 'empty' : (simRan ? 'simulated' : 'calculated');
+        stpApply(state);
+        statusPanel.classList.add('open');
+        // align the panel with the clicked row, clamped to the viewport
+        var vp = statusPanel.parentElement.getBoundingClientRect();
+        var rr = row.getBoundingClientRect();
+        var top = Math.max(8, Math.min(rr.top - vp.top, vp.height - statusPanel.offsetHeight - 8));
+        statusPanel.style.top = top + 'px';
+      }
       return;
     }
     var cimg = bicn.querySelector('img');   // color circle → color picker
@@ -658,6 +778,14 @@
   }
   var srAuto = document.getElementById('srAuto');
   if(srAuto) srAuto.addEventListener('click', function(e){ e.stopPropagation(); srAuto.classList.toggle('on'); });
+  // links between status circles = Approach/Return in Auto; the red-cross button drops them
+  tree.classList.add('linked');
+  var srBtns = document.querySelectorAll('#sortRow .sr-btn');
+  var srReset = srBtns[srBtns.length-1];
+  if(srReset) srReset.addEventListener('click', function(e){
+    e.stopPropagation();
+    tree.classList.remove('linked');
+  });
 
   /* ---------- Tree halves divider: drag to resize name | facts columns ---------- */
   var treewrap = document.getElementById('treewrap');
@@ -756,7 +884,9 @@
       '<span class="lbl">Part</span>'+
       '<span class="bicn"><img class="i16" src="assets/status.svg" alt=""></span></div>';
     SIM_OPS.forEach(function(op, oi){
-      h += '<div class="simrow op sim-ind2'+(op.open ? '' : ' closed')+(oi === simSel ? ' ssel' : '')+'" data-simop="'+oi+'">'+
+      // a single highlight follows the playhead: the op row carries it only
+      // while its code is collapsed; open ops highlight the code line instead
+      h += '<div class="simrow op sim-ind2'+(op.open ? '' : ' closed')+(oi === simSel && (!op.open || simLine < 0) ? ' ssel' : '')+'" data-simop="'+oi+'">'+
         '<img class="shev" src="assets/t-shev-open.svg" alt="">'+
         '<img class="i16" src="assets/opcolor.svg" alt="">'+
         '<span class="lbl">'+op.name+'</span>'+
@@ -775,7 +905,7 @@
               h += '<div class="simrow code sim-ind4"><span class="lbl">'+s+'</span><span class="sim-dot"></span></div>';
             });
           } else {
-            h += '<div class="simrow code sim-ind3'+(ln.c ? ' c-'+ln.c : '')+(isCur ? ' cur' : '')+'">'+
+            h += '<div class="simrow code sim-ind3'+(ln.c ? ' c-'+ln.c : '')+(isCur ? ' cur' : '')+'" data-simop="'+oi+'" data-simline="'+li+'">'+
               '<span class="lbl">'+ln.t+'</span>'+dot+'</div>';
           }
         });
@@ -806,15 +936,28 @@
     simRender();
   });
   simTree.addEventListener('click', function(e){
-    var op = e.target.closest('[data-simop]');
-    if(op){
-      simSel = +op.dataset.simop; // the scope buttons act on this selection
-      SIM_OPS[simSel].open = !SIM_OPS[simSel].open;
-      simRender();
-      return;
-    }
+    // every row is equally selectable; chevrons only expand/collapse
+    var shev = e.target.closest('.shev');
     var g = e.target.closest('[data-simgrp]');
-    if(g){ simGrpOpen[g.dataset.simgrp] = !simGrpOpen[g.dataset.simgrp]; simRender(); }
+    if(g){
+      if(shev){ simGrpOpen[g.dataset.simgrp] = !simGrpOpen[g.dataset.simgrp]; simRender(); return; }
+      var gp = g.dataset.simgrp.split(':');
+      simSel = +gp[0]; simLine = +gp[1]; simRender(); return;
+    }
+    var op = e.target.closest('.simrow.op[data-simop]');
+    if(op){
+      var oi = +op.dataset.simop;
+      if(shev){ SIM_OPS[oi].open = !SIM_OPS[oi].open; simRender(); return; }
+      simSel = oi; simLine = -1;           // the scope buttons act on this selection
+      simRender(); return;
+    }
+    var code = e.target.closest('.simrow.code[data-simline]');
+    if(code){ simSel = +code.dataset.simop; simLine = +code.dataset.simline; simRender(); return; }
+    var row = e.target.closest('.simrow');  // machine / part / group sub-lines
+    if(row){
+      simTree.querySelectorAll('.simrow.cur, .simrow.ssel').forEach(function(x){ x.classList.remove('cur','ssel'); });
+      row.classList.add('cur');
+    }
   });
 
   /* ---- the control bar: SPEED strip + reset / back / play / forward ----
@@ -1046,6 +1189,7 @@
   /* transport */
   document.getElementById('simPlay').addEventListener('click', function(){
     if(simPlaying){ simPause(); return; }
+    simRan = true;
     if(simT >= SIM_TOTAL) simT = 0;
     simPlaying = true; simLast = 0;
     simSync();

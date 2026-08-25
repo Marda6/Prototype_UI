@@ -448,7 +448,7 @@
 .sp-val:hover{background:var(--ec-fg-8);}
 
 /* current code line while stepping / playing */
-.simrow.code.cur,.simrow.grp.cur{background:var(--ec-fg-8);}
+.simrow.cur{background:var(--ec-fg-8);}
 .simrow.code.cur .lbl{color:var(--ec-fg-100);}
 /* speed slider: chunky track with detent dots and a large knob; the ghost
    marker keeps the hand-set value visible while the zoom cap (25%) holds */
@@ -539,6 +539,17 @@
 .rlabel span{color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .pslot{display:flex;align-items:center;justify-content:flex-end;gap:2px;flex:1 1 0;min-width:0;overflow:hidden;}
 .bicn{display:flex;align-items:center;justify-content:center;padding:2px;border-radius:4px;flex:0 0 auto;}
+/* Empty project (header tabs "New project N"): only the machine node exists */
+.proj-empty .tree .trow:not([data-type="machine"]){display:none !important;}
+.proj-empty .simtree .simrow:not(:first-child){display:none;}
+.proj-empty .tl-track > *{display:none;}
+
+/* Approach/Return links: connector lines between status circles (Auto on).
+   Drawn on the row (the pslot clips overflow), anchored to the status column. */
+.tree.linked .trow{position:relative;}
+.tree.linked .trow:not(:first-child)::before{content:'';position:absolute;
+  right:11.5px;top:calc(16px - var(--st-pitch, 26px));width:1px;
+  height:calc(var(--st-pitch, 26px) - 12px);background:var(--ec-fg-24);}
 /* tool number reads green, like in the live ENCY tree */
 .toolno{padding:2px;border-radius:4px;color:var(--st-green);font:400 12px/16px var(--ec-font);flex:0 0 auto;}
 .tlink{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:2px;padding:2px 4px;border-radius:4px;}
@@ -681,7 +692,7 @@
 
 /* Status panel — opens on a status-circle click in the tree */
 .stpanel{position:absolute;top:8px;left:357px;display:none;flex-direction:column;gap:8px;width:300px;
-  background:var(--pop-bg);border:1px solid var(--ec-fg-12);border-radius:10px;padding:12px;
+  background:var(--pop-bg);border:1px solid var(--ec-fg-12);border-radius:10px;padding:12px 8px;
   box-shadow:0 8px 28px rgba(0,0,0,.5);z-index:50;}
 .stpanel.open{display:flex;}
 .stp-head{display:flex;align-items:center;gap:8px;}
@@ -694,7 +705,23 @@
 .stp-sec{color:var(--ec-fg-96);font:600 12px/16px var(--ec-font);margin-top:2px;}
 .stp-list{display:flex;flex-direction:column;gap:6px;}
 .stp-row{display:flex;align-items:center;gap:8px;}
-.stp-lbl{flex:1;min-width:0;color:var(--ec-fg-80);font:400 12px/16px var(--ec-font);}
-.stp-meta{color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);white-space:nowrap;}
+.stp-lbl{flex:1;min-width:0;color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);}
+.stp-meta{color:var(--ec-fg-48);font:400 12px/16px var(--ec-font);white-space:nowrap;}
+.stp-val{color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);white-space:nowrap;}
+.stp-row.is-dim{opacity:.4;}
+.stp-chev{width:12px;height:12px;display:flex;align-items:center;justify-content:center;
+  color:var(--ec-fg-56);flex:0 0 auto;}
+.stp-chev svg{width:12px;height:12px;transition:transform .12s ease;}
+.stp-grp{display:flex;flex-direction:column;gap:6px;}
+.stp-parent{cursor:pointer;border-radius:4px;}
+.stp-parent:hover .stp-chev{color:var(--ec-fg-96);}
+.stp-kids{display:none;flex-direction:column;gap:6px;}
+.stp-grp.open .stp-kids{display:flex;}
+.stp-grp.open .stp-chev svg{transform:rotate(90deg);}
+.stp-sub{padding-left:36px;}
+.stp-list--status{gap:14px;}
+.stp-list--status .stp-row{position:relative;}
+.stp-list--status .stp-row + .stp-row::before{content:'';position:absolute;left:7.5px;top:-16.5px;
+  width:1px;height:19px;background:var(--ec-fg-24);}
 
 #assetbank{display:none}
