@@ -792,6 +792,19 @@
     // instant simulation of the range — no 3D playback, so just stop any
     simPause();
   });
+  // expand/collapse the whole code tree (operations and their groups)
+  document.getElementById('simExpand').addEventListener('click', function(){
+    SIM_OPS.forEach(function(op, oi){
+      op.open = true;
+      op.lines.forEach(function(ln, li){ if(ln.grp) simGrpOpen[oi + ':' + li] = true; });
+    });
+    simRender();
+  });
+  document.getElementById('simCollapse').addEventListener('click', function(){
+    SIM_OPS.forEach(function(op){ op.open = false; });
+    simGrpOpen = {};
+    simRender();
+  });
   simTree.addEventListener('click', function(e){
     var op = e.target.closest('[data-simop]');
     if(op){
@@ -832,6 +845,16 @@
     simSpeed.title = 'Simulation speed: ' + eff + '%'
       + (capped ? ' (hand-set ' + simSpeedUser + '% returns after zoom out)' : '');
     simBar.classList.toggle('playing', simPlaying);
+    simWrap.classList.toggle('playing', simPlaying);
+    // the compact in-panel slider mirrors the same speed, cap and ghost
+    var sdF = document.getElementById('sdFill'), sdK = document.getElementById('sdKnob');
+    var sdG = document.getElementById('sdGhost');
+    if(sdF){
+      sdF.style.width = (eff / SIM_SPEED_MAX * 100) + '%';
+      sdK.style.left = (eff / SIM_SPEED_MAX * 100) + '%';
+      sdG.hidden = !capped;
+      sdG.style.left = (simSpeedUser / SIM_SPEED_MAX * 100) + '%';
+    }
   }
   // click or drag sets the hand speed; detents snap at the round values
   simSpeed.addEventListener('pointerdown', function(e){
@@ -952,6 +975,8 @@
     var hasPrev = SIM_COLLISIONS.some(function(t){ return t < simT - 0.5; });
     document.getElementById('simCollNext').classList.toggle('disabled', !hasNext);
     document.getElementById('simCollPrev').classList.toggle('disabled', !hasPrev);
+    document.getElementById('sdCollNext').classList.toggle('disabled', !hasNext);
+    document.getElementById('sdCollPrev').classList.toggle('disabled', !hasPrev);
     document.getElementById('phTip').textContent = simFmt(simT);
     simTime.textContent = simFmt(simT) + ' / ' + simFmt(SIM_TOTAL);
     // status chip: colored ring + operation name + tool number
@@ -1067,17 +1092,42 @@
       : 'Stop at: ' + parts.length + ' conditions';
     document.getElementById('simStopsLbl').textContent = lbl;
   }
-  // the stop-conditions popover: icon + label + toggle per option
+  // the stop-conditions popover: icon + label + toggle per option.
+  // Its content lives in movable blocks — in compact mode they reassemble
+  // into the single "Simulation parameters" popup (#allPop).
   var stopsPop = document.getElementById('stopsPop');
+  var allPop = document.getElementById('allPop');
+  var blkDet = document.getElementById('blkDet');
+  var blkStops = document.getElementById('blkStops');
+  var blkParams = document.getElementById('blkParams');
+  var spDivStops = document.getElementById('spDivStops');
+  var allDiv2 = document.createElement('div'); allDiv2.className = 'sp-div';
+  function popRestore(){ // blocks back to their standalone popups
+    stopsPop.appendChild(blkDet);
+    stopsPop.appendChild(spDivStops);
+    stopsPop.appendChild(blkStops);
+    simPop.appendChild(blkParams);
+  }
+  function popAssembleAll(){ // Collision detection → Check for → Stop at → the rest
+    var slot = document.getElementById('allSlot');
+    slot.appendChild(blkDet);
+    slot.appendChild(spDivStops);
+    slot.appendChild(blkStops);
+    slot.appendChild(allDiv2);
+    slot.appendChild(blkParams);
+  }
+  [document.getElementById('simPop'), stopsPop, allPop].forEach(function(p){
+    p.addEventListener('click', function(e){ e.stopPropagation(); });
+  });
   document.getElementById('simStops').addEventListener('click', function(e){
     e.stopPropagation();
     if(!stopsPop.hidden){ stopsPop.hidden = true; return; }
     closeMenu();
-    simPop.hidden = true;
+    simPop.hidden = true; allPop.hidden = true;
+    popRestore();
     spOpen(stopsPop, this);
   });
-  stopsPop.addEventListener('click', function(e){
-    e.stopPropagation();
+  function popBlocksHandler(e){
     // collision-detection block lives here too: master toggle + level slider
     var m = e.target.closest('[data-master]');
     if(m){
@@ -1101,7 +1151,10 @@
     row.querySelector('.tgl').setAttribute('src',
       'assets/toggle-' + (simStopCfg[k] ? 'on' : 'off') + '.svg');
     stopsLbl();
-  });
+  }
+  // bound to the blocks (not the popups) so the handlers travel with them
+  blkDet.addEventListener('click', popBlocksHandler);
+  blkStops.addEventListener('click', popBlocksHandler);
   stopsLbl();
 
   /* collision navigation: next / previous (no wrap — ends disable) */
@@ -1176,7 +1229,7 @@
     document.getElementById('spLvlKnob').style.left = (i * 50) + '%';
     document.getElementById('spNoteT').textContent = SP_LEVELS[i].t;
     document.getElementById('spNoteS').textContent = SP_LEVELS[i].s;
-    var ls = stopsPop.querySelectorAll('.sp-lvl-labels span');
+    var ls = blkDet.querySelectorAll('.sp-lvl-labels span');
     for(var k = 0; k < ls.length; k++) ls[k].classList.toggle('on', k === i);
   }
   function spOpen(pop, anchor, alignLeft){
@@ -1184,9 +1237,14 @@
     var r = anchor.getBoundingClientRect();
     var w = pop.offsetWidth, h = pop.offsetHeight;
     var left = Math.max(8, Math.min(alignLeft ? r.left : r.right - w, innerWidth - w - 8));
-    // open ABOVE the simulation panel, never over it
-    var barTop = simBar.getBoundingClientRect().top;
-    var top = Math.max(8, barTop - h - 6);
+    // open ABOVE the simulation panel, never over it; with the bar hidden
+    // (compact mode) drop below the anchor instead
+    var top;
+    if(simBar.hidden){
+      top = Math.min(innerHeight - h - 8, r.bottom + 6);
+    } else {
+      top = Math.max(8, simBar.getBoundingClientRect().top - h - 6);
+    }
     pop.style.left = left + 'px';
     pop.style.top = top + 'px';
   }
@@ -1196,11 +1254,12 @@
       e.stopPropagation();
       if(!simPop.hidden){ simPop.hidden = true; return; }
       closeMenu();
-      stopsPop.hidden = true;
+      stopsPop.hidden = true; allPop.hidden = true;
+      popRestore();
       spOpen(simPop, b);
     });
   });
-  simPop.addEventListener('click', function(e){
+  blkParams.addEventListener('click', function(e){
     e.stopPropagation();
     var t = e.target.closest('.tgl');
     if(t){
@@ -1257,6 +1316,7 @@
   });
   document.addEventListener('click', function(){
     simPop.hidden = true; stopsPop.hidden = true; collPop.hidden = true;
+    allPop.hidden = true;
   });
 
   /* collision detection off → hide collision markers, badge and nav,
@@ -1274,23 +1334,80 @@
     simTlSync();
   }
 
+  /* compact mode: the controls dock into the code panel (the old layout);
+     it is the default — the wide bottom panel is opt-in via the toggle */
+  var simCompact = true;
+  var simDock = document.getElementById('simDock');
   function setSimMode(on){
     document.querySelector('.dock').classList.toggle('sim', on);
     document.querySelector('.panel-tree').classList.toggle('sim', on);
     simWrap.hidden = !on;
-    simBar.hidden = !on;
-    simTlWrap.hidden = !on;
+    simBar.hidden = !on || simCompact;
+    simTlWrap.hidden = !on || simCompact;
+    simDock.hidden = !on || !simCompact;
     var dock = document.querySelector('.dock');
     if(on){
       simRender(); simSync(); simTlSync();
-      // the sim panel spans the whole viewport width — pull the dock up
-      // so the code panel ends above it instead of underneath
-      dock.style.bottom = (simBar.offsetHeight + 8 + 8) + 'px';
+      // the wide sim panel spans the viewport — pull the dock up above it;
+      // in compact mode there is no bottom panel, the dock takes full height
+      dock.style.bottom = simCompact ? '' : (simBar.offsetHeight + 8 + 8) + 'px';
     } else {
       dock.style.bottom = '';
       simPause();
     }
   }
+  function setCompact(on){
+    simCompact = on;
+    setSimMode(true);
+  }
+  document.getElementById('simDockBtn').addEventListener('click', function(){ setCompact(true); });
+  document.getElementById('sdUndock').addEventListener('click', function(){ setCompact(false); });
+  // compact controls proxy to the main handlers
+  document.getElementById('sdPlay').addEventListener('click', function(){
+    document.getElementById('simPlay').click();
+  });
+  document.getElementById('sdBack').addEventListener('click', function(){
+    document.getElementById('simStepB').click();
+  });
+  document.getElementById('sdFwd').addEventListener('click', function(){
+    document.getElementById('simStepF').click();
+  });
+  document.getElementById('sdStop').addEventListener('click', simReset);
+  document.getElementById('sdCollPrev').addEventListener('click', function(){ simGotoColl(-1); });
+  document.getElementById('sdCollNext').addEventListener('click', function(){ simGotoColl(1); });
+  // in compact mode the "!" opens the merged Simulation parameters popup
+  document.getElementById('sdWarn').addEventListener('click', function(e){
+    e.stopPropagation();
+    if(!allPop.hidden){ allPop.hidden = true; return; }
+    closeMenu(); simPop.hidden = true; stopsPop.hidden = true; collPop.hidden = true;
+    popAssembleAll();
+    spOpen(allPop, this, true);
+  });
+  simDock.addEventListener('click', function(e){
+    if(e.target.closest('[data-sdscope]')) simPause();
+  });
+  // the mini speed slider drives the same hand-set speed
+  var sdSpeed = document.getElementById('sdSpeed');
+  sdSpeed.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    sdSpeed.setPointerCapture(e.pointerId);
+    var set = function(ev){
+      var r = sdSpeed.getBoundingClientRect();
+      var v = Math.max(5, Math.min(SIM_SPEED_MAX,
+        Math.round((ev.clientX - r.left) / r.width * SIM_SPEED_MAX)));
+      [25, 50, 75, 100, 150, 200].forEach(function(d){ if(Math.abs(v - d) < 8) v = d; });
+      simSpeedUser = v;
+      simSync();
+    };
+    set(e);
+    var move = function(ev){ set(ev); };
+    var up = function(){
+      sdSpeed.removeEventListener('pointermove', move);
+      sdSpeed.removeEventListener('pointerup', up);
+    };
+    sdSpeed.addEventListener('pointermove', move);
+    sdSpeed.addEventListener('pointerup', up);
+  });
 
   /* ---------- Single-operation mode: double-click on the dock resizer ---------- */
   var singleOp = document.getElementById('singleOp');

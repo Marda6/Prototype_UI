@@ -139,6 +139,54 @@
 .panel-tree.sim .singleop,.panel-tree.sim .inner > .line{display:none !important;}
 .simwrap{display:flex;flex-direction:column;gap:6px;flex:1 1 0;min-height:0;}
 .simwrap[hidden]{display:none !important;}
+/* compact (docked) controls inside the code panel — the old layout.
+   Row height and rhythm match the Machining toolbar (28px rows, 6px gaps,
+   hairline dividers) so the tabs do not jump when switching. */
+.sim-dockbar{display:flex;flex-direction:column;gap:6px;flex:0 0 auto;
+  padding-bottom:6px;border-bottom:1px solid var(--ec-fg-8);}
+.sim-dockbar[hidden]{display:none !important;}
+.sd-row{display:flex;align-items:center;gap:2px;height:28px;}
+.sd-sep{width:1px;height:14px;background:var(--ec-fg-12);flex:0 0 1px;margin:0 4px;}
+.sd-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  border-radius:4px;cursor:pointer;color:var(--ec-fg-72);flex:0 0 28px;}
+.sd-btn:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+.sd-btn svg{width:16px;height:16px;}
+.sd-btn.sd-play{color:var(--st-green);}
+.sd-btn.sd-play .sp-pause{display:none;}
+.simwrap.playing .sd-btn.sd-play .sp-play{display:none;}
+.simwrap.playing .sd-btn.sd-play .sp-pause{display:block;}
+.sd-btn.sd-stop{color:#ff7072;}
+.sd-btn.sd-coll{color:#ff8384;}
+.sd-btn.sd-coll:hover{color:#ff8384;}
+.sd-btn.disabled{color:var(--ec-fg-24);pointer-events:none;}
+.sd-btn.sd-warn{color:#ebc14a;}
+/* mini speed slider: same chunky style as the big one, scaled down —
+   thick rounded track, detent dots, white knob with a bg-colored ring */
+.sd-speed{position:relative;flex:1 1 auto;min-width:80px;height:28px;cursor:pointer;
+  touch-action:none;margin:0 8px 0 4px;}
+.sd-line{position:absolute;left:0;right:0;top:11px;height:6px;border-radius:3px;
+  background:var(--ec-fg-16);}
+.sd-fill{position:absolute;left:0;top:11px;height:6px;border-radius:3px;
+  background:var(--st-green);}
+.sd-dot{position:absolute;top:13px;width:2px;height:2px;margin-left:-1px;border-radius:50%;
+  background:var(--ec-bg);z-index:1;}
+.sd-knob{position:absolute;top:7px;width:14px;height:14px;margin-left:-7px;border-radius:50%;
+  background:#fff;box-shadow:0 0 0 3px var(--ec-bg);z-index:2;}
+/* ghost of the hand-set speed while the zoom cap (25%) is engaged */
+.sd-ghost{position:absolute;top:8px;width:12px;height:12px;margin-left:-6px;border-radius:50%;
+  box-sizing:border-box;border:2px solid var(--ec-fg-48);
+  background:var(--ec-bg);box-shadow:0 0 0 3px var(--ec-bg);z-index:1;}
+.sd-ghost[hidden]{display:none;}
+/* compact mode: everything merged into one tall popup */
+.allpop{width:280px;}
+
+/* slim header row of the code panel: label + expand/collapse all */
+.sim-tools{display:flex;align-items:center;gap:2px;flex:0 0 auto;}
+.st-lbl{font:400 12px/16px var(--ec-font);color:var(--ec-fg-56);padding-left:2px;}
+.st-btn{width:24px;height:24px;display:flex;align-items:center;justify-content:center;
+  border-radius:4px;cursor:pointer;color:var(--ec-fg-56);}
+.st-btn:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+.st-btn svg{width:15px;height:15px;}
 .simtree{flex:1 1 0;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:1px;}
 .simrow{display:flex;align-items:center;gap:4px;padding:2px;border-radius:6px;cursor:pointer;}
 .simrow:hover{background:var(--ec-fg-4);}
@@ -316,8 +364,9 @@
 .sp-head{font:600 13px/18px var(--ec-font);color:var(--ec-fg-96);padding:2px 2px 8px;}
 /* the stop-conditions popover: icon + label + toggle per row */
 .stopspop{width:280px;}
-.stopspop .sp-row > span:first-child{flex:0 0 auto;}
-.stopspop .sp-row .lb{flex:1;min-width:0;}
+/* icon + label + toggle rows keep their layout in both popups */
+.stopspop .sp-row > span:first-child,.allpop .sp-row > .sp-ic{flex:0 0 auto;}
+.stopspop .sp-row .lb,.allpop .sp-row .lb{flex:1;min-width:0;}
 .sp-ic{width:20px;height:20px;display:flex;align-items:center;justify-content:center;
   color:var(--ec-fg-56);}
 .sp-ic svg{width:16px;height:16px;}
