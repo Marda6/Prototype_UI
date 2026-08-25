@@ -882,7 +882,7 @@
   // zoom hook: the wheel over the 3D view stands in for camera zoom —
   // zooming in engages the 25% cap, zooming back restores the hand speed
   document.querySelector('.viewport').addEventListener('wheel', function(e){
-    if(simBar.hidden) return;
+    if(simWrap.hidden) return; // active in both full and compact sim modes
     e.preventDefault();
     vpZoom = Math.max(0.5, Math.min(4, vpZoom * (e.deltaY < 0 ? 1.12 : 0.9)));
     simZoomed = vpZoom > 1.15;
