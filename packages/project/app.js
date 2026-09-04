@@ -880,7 +880,7 @@
     h += '<div class="simrow"><img class="micn" src="assets/tree-machine.svg" alt="">'+
       '<span class="lbl">Lathe-Milling machine</span>'+
       '<span class="bicn"><img class="i16" src="assets/status.svg" alt=""></span></div>';
-    h += '<div class="simrow sim-ind1"><img class="i16" src="assets/opcolor.svg" alt="">'+
+    h += '<div class="simrow sim-ind1"><span class="opic"></span>'+
       '<span class="lbl">Part</span>'+
       '<span class="bicn"><img class="i16" src="assets/status.svg" alt=""></span></div>';
     SIM_OPS.forEach(function(op, oi){
@@ -907,7 +907,7 @@
               '<img class="shev" src="assets/t-shev-open.svg" alt="">'+
               '<span class="lbl">'+ln.t+'</span>'+dot+'</div>';
             if(on) ln.grp.forEach(function(s){
-              h += '<div class="simrow code sim-ind4"><span class="lbl">'+s+'</span><span class="sim-dot"></span></div>';
+              h += '<div class="simrow code sim-ind4" data-simgrp="'+key+'"><span class="lbl">'+s+'</span><span class="sim-dot"></span></div>';
             });
           } else {
             h += '<div class="simrow code sim-ind3'+(ln.c ? ' c-'+ln.c : '')+(isCur ? ' cur' : '')+'" data-simop="'+oi+'" data-simline="'+li+'">'+
@@ -957,7 +957,7 @@
     if(g){
       if(shev){ simGrpOpen[g.dataset.simgrp] = !simGrpOpen[g.dataset.simgrp]; simRender(); return; }
       var gp = g.dataset.simgrp.split(':');
-      simSel = +gp[0]; simLine = +gp[1]; simRender(); return;
+      simSel = +gp[0]; simLine = +gp[1]; simRender(); ncFollow(); return;
     }
     var op = e.target.closest('.simrow.op[data-simop]');
     if(op){
@@ -965,10 +965,10 @@
       if(shev){ SIM_OPS[oi].open = !SIM_OPS[oi].open; simRender(); return; }
       if(e.target.closest('.bicn')){ simOpStatus(oi, op); return; } // status circle → Status panel
       simSel = oi; simLine = -1;           // the scope buttons act on this selection
-      simRender(); return;
+      simRender(); ncFollow(); return;
     }
     var code = e.target.closest('.simrow.code[data-simline]');
-    if(code){ simSel = +code.dataset.simop; simLine = +code.dataset.simline; simRender(); return; }
+    if(code){ simSel = +code.dataset.simop; simLine = +code.dataset.simline; simRender(); ncFollow(); return; }
     var row = e.target.closest('.simrow');  // machine / part / group sub-lines
     if(row){
       simTree.querySelectorAll('.simrow.cur, .simrow.ssel').forEach(function(x){ x.classList.remove('cur','ssel'); });
@@ -1338,16 +1338,33 @@
     ncPanel.style.top = top + 'px';
   }
   function ncClose(){ ncOpen = false; ncPanel.classList.remove('open'); }
+  // an open panel follows any mouse selection in the tree: the playhead
+  // moves to the picked block (first block of a picked operation)
+  function ncFollow(){
+    if(!ncOpen) return;
+    var oi = simSel, li = Math.max(0, simLine);
+    simPause(); simSeek(ncBlockRange(oi, li).a + 0.01);
+    simSel = oi; simLine = li;
+    ncSync();
+  }
   document.getElementById('ncClose').addEventListener('click', function(e){ e.stopPropagation(); ncClose(); });
   document.addEventListener('keydown', function(e){ if(e.key === 'Escape') ncClose(); });
+  // any code-level row maps to a block: plain lines, Header/Approach groups
+  // and the sub-lines inside them (they share the group's block)
+  function ncRowBlock(el){
+    var row = el.closest('.simrow.code[data-simline], .simrow.grp[data-simgrp], .simrow.sim-ind4[data-simgrp]');
+    if(!row) return null;
+    if(row.dataset.simgrp){ var p = row.dataset.simgrp.split(':'); return {oi:+p[0], li:+p[1], row:row}; }
+    return {oi:+row.dataset.simop, li:+row.dataset.simline, row:row};
+  }
   simTree.addEventListener('dblclick', function(e){
-    var code = e.target.closest('.simrow.code[data-simline]');
-    if(code) ncShow(+code.dataset.simop, +code.dataset.simline, code);
+    var b = ncRowBlock(e.target);
+    if(b) ncShow(b.oi, b.li, b.row);
   });
   simTree.addEventListener('click', function(e){
     var dot = e.target.closest('.sim-dot, .bicn');
-    var code = e.target.closest('.simrow.code[data-simline]');
-    if(dot && code) ncShow(+code.dataset.simop, +code.dataset.simline, code);
+    var b = dot && ncRowBlock(e.target);
+    if(b) ncShow(b.oi, b.li, b.row);
   });
   // block transport: start / end of the block, neighbours, play the block only
   var simBlockEnd = null; // playback stops here when playing a single block

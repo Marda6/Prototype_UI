@@ -728,18 +728,18 @@
   width:1px;height:19px;background:var(--ec-fg-24);}
 
 /* NC block panel — same surface as the status panel, extra blocks for the code frame */
-.ncpanel{width:320px;}
+.ncpanel{width:328px;padding:12px;}
 /* operation icon placeholder: the 20×20 slot with a faint rounded square */
 .opic{width:20px;height:20px;flex:0 0 20px;display:flex;align-items:center;justify-content:center;}
 .opic::before{content:'';width:16px;height:16px;border-radius:4px;background:var(--ec-fg-8);}
 .ncpanel .stp-sec{font-weight:400;color:var(--ec-fg-72);margin-top:8px;}
 .ncpanel .sd-knob,.ncpanel .sd-ghost{box-shadow:0 0 0 3px var(--pop-bg);}
 .ncpanel .sd-ghost{background:var(--pop-bg);}
-.ncp-sub{display:flex;align-items:center;gap:8px;margin-top:-4px;}
+.ncp-sub{display:flex;align-items:center;gap:8px;margin-top:2px;}
 .ncp-op{flex:1;min-width:0;display:inline-flex;align-items:center;gap:6px;
   color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);}
 .ncp-op > span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
-.ncp-move{font:500 11px/16px var(--ec-font);padding:0 6px;border-radius:4px;
+.ncp-move{font:500 11px/16px var(--ec-font);padding:2px 6px;border-radius:4px;
   background:var(--ec-fg-8);color:var(--ec-fg-72);white-space:nowrap;}
 .ncp-move.c-blue{color:#46acff;background:rgba(70,172,255,.12);}
 .ncp-move.c-red{color:#ff7072;background:rgba(255,112,114,.12);}
