@@ -724,4 +724,42 @@
 .stp-list--status .stp-row + .stp-row::before{content:'';position:absolute;left:7.5px;top:-16.5px;
   width:1px;height:19px;background:var(--ec-fg-24);}
 
+/* NC block panel — same surface as the status panel, extra blocks for the code frame */
+.ncpanel{width:320px;}
+/* operation icon placeholder: the 20×20 slot with a faint rounded square */
+.opic{width:20px;height:20px;flex:0 0 20px;display:flex;align-items:center;justify-content:center;}
+.opic::before{content:'';width:16px;height:16px;border-radius:4px;background:var(--ec-fg-8);}
+.ncpanel .stp-sec{font-weight:400;color:var(--ec-fg-72);margin-top:8px;}
+.ncpanel .sd-knob,.ncpanel .sd-ghost{box-shadow:0 0 0 3px var(--pop-bg);}
+.ncpanel .sd-ghost{background:var(--pop-bg);}
+.ncp-sub{display:flex;align-items:center;gap:8px;margin-top:-4px;}
+.ncp-op{flex:1;min-width:0;display:inline-flex;align-items:center;gap:6px;
+  color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);}
+.ncp-op > span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.ncp-move{font:500 11px/16px var(--ec-font);padding:0 6px;border-radius:4px;
+  background:var(--ec-fg-8);color:var(--ec-fg-72);white-space:nowrap;}
+.ncp-move.c-blue{color:#46acff;background:rgba(70,172,255,.12);}
+.ncp-move.c-red{color:#ff7072;background:rgba(255,112,114,.12);}
+.ncp-err{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;
+  background:rgba(255,112,114,.1);border:1px solid rgba(255,112,114,.25);}
+.ncp-err[hidden]{display:none;}
+.ncp-err__body{display:flex;flex-direction:column;min-width:0;}
+.ncp-err__body b{font:500 12px/16px var(--ec-font);color:#ff8384;}
+.ncp-err__body span{font:400 11px/14px var(--ec-font);color:var(--ec-fg-56);}
+.ncpanel.has-err .stp-title{color:#ff8384;}
+.ncp-ctl{display:flex;align-items:center;gap:2px;height:28px;padding:2px 0;
+  border-top:1px solid var(--ec-fg-8);border-bottom:1px solid var(--ec-fg-8);}
+.ncp-ctl .sd-speed{min-width:70px;}
+.ncpanel.playing .sd-play .sp-play{display:none;}
+.ncpanel.playing .sd-play .sp-pause{display:block;}
+.ncp-ctl .ss-val{min-width:32px;text-align:right;}
+.ncp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px 8px;}
+.ncp-cell{display:flex;align-items:center;gap:6px;height:24px;padding:0 6px;border-radius:4px;
+  background:var(--ec-fg-4);}
+.ncp-cell b{font:500 11px/16px var(--ec-font);color:var(--ec-fg-48);min-width:18px;}
+.ncp-cell span{flex:1;text-align:right;font:400 12px/16px var(--ec-font);color:var(--ec-fg-96);
+  font-variant-numeric:tabular-nums;}
+.simrow.code .sim-dot{cursor:pointer;}
+.simrow.code:hover .sim-dot:not(.err){background:var(--ec-fg-56);}
+
 #assetbank{display:none}

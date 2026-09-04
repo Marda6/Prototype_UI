@@ -725,7 +725,7 @@
     r.dataset.id = 'op' + (opSeq++); r.dataset.parent = parentId; r.dataset.type = 'operation';
     r.setAttribute('draggable','true');
     r.innerHTML =
-      '<div class="tlayer i2"><img class="shev" src="'+A['t-shev-leaf']+'" alt=""><span class="rlabel"><span>'+name+'</span></span></div>'+
+      '<div class="tlayer i2"><img class="shev" src="'+A['t-shev-leaf']+'" alt=""><span class="opic"></span><span class="rlabel"><span>'+name+'</span></span></div>'+
       '<div class="pslot"><span class="toolno">T#7</span><span class="tlink"><span>Tool not assigned</span></span>'+
       '<span class="bicn"><img class="i16" src="'+A['opcolor']+'" alt=""></span>'+
       '<span class="bicn"><img class="i16 st" src="'+A['status-empty']+'" alt=""></span></div>';
@@ -884,18 +884,23 @@
       '<span class="lbl">Part</span>'+
       '<span class="bicn"><img class="i16" src="assets/status.svg" alt=""></span></div>';
     SIM_OPS.forEach(function(op, oi){
+      // an operation with a collision in its code carries the error status
+      var opErr = op.lines.some(function(ln, li){ return errLines[oi + ':' + li]; });
       // a single highlight follows the playhead: the op row carries it only
       // while its code is collapsed; open ops highlight the code line instead
-      h += '<div class="simrow op sim-ind2'+(op.open ? '' : ' closed')+(oi === simSel && (!op.open || simLine < 0) ? ' ssel' : '')+'" data-simop="'+oi+'">'+
+      h += '<div class="simrow op sim-ind2'+(op.open ? '' : ' closed')+(oi === simSel && (!op.open || simLine < 0) ? ' ssel' : '')+(opErr ? ' has-err' : '')+'" data-simop="'+oi+'">'+
         '<img class="shev" src="assets/t-shev-open.svg" alt="">'+
-        '<img class="i16" src="assets/opcolor.svg" alt="">'+
+        '<span class="opic"></span>'+
         '<span class="lbl">'+op.name+'</span>'+
         '<span class="sim-ring" style="--cc:'+op.color+'"></span>'+
-        '<span class="bicn"><img class="i16" src="assets/status.svg" alt=""></span></div>';
+        '<span class="bicn"><img class="i16" src="assets/'+(opErr ? 'status-error' : 'status')+'.svg" alt=""></span></div>';
       if(op.open){
         op.lines.forEach(function(ln, li){
           var isCur = oi === simSel && li === simLine;
-          var dot = '<span class="sim-dot'+(errLines[oi + ':' + li] ? ' err' : '')+'"></span>';
+          // the collision block shows the status-error icon instead of the dot
+          var dot = errLines[oi + ':' + li]
+            ? '<span class="bicn" title="Holder collision"><img class="i16" src="assets/status-error.svg" alt=""></span>'
+            : '<span class="sim-dot"></span>';
           if(ln.grp){
             var key = oi + ':' + li, on = simGrpOpen[key];
             h += '<div class="simrow grp sim-ind3'+(on ? '' : ' closed')+(isCur ? ' cur' : '')+'" data-simgrp="'+key+'">'+
@@ -935,6 +940,16 @@
     simGrpOpen = {};
     simRender();
   });
+  // the operation Status panel from the sim tree: same panel as on the
+  // Machining tab; a collision in the op's code marks the holder check red
+  function simOpStatus(oi, row){
+    // the status circle opens the NC block panel on the collision block of
+    // the operation (or its first block when the op is clean)
+    var errLines = simCollLines(), li = 0;
+    SIM_OPS[oi].lines.forEach(function(ln, i){ if(errLines[oi + ':' + i] && !li) li = i; });
+    SIM_OPS[oi].open = true;
+    ncShow(oi, li, row);
+  }
   simTree.addEventListener('click', function(e){
     // every row is equally selectable; chevrons only expand/collapse
     var shev = e.target.closest('.shev');
@@ -948,6 +963,7 @@
     if(op){
       var oi = +op.dataset.simop;
       if(shev){ SIM_OPS[oi].open = !SIM_OPS[oi].open; simRender(); return; }
+      if(e.target.closest('.bicn')){ simOpStatus(oi, op); return; } // status circle → Status panel
       simSel = oi; simLine = -1;           // the scope buttons act on this selection
       simRender(); return;
     }
@@ -997,6 +1013,17 @@
       sdK.style.left = (eff / SIM_SPEED_MAX * 100) + '%';
       sdG.hidden = !capped;
       sdG.style.left = (simSpeedUser / SIM_SPEED_MAX * 100) + '%';
+    }
+    // …and so does the NC block panel slider
+    var ncF = document.getElementById('ncFill');
+    if(ncF){
+      ncF.style.width = (eff / SIM_SPEED_MAX * 100) + '%';
+      document.getElementById('ncKnob').style.left = (eff / SIM_SPEED_MAX * 100) + '%';
+      var ncG = document.getElementById('ncGhost');
+      ncG.hidden = !capped; ncG.style.left = (simSpeedUser / SIM_SPEED_MAX * 100) + '%';
+      var ncV = document.getElementById('ncVal');
+      ncV.textContent = eff + '%'; ncV.style.color = capped ? '#ebc14a' : '';
+      document.getElementById('ncPanel').classList.toggle('playing', simPlaying && simBlockEnd != null);
     }
   }
   // click or drag sets the hand speed; detents snap at the round values
@@ -1138,6 +1165,7 @@
         var row = simTree.querySelector('.simrow.cur');
         if(row) row.scrollIntoView({block:'nearest'});
       }
+      ncSync();
     }
   }
   function simTick(ts){
@@ -1154,14 +1182,17 @@
         next = ev.t; simPlaying = false; break;
       }
     }
+    // single-block playback (NC block panel) ends at the block boundary
+    if(simBlockEnd != null && next >= simBlockEnd){ next = simBlockEnd; simPlaying = false; }
     simT = next;
     if(simT >= SIM_TOTAL) simPlaying = false;
+    if(!simPlaying) simBlockEnd = null;
     simTlSync();
     simSync();
     if(simPlaying) simRAF = requestAnimationFrame(simTick);
     else { simRAF = null; simLast = 0; }
   }
-  function simPause(){ simPlaying = false; simLast = 0; simSync(); }
+  function simPause(){ simPlaying = false; simBlockEnd = null; simLast = 0; simSync(); }
   function simSeek(t){
     simT = Math.max(0, Math.min(SIM_TOTAL, t));
     simTlSync();
@@ -1189,7 +1220,7 @@
   /* transport */
   document.getElementById('simPlay').addEventListener('click', function(){
     if(simPlaying){ simPause(); return; }
-    simRan = true;
+    simRan = true; simBlockEnd = null;
     if(simT >= SIM_TOTAL) simT = 0;
     simPlaying = true; simLast = 0;
     simSync();
@@ -1224,6 +1255,136 @@
   }
   document.getElementById('simStepF').addEventListener('click', function(){ simStepLine(1); });
   document.getElementById('simStepB').addEventListener('click', function(){ simStepLine(-1); });
+
+  /* ---- NC block panel: the code-line tooltip grown into a proper window ----
+     Opens on a code-line double-click or a click on its dot; while open it
+     follows the highlighted line. Its transport acts on the block only. */
+  var ncPanel = document.getElementById('ncPanel');
+  var ncOpen = false;
+  function ncFmt(v){ return (v < 0 ? '−' : '') + Math.abs(v).toFixed(3); }
+  function ncGrid(el, keys, vals){
+    var h = '';
+    keys.forEach(function(k, i){ h += '<div class="ncp-cell"><b>' + k + '</b><span>' + ncFmt(vals[i]) + '</span></div>'; });
+    el.innerHTML = h;
+  }
+  // deterministic block numbers derived from the op and line indices
+  function ncData(oi, li){
+    var s = oi * 131 + li * 17, ln = SIM_OPS[oi].lines[li];
+    var f = function(k, a, b){ var x = Math.sin(s * 0.7 + k * 1.3) * 0.5 + 0.5; return a + (b - a) * x; };
+    var rapid = ln.c === 'red', work = ln.c === 'blue';
+    return {
+      type: /^MultiARC|^X-?\d.*Z.*\d$/.test(ln.t) && li % 2 ? 'MultiARC' : (/^F:|^RAPID/.test(ln.t) ? 'Feed' : 'MultiGOTO'),
+      move: rapid ? 'Rapid' : (work ? 'Work' : 'Auxiliary'),
+      ep: [f(1,-60,60), f(2,-4,4), f(3,20,150), f(4,120,160), f(5,-50,-30), f(6,20,30)],
+      mp: [f(7,-60,60), f(8,-4,4), f(9,100,140), f(10,140,160), f(11,-45,-35), f(12,15,25)],
+      ax: [f(13,-10,10), f(14,-80,-70), f(15,110,130), f(16,70,85), f(17,40,55), f(18,-150,-140)],
+      time: SIM_DURS[oi] / SIM_OPS[oi].lines.length,
+      feed: rapid ? '10000 mm/min' : (work ? '200 mm/min' : '—'),
+      len: rapid ? f(19,0.05,0.4) : (work ? f(20,0.002,0.06) : 0),
+      no: 100 + oi * 240 + li * 12
+    };
+  }
+  function ncBlockRange(oi, li){
+    var n = SIM_OPS[oi].lines.length, d = SIM_DURS[oi], st = simOpStart(oi);
+    return { a: st + li / n * d, b: st + (li + 1) / n * d };
+  }
+  function ncSync(){
+    if(!ncOpen) return;
+    var oi = simSel, li = simLine;
+    if(li < 0 || oi < 0){ li = 0; }
+    var ln = SIM_OPS[oi].lines[li], d = ncData(oi, li);
+    var t = ln.t.length > 34 ? ln.t.slice(0, 34) + '…' : ln.t;
+    document.getElementById('ncTitle').textContent = t;
+    document.getElementById('ncTitle').title = ln.t;
+    var op = document.getElementById('ncOp');
+    op.querySelector('span:last-child').textContent = SIM_OPS[oi].name + ' · ' + SIM_TOOLS[oi];
+    var mv = document.getElementById('ncMove');
+    mv.textContent = d.type + ' · ' + d.move;
+    mv.className = 'ncp-move' + (ln.c ? ' c-' + ln.c : '');
+    ncGrid(document.getElementById('ncEP'), ['X','Y','Z','RX','RY','RZ'], d.ep);
+    ncGrid(document.getElementById('ncMP'), ['X','Y','Z','RX','RY','RZ'], d.mp);
+    ncGrid(document.getElementById('ncAX'), ['A1','A2','A3','A4','A5','A6'], d.ax);
+    var sec = Math.round(d.time);
+    document.getElementById('ncTime').textContent = '00:' + String(Math.floor(sec / 60)).padStart(2,'0') + ':' + String(sec % 60).padStart(2,'0');
+    document.getElementById('ncFeed').textContent = d.feed;
+    document.getElementById('ncLen').textContent = d.len.toFixed(3) + ' m';
+    document.getElementById('ncNo').textContent = d.no;
+    var isErr = !!simCollLines()[oi + ':' + li];
+    document.getElementById('ncErr').hidden = !isErr;
+    ncPanel.classList.toggle('has-err', isErr);
+    ncPanel.classList.toggle('playing', simPlaying && simBlockEnd != null);
+  }
+  // arrow keys walk the blocks while the panel is open (or the sim tab is up)
+  document.addEventListener('keydown', function(e){
+    if(e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    if(simWrap.hidden || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    e.preventDefault();
+    if(simLine < 0) simLine = e.key === 'ArrowDown' ? -1 : 0;
+    simStepLine(e.key === 'ArrowDown' ? 1 : -1);
+    ncSync();
+  });
+  function ncShow(oi, li, row){
+    // the playhead lands on the block so the transport and arrows act on it
+    simPause(); simSeek(ncBlockRange(oi, li).a + 0.01);
+    simSel = oi; simLine = li;
+    ncOpen = true;
+    ncPanel.classList.add('open');
+    closeStatus();
+    simRender(); ncSync();
+    var vp = ncPanel.parentElement.getBoundingClientRect();
+    var rr = (row || simTree.querySelector('.simrow.cur') || simTree).getBoundingClientRect();
+    var top = Math.max(8, Math.min(rr.top - vp.top, vp.height - ncPanel.offsetHeight - 8));
+    ncPanel.style.top = top + 'px';
+  }
+  function ncClose(){ ncOpen = false; ncPanel.classList.remove('open'); }
+  document.getElementById('ncClose').addEventListener('click', function(e){ e.stopPropagation(); ncClose(); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') ncClose(); });
+  simTree.addEventListener('dblclick', function(e){
+    var code = e.target.closest('.simrow.code[data-simline]');
+    if(code) ncShow(+code.dataset.simop, +code.dataset.simline, code);
+  });
+  simTree.addEventListener('click', function(e){
+    var dot = e.target.closest('.sim-dot, .bicn');
+    var code = e.target.closest('.simrow.code[data-simline]');
+    if(dot && code) ncShow(+code.dataset.simop, +code.dataset.simline, code);
+  });
+  // block transport: start / end of the block, neighbours, play the block only
+  var simBlockEnd = null; // playback stops here when playing a single block
+  document.getElementById('ncToStart').addEventListener('click', function(){
+    simPause(); var r = ncBlockRange(simSel, Math.max(0, simLine)); simSeek(r.a + 0.01);
+  });
+  document.getElementById('ncToEnd').addEventListener('click', function(){
+    simPause(); var r = ncBlockRange(simSel, Math.max(0, simLine)); simSeek(r.b - 0.01);
+  });
+  document.getElementById('ncPrev').addEventListener('click', function(){ simStepLine(-1); });
+  document.getElementById('ncNext').addEventListener('click', function(){ simStepLine(1); });
+  document.getElementById('ncPlay').addEventListener('click', function(){
+    if(simPlaying){ simPause(); return; }
+    var r = ncBlockRange(simSel, Math.max(0, simLine));
+    simRan = true;
+    simSeek(r.a + 0.01);
+    simBlockEnd = r.b - 0.01;
+    simPlaying = true; simLast = 0;
+    simSync(); ncSync();
+    if(!simRAF) simRAF = requestAnimationFrame(simTick);
+  });
+  // the mini speed slider drives the same hand-set speed
+  var ncSpeed = document.getElementById('ncSpeed');
+  ncSpeed.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    ncSpeed.setPointerCapture(e.pointerId);
+    var set = function(ev){
+      var r = ncSpeed.getBoundingClientRect();
+      var v = Math.max(5, Math.min(SIM_SPEED_MAX, Math.round((ev.clientX - r.left) / r.width * SIM_SPEED_MAX)));
+      [25, 50, 75, 100, 150, 200].forEach(function(d){ if(Math.abs(v - d) < 8) v = d; });
+      simSpeedUser = v; simSync();
+    };
+    set(e);
+    var move = function(ev){ set(ev); };
+    var up = function(){ ncSpeed.removeEventListener('pointermove', move); ncSpeed.removeEventListener('pointerup', up); };
+    ncSpeed.addEventListener('pointermove', move);
+    ncSpeed.addEventListener('pointerup', up);
+  });
 
   /* stop conditions: a toggle menu on the chip */
   // gouge is a "check for" flag, not a pause condition — the chip counts stops only
