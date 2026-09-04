@@ -1290,6 +1290,7 @@
   }
   function ncSync(){
     if(!ncOpen) return;
+    if(ncEditing) ncSetEdit(false); // moving to another block drops edit mode
     var oi = simSel, li = simLine;
     if(li < 0 || oi < 0){ li = 0; }
     var ln = SIM_OPS[oi].lines[li], d = ncData(oi, li);
@@ -1350,11 +1351,24 @@
   });
   // block transport: start / end of the block, neighbours, play the block only
   var simBlockEnd = null; // playback stops here when playing a single block
-  document.getElementById('ncToStart').addEventListener('click', function(){
-    simPause(); var r = ncBlockRange(simSel, Math.max(0, simLine)); simSeek(r.a + 0.01);
-  });
-  document.getElementById('ncToEnd').addEventListener('click', function(){
-    simPause(); var r = ncBlockRange(simSel, Math.max(0, simLine)); simSeek(r.b - 0.01);
+  // edit mode: the value cells become editable until the pencil is pressed again
+  var ncEditing = false;
+  function ncSetEdit(on){
+    ncEditing = on;
+    ncPanel.classList.toggle('editing', on);
+    document.getElementById('ncEdit').classList.toggle('on', on);
+    ncPanel.querySelectorAll('.ncp-cell span').forEach(function(s){
+      s.contentEditable = on ? 'true' : 'false';
+      s.spellcheck = false;
+    });
+    if(on){ var f = ncPanel.querySelector('.ncp-cell span'); if(f){ f.focus(); } }
+  }
+  document.getElementById('ncEdit').addEventListener('click', function(){ ncSetEdit(!ncEditing); });
+  ncPanel.addEventListener('keydown', function(e){
+    if(!ncEditing) return;
+    e.stopPropagation(); // arrows/Esc stay inside the cell while editing
+    if(e.key === 'Enter'){ e.preventDefault(); e.target.blur(); }
+    if(e.key === 'Escape'){ ncSetEdit(false); }
   });
   document.getElementById('ncPrev').addEventListener('click', function(){ simStepLine(-1); });
   document.getElementById('ncNext').addEventListener('click', function(){ simStepLine(1); });

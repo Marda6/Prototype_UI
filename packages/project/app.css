@@ -125,6 +125,9 @@
 .treewrap .tlayer{flex:0 0 calc(var(--tree-split) - 14px);}
 .treewrap .pslot{padding-left:14px;}
 .tree{display:flex;flex-direction:column;gap:2px;overflow:auto;}
+/* scroll containers reserve the scrollbar lane up front — no layout jump
+   when the bar appears or goes away */
+.tree,.simtree,.irows,#collList{scrollbar-gutter:stable;}
 
 /* ===== Simulate tab: code tree + the simulation bar on the 3D view ===== */
 /* no inspector in simulation — the code tree takes the full dock height */
@@ -749,7 +752,12 @@
 .ncpanel.has-err .stp-title{color:#ff8384;}
 .ncp-ctl{display:flex;align-items:center;gap:2px;height:28px;padding:2px 0;
   border-top:1px solid var(--ec-fg-8);border-bottom:1px solid var(--ec-fg-8);}
-.ncp-ctl .sd-speed{min-width:70px;}
+.ncp-ctl .sd-speed{min-width:70px;flex:1 1 auto;}
+.ncp-ctl .sd-btn.on{background:var(--ec-fg-12);color:var(--ec-fg-96);}
+.ncpanel.editing .ncp-cell{background:var(--ec-fg-8);box-shadow:inset 0 0 0 1px var(--ec-fg-12);}
+.ncpanel.editing .ncp-cell span{outline:none;cursor:text;}
+.ncpanel.editing .ncp-cell span:focus{color:var(--ec-fg-100);}
+.ncpanel.editing .ncp-cell:focus-within{box-shadow:inset 0 0 0 1px var(--ec-green);}
 .ncpanel.playing .sd-play .sp-play{display:none;}
 .ncpanel.playing .sd-play .sp-pause{display:block;}
 .ncp-ctl .ss-val{min-width:32px;text-align:right;}
