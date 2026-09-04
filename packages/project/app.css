@@ -750,7 +750,7 @@
 .ncp-err__body b{font:500 12px/16px var(--ec-font);color:#ff8384;}
 .ncp-err__body span{font:400 11px/14px var(--ec-font);color:var(--ec-fg-56);}
 .ncpanel.has-err .stp-title{color:#ff8384;}
-.ncp-ctl{display:flex;align-items:center;gap:2px;height:28px;padding:2px 0;
+.ncp-ctl{display:flex;align-items:center;gap:2px;padding:1px 0;
   border-top:1px solid var(--ec-fg-8);border-bottom:1px solid var(--ec-fg-8);}
 .ncp-ctl .sd-speed{min-width:70px;flex:1 1 auto;}
 .ncp-ctl .sd-btn.on{background:var(--ec-fg-12);color:var(--ec-fg-96);}
