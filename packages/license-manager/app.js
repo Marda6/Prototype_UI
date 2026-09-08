@@ -645,12 +645,19 @@ window.addEventListener('resize', syncModLabels);
     pop.style.top = Math.max(8, top) + 'px';
     pop.style.left = Math.max(8, left) + 'px';
   }
-  function hide(){ hideTimer = setTimeout(function(){ pop.hidden = true; }, 120); }
-  pop.addEventListener('mouseenter', function(){ clearTimeout(hideTimer); });
-  pop.addEventListener('mouseleave', hide);
+  function hide(){ pop.hidden = true; current = null; }
+  var current = null;
 
+  // opens on click, toggles on a second click; closes on an outside click or Esc
   document.querySelectorAll('.xstate.st-error[data-err]').forEach(function(cell){
-    cell.addEventListener('mouseenter', function(){ show(cell); });
-    cell.addEventListener('mouseleave', hide);
+    cell.addEventListener('click', function(e){
+      e.stopPropagation();
+      if (current === cell) { hide(); return; }
+      current = cell;
+      show(cell);
+    });
   });
+  pop.addEventListener('click', function(e){ e.stopPropagation(); });
+  document.addEventListener('click', hide);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') hide(); });
 })();

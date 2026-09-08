@@ -30,7 +30,8 @@
   .xstate.st-invalid{color:var(--ec-fg-48);}
   .xstate.st-pending{color:#ebda84;}
   /* activation failed: status icon (16px) + label in the error colour; hover → reason popover */
-  .xstate.st-error{color:#ff5c77;display:inline-flex;align-items:center;gap:4px;cursor:default;}
+  .xstate.st-error{color:#ff5c77;display:inline-flex;align-items:center;gap:4px;cursor:pointer;}
+  .xstate.st-error:hover .v{text-decoration:underline;text-underline-offset:2px;}
   .xerr-icn{width:16px;height:16px;flex:0 0 16px;}
   /* .xpop.xerr-pop — beats the generic .xpop border declared further down */
   .xpop.xerr-pop{width:320px;max-width:320px;padding:18px 20px 20px;cursor:default;
