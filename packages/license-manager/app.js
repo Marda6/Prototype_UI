@@ -41,6 +41,14 @@ var LICENSES = {
      items:['Adaptive','ENCY NB 3 2D']}
   ],
   tblEncySoft: [
+    // newest first — activation failed: the server rejected the last attempt, the reason is kept on the row
+    {id:'#464871', name:'ENCY NB 5x Mill Advanced', remaining:29, type:'Trial', prot:'software',
+     maint:'2026-09-12', status:'error',
+     err:'Bad request: Duplicate PC activation for free trial license.',
+     items:['Adaptive','ENCY NB 3 5D','ENCY NB 3D','ENCY NB 3 2D','ENCY NB 3 6D','Disc Roughing',
+            'ENCY NB 3 operations','Multichannel','Nesting','Robot+','Robotic turning',
+            'SOLIDWORKS Reader','Spraying/Painting','Teamcenter integration','Turn XZCYB','Welding',
+            'Wire EDM']},
     {id:'#462785', name:'ENCY 5x Mill Advanced', remaining:341, type:'Commercial', prot:'software',
      maint:'2027-09-10', status:'valid',
      items:['Adaptive','ENCY NB 3 5D','ENCY NB 3 6D','Multichannel','Nesting','Robot+','Wire EDM']},
@@ -49,15 +57,7 @@ var LICENSES = {
      items:['SOLIDWORKS Reader','Teamcenter integration']},
     {id:'#462812', name:'ENCY Cutting', remaining:17, type:'Education Commercial', prot:'software',
      maint:'2026-09-04', status:'valid',
-     items:['Nesting','Disc Roughing']},
-    // activation failed: the server rejected the last attempt — the reason is kept on the row
-    {id:'#464871', name:'ENCY NB 5x Mill Advanced', remaining:29, type:'Trial', prot:'software',
-     maint:'2026-09-12', status:'error',
-     err:'Bad request: Duplicate PC activation for free trial license.',
-     items:['Adaptive','ENCY NB 3 5D','ENCY NB 3D','ENCY NB 3 2D','ENCY NB 3 6D','Disc Roughing',
-            'ENCY NB 3 operations','Multichannel','Nesting','Robot+','Robotic turning',
-            'SOLIDWORKS Reader','Spraying/Painting','Teamcenter integration','Turn XZCYB','Welding',
-            'Wire EDM']}
+     items:['Nesting','Disc Roughing']}
   ],
   tblExt: [
     {id:'#530114', name:'DMG MORI NLX 2500', remaining:199, type:'Machine', prot:'dongle',
