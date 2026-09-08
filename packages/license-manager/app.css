@@ -34,7 +34,7 @@
   .xstate.st-error:hover .v{text-decoration:underline;text-underline-offset:2px;}
   .xerr-icn{width:16px;height:16px;flex:0 0 16px;}
   /* .xpop.xerr-pop — beats the generic .xpop border declared further down */
-  .xpop.xerr-pop{width:320px;max-width:320px;padding:18px 20px 20px;cursor:default;
+  .xpop.xerr-pop{width:320px;max-width:320px;padding:14px 16px 16px;cursor:default;
     display:flex;flex-direction:column;gap:8px;border:1px solid #ff5c77;}
   .xerr-head{display:flex;align-items:center;gap:8px;}
   .xerr-head img{width:16px;height:16px;flex:0 0 16px;}

@@ -639,18 +639,11 @@ window.addEventListener('resize', syncModLabels);
       '<div class="xerr-btns"><button class="xd-btn">Retry</button>' +
         '<button class="xd-btn xd-ghost">Copy error</button></div>';
     pop.hidden = false;
-    // the popover sits to the left of the status, its title on the row's line;
-    // if there is no room on the left it falls back to below / above the cell
-    var r = cell.getBoundingClientRect(), h = pop.offsetHeight, w = pop.offsetWidth,
-        pad = parseFloat(getComputedStyle(pop).paddingTop) || 0,
-        top, left = r.left - w - 12;
-    if (left >= 8) {
-      top = r.top + r.height / 2 - pad - 8;      // title centred on the row
-    } else {
-      left = Math.min(r.right - w, window.innerWidth - w - 8);
-      top = r.bottom + h + 8 <= window.innerHeight ? r.bottom + 4 : r.top - h - 4;
-    }
-    top = Math.min(top, window.innerHeight - h - 8);
+    // below the status, left-aligned with it; flips above the row when there is no room
+    // below, so it never gets pinned into the window corner on scaled displays
+    var r = cell.getBoundingClientRect(), h = pop.offsetHeight, w = pop.offsetWidth;
+    var top = r.bottom + h + 16 <= window.innerHeight ? r.bottom + 4 : r.top - h - 4;
+    var left = Math.min(r.left, window.innerWidth - w - 16);
     pop.style.top = Math.max(8, top) + 'px';
     pop.style.left = Math.max(8, left) + 'px';
   }
