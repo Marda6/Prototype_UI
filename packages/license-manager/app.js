@@ -49,7 +49,15 @@ var LICENSES = {
      items:['SOLIDWORKS Reader','Teamcenter integration']},
     {id:'#462812', name:'ENCY Cutting', remaining:17, type:'Education Commercial', prot:'software',
      maint:'2026-09-04', status:'valid',
-     items:['Nesting','Disc Roughing']}
+     items:['Nesting','Disc Roughing']},
+    // activation failed: the server rejected the last attempt — the reason is kept on the row
+    {id:'#464871', name:'ENCY NB 5x Mill Advanced', remaining:29, type:'Trial', prot:'software',
+     maint:'2026-09-12', status:'error',
+     err:'Bad request: Duplicate PC activation for free trial license.',
+     items:['Adaptive','ENCY NB 3 5D','ENCY NB 3D','ENCY NB 3 2D','ENCY NB 3 6D','Disc Roughing',
+            'ENCY NB 3 operations','Multichannel','Nesting','Robot+','Robotic turning',
+            'SOLIDWORKS Reader','Spraying/Painting','Teamcenter integration','Turn XZCYB','Welding',
+            'Wire EDM']}
   ],
   tblExt: [
     {id:'#530114', name:'DMG MORI NLX 2500', remaining:199, type:'Machine', prot:'dongle',
@@ -82,7 +90,8 @@ var LICENSES = {
 (function(){
   var PROT = {account:'Account', software:'Software', dongle:'Dongle'},
       // active — the license the current session runs under: same wording as in the card
-      STATUS = {active:'Current', valid:'Valid', invalid:'Invalid', signin:'Sign in required'},
+      STATUS = {active:'Current', valid:'Valid', invalid:'Invalid', signin:'Sign in required',
+                error:'Activation failed'},
       SOON = 30;                      // days remaining that already count as "soon"
 
   // maintenance is also counted in days — same as the license term
@@ -107,6 +116,7 @@ var LICENSES = {
     if (l.status === 'active')  return '<button class="xd-btn rel">Release</button>';
     if (l.status === 'signin')  return '<button class="xd-btn">Sign in</button>';
     if (l.status === 'valid')   return '<button class="xd-btn uset">Activate</button>';
+    if (l.status === 'error')   return '<button class="xd-btn uset">Retry</button>';
     return '';                      // an expired one cannot be activated
   }
 
@@ -149,7 +159,9 @@ var LICENSES = {
       '<span class="xdim">' + l.type + '</span>' +
       '<span class="xdim">' + PROT[l.prot] + '</span>' +
       maintCell(l) +
-      '<span class="xstate st-' + l.status + '">' +
+      // error: the status icon + label; the reason is shown in a popover on hover
+      '<span class="xstate st-' + l.status + '"' + (l.err ? ' data-err="' + l.err + '"' : '') + '>' +
+        (l.status === 'error' ? '<img class="xerr-icn" src="../project/assets/status-error.svg" alt="">' : '') +
         '<span class="v">' + STATUS[l.status] + '</span>' +
         '<span class="xsign">Sign in required</span></span>' +
       '<span class="ucell">' + useCell(l) + '</span>' +
@@ -607,5 +619,38 @@ window.addEventListener('resize', syncModLabels);
     cell.appendChild(chip);
     chip.addEventListener('mouseenter', function(){ show(chip, items); });
     chip.addEventListener('mouseleave', hide);
+  });
+})();
+
+// "Activation failed" status: hover shows the server's reason in a popover
+(function(){
+  var pop = document.createElement('div');
+  pop.className = 'xpop xerr-pop'; pop.hidden = true;
+  document.body.appendChild(pop);
+  var hideTimer = null;
+
+  function show(cell){
+    clearTimeout(hideTimer);
+    var id = cell.parentNode.querySelector('.xnum').textContent;
+    pop.innerHTML =
+      '<div class="xerr-head"><img src="../project/assets/status-error.svg" alt="">' +
+        '<b>Activation failed</b><span class="xerr-id">' + id + '</span></div>' +
+      '<div class="xerr-text">' + cell.dataset.err + '</div>' +
+      '<div class="xerr-btns"><button class="xd-btn">Retry</button>' +
+        '<button class="xd-btn xd-ghost">Copy error</button></div>';
+    pop.hidden = false;
+    var r = cell.getBoundingClientRect(), h = pop.offsetHeight, w = pop.offsetWidth;
+    var top = Math.min(r.bottom + 4, window.innerHeight - h - 8);
+    var left = Math.min(r.left, window.innerWidth - w - 8);
+    pop.style.top = Math.max(8, top) + 'px';
+    pop.style.left = Math.max(8, left) + 'px';
+  }
+  function hide(){ hideTimer = setTimeout(function(){ pop.hidden = true; }, 120); }
+  pop.addEventListener('mouseenter', function(){ clearTimeout(hideTimer); });
+  pop.addEventListener('mouseleave', hide);
+
+  document.querySelectorAll('.xstate.st-error[data-err]').forEach(function(cell){
+    cell.addEventListener('mouseenter', function(){ show(cell); });
+    cell.addEventListener('mouseleave', hide);
   });
 })();

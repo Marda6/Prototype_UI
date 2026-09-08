@@ -29,6 +29,19 @@
   .xstate.st-active{color:var(--st-green);}
   .xstate.st-invalid{color:var(--ec-fg-48);}
   .xstate.st-pending{color:#ebda84;}
+  /* activation failed: status icon (16px) + label in the error colour; hover → reason popover */
+  .xstate.st-error{color:#ff5c77;display:inline-flex;align-items:center;gap:4px;cursor:default;}
+  .xerr-icn{width:16px;height:16px;flex:0 0 16px;}
+  .xerr-pop{width:320px;max-width:320px;padding:18px 20px 20px;cursor:default;
+    display:flex;flex-direction:column;gap:8px;border-color:rgba(255,92,119,.6);}
+  .xerr-head{display:flex;align-items:center;gap:8px;}
+  .xerr-head img{width:16px;height:16px;flex:0 0 16px;}
+  .xerr-head b{color:var(--ec-fg-96);font:600 12px/16px var(--ec-font);}
+  .xerr-id{color:var(--ec-fg-48);font-variant-numeric:tabular-nums;margin-left:auto;}
+  .xerr-text{color:var(--ec-fg-64);font:400 12px/18px var(--ec-font);white-space:normal;
+    padding-right:16px;}
+  .xerr-btns{display:flex;gap:6px;margin-top:8px;}
+  .xd-ghost{background:transparent;}
   .xsign{display:none;color:var(--ec-fg-56);}
   /* offline: account licenses have no sign-in */
   .app.offline .xrow[data-prot="account"] .xstate .v{display:none;}
