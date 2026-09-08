@@ -142,9 +142,12 @@
         '<div class="sdiv"></div>' +
         '<nav class="snav">' +
           group('account') +
-          '<div class="srow">' +
+          '<div class="srow srow-user">' +
             '<span class="icn16 sacc-icn"><img src="' + BASE + 'sb-account.svg" alt=""></span>' +
-            '<span class="t">My account</span>' +
+            '<span class="t suser">' +
+              '<span class="suser-name">Ruslan Mardanshin</span>' +
+              '<span class="suser-mail">ruslan.m@encycam.io</span>' +
+            '</span>' +
           '</div>' +
         '</nav>' +
       '</div>' +
