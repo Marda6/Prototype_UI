@@ -824,7 +824,8 @@
 .arw-grp{display:flex;flex-direction:column;gap:2px;margin-top:4px;}
 .arw-grp__t{height:20px;display:flex;align-items:center;padding:0 4px;color:var(--ec-fg-56);
   font:400 12px/16px var(--ec-font);}
-.arw-note{padding:2px 4px;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);}
+/* description sits 8px below the last parameter row (2px group gap + 6px margin) */
+.arw-note{margin-top:6px;padding:0 4px;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);}
 /* checkbox — same recipe as Clouds (.chk): 14px, 4px radius, green fill with a dark tick */
 .arw .chk{width:14px;height:14px;flex:0 0 14px;box-sizing:border-box;border-radius:4px;
   border:1px solid var(--ec-fg-24);position:relative;cursor:pointer;}
@@ -913,8 +914,9 @@
 /* unchecked → the whole row is disabled: controls dimmed and inert, only the checkbox stays live */
 .arp-axrow.is-off .ictl{opacity:.4;pointer-events:none;}
 .arp-axrow.is-off .dropdown,.arp-axrow.is-off .arp-in{cursor:default;}
-.arp-in{justify-content:flex-end;gap:4px;}
-.arp-in .v{text-align:right;color:var(--ec-fg-96);outline:none;min-width:0;}
+/* value field = the regular inspector input: text starts at the left, the unit follows the value */
+.arp-in{justify-content:flex-start;gap:4px;}
+.arp-in .v{text-align:left;color:var(--ec-fg-96);outline:none;min-width:0;}
 .arp-in .v:focus{color:var(--ec-fg-100);}
 .arp-in.is-auto .v{color:var(--ec-fg-48);}
 .arp-in:focus-within{box-shadow:inset 0 0 0 1px var(--ec-green);}
