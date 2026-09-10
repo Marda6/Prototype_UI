@@ -539,8 +539,14 @@
     var tl = timeline(), segs = tl.filter(function(s){ return s.moves; })
       .map(function(s){ return {id:s.id, from:s.from, to:s.to}; });
     view.setSegments(segs, {fit:!viewFitted}); viewFitted = true;
+    // non-motion commands (and moves that do not move) are shown as markers at the tool point
+    view.setMarkers(tl.filter(function(s){ return !s.moves; }).map(function(s){
+      var c = cmds().filter(function(x){ return x.id === s.id; })[0], t = c ? c.type : '';
+      return {id:s.id, pose:s.to,
+              kind: s.kind === 'stop' ? 'stop' : (t === 'WAITIN' || t === 'WAITSEC') ? 'wait' : 'event'};
+    }));
     var cur = tl.filter(function(s){ return s.id === selId; })[0];
-    view.setSelectedSegment(cur && cur.moves ? cur.id : null);
+    view.setSelectedSegment(cur ? cur.id : null);
     if(!playing) view.setPose(cur ? cur.to : (tl.length ? tl[tl.length-1].to : poseOf(startVals())));
   }
   // player: runs from the selected command to the end; motion segments take 1.5 s at 50%,

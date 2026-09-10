@@ -28,6 +28,7 @@ const COLORS = Object.freeze({
   fixtureBase: '#67766a', fixtureLeg: '#65776b', fixtureTop: '#7e9384',
   workpiece: '#8fb3a0', clamp: '#59685f', edge: '#c2bd9327',
   path: '#ff5c7799', pathSelected: '#ff5c77', pathEnd: '#ff5c77aa', pathEndSelected: '#ffd0d8',
+  marker: '#f5f5f5b8', markerActive: '#f5f5f5', markerLeader: '#f5f5f53d',
 });
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -279,6 +280,8 @@ class RobotPreview {
     }
     this._onSelect = options.onSegmentSelect ?? null;
     this._hover = null;
+    // ENCY: point markers for non-motion commands (stops, waits, events) — see setMarkers()
+    this._markers = []; this._hitMarkers = [];
     this._pixelRatioCap = clamp(finite(options.pixelRatioCap ?? 2, 'pixelRatioCap'), 1, 4);
     this._samples = samples;
     this._visibility = { grid: true, axes: true, trajectory: true };
@@ -343,7 +346,7 @@ class RobotPreview {
     this._assertAlive();
     const next = readSegments(segments, this._samples);
     this._segments = next;
-    if (!next.some(segment => segment.id === this._selected)) this._selected = null;
+    if (!this._knows(this._selected)) this._selected = null;
     this._refreshBounds();
     if (fit) {
       this._camera.zoom = 1;
@@ -352,13 +355,28 @@ class RobotPreview {
     this._draw();
   }
 
-  /** Highlight a path. Programmatic selection does not trigger onSegmentSelect. */
+  /** Highlight a path or a marker. Programmatic selection does not trigger onSegmentSelect. */
   setSelectedSegment(id) {
     this._assertAlive();
-    if (id !== null && !this._segments.some(segment => segment.id === id)) {
+    if (id !== null && !this._knows(id)) {
       throw new RangeError(`Unknown segment: ${id}.`);
     }
     this._selected = id;
+    this._draw();
+  }
+  _knows(id) {
+    return id === null || this._segments.some(s => s.id === id) || this._markers.some(m => m.id === id);
+  }
+
+  /** ENCY: markers = [{ id, pose, kind: 'stop' | 'wait' | 'event' }] drawn at the tool tip of `pose`.
+      Markers take part in hover / click selection exactly like path legs. */
+  setMarkers(markers) {
+    this._assertAlive();
+    if (!Array.isArray(markers)) throw new TypeError('markers must be an array.');
+    this._markers = markers.map(m => ({
+      id: String(m.id), kind: m.kind || 'event', point: getToolPosition(readPose(m.pose, DEFAULT_POSE)),
+    }));
+    if (!this._knows(this._selected)) this._selected = null;
     this._draw();
   }
 
@@ -511,6 +529,7 @@ class RobotPreview {
     const tip = this._project(robot.toolEnd);
     ctx.beginPath(); ctx.arc(tip[0], tip[1], 3.2, 0, Math.PI * 2);
     ctx.fillStyle = c.tip; ctx.fill(); ctx.strokeStyle = '#514f36'; ctx.lineWidth = 1; ctx.stroke();
+    this._drawMarkers();
     if (this._visibility.axes) this._drawAxes();
   }
 
@@ -527,8 +546,46 @@ class RobotPreview {
     }
   }
 
+  // ENCY: markers of non-motion commands. Several markers at one spot stack upwards.
+  // stop — red octagon · wait — ring with a clock hand · event — diamond
+  _drawMarkers() {
+    this._hitMarkers = [];
+    if (!this._visibility.trajectory || !this._markers.length) return;
+    const ctx = this._ctx, c = COLORS, seen = new Map();
+    for (const m of this._markers) {
+      const p = this._project(m.point), key = `${Math.round(p[0] / 6)}:${Math.round(p[1] / 6)}`;
+      const n = seen.get(key) || 0; seen.set(key, n + 1);
+      const x = p[0], y = p[1] - 14 - n * 16;
+      const selected = m.id === this._selected, hovered = !selected && m.id === this._hover;
+      const r = selected ? 7 : hovered ? 6.5 : 5.5;
+      // leader from the tool point to the (stacked) marker
+      ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(x, y + r); ctx.strokeStyle = c.markerLeader; ctx.lineWidth = 1; ctx.stroke();
+      const fill = m.kind === 'stop' ? (selected || hovered ? c.pathSelected : c.path)
+                 : (selected || hovered ? c.markerActive : c.marker);
+      ctx.beginPath();
+      if (m.kind === 'stop') {
+        for (let i = 0; i < 8; i++) { const a = Math.PI / 8 + i * Math.PI / 4; const px = x + r * Math.cos(a), py = y + r * Math.sin(a); if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); }
+        ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+      } else if (m.kind === 'wait') {
+        ctx.arc(x, y, r, 0, Math.PI * 2); ctx.strokeStyle = fill; ctx.lineWidth = selected ? 2 : 1.5; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - r * 0.6); ctx.lineTo(x + r * 0.45, y - r * 0.6); ctx.stroke();
+      } else {
+        ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath();
+        ctx.fillStyle = fill; ctx.fill();
+      }
+      if (selected) { ctx.beginPath(); ctx.arc(x, y, r + 3, 0, Math.PI * 2); ctx.strokeStyle = c.markerActive; ctx.lineWidth = 1; ctx.stroke(); }
+      this._hitMarkers.push({ id: m.id, x, y, r: r + 4 });
+    }
+  }
+
   _nearest(x, y) {
     let best = 12, result = null;
+    // markers sit on top of the paths, so they win the hit test
+    for (const m of [...this._hitMarkers].reverse()) {
+      const d = Math.hypot(x - m.x, y - m.y);
+      if (d <= m.r && d < best) { best = d; result = m.id; }
+    }
+    if (result !== null) return result;
     for (const path of [...this._hitPaths].reverse()) {
       for (let i = 1; i < path.points.length; i++) {
         const a = path.points[i - 1], b = path.points[i];
