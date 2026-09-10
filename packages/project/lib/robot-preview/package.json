@@ -1,0 +1,11 @@
+{
+  "name": "cam-robot-preview",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./robot-preview.js",
+  "types": "./robot-preview.d.ts",
+  "scripts": {
+    "build:global": "node build-global.mjs"
+  }
+}

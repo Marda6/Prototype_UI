@@ -22,7 +22,13 @@
   /* ---------- Popover helper (dropdown menu & context menu) ---------- */
   var openMenu = null;
   function closeMenu(){
-    if(openMenu){ if(openMenu._owner) openMenu._owner.classList.remove('dd-open'); openMenu.remove(); openMenu = null; }
+    if(openMenu){
+      // an open smart hint returns from the option hint to the row's hint
+      var ownerRow = openMenu._owner && openMenu._owner.closest ? openMenu._owner.closest('.irow') : null;
+      if(openMenu._owner) openMenu._owner.classList.remove('dd-open');
+      openMenu.remove(); openMenu = null;
+      if(ownerRow && hintIsOpen()) hintShow(ownerRow);
+    }
   }
   function showMenu(anchorRect, items, owner, minW){
     closeMenu();
@@ -80,6 +86,13 @@
   var HOLDERTYPE_OPTS = ['Any', 'L — Left hand', 'R — Right hand', 'N — Neutral'];
   var INSERTTYPE_OPTS = ['Any', 'C — 80° rhombic', 'D — 55° rhombic', 'V — 35° rhombic', 'W — 80° trigon', 'T — 60° triangle', 'S — square'];
   var HANDTYPE_OPTS   = ['Right (R)', 'Left (L)', 'Neutral (N)'];
+  /* Links tab: approach / return rules (the G53 presets come from the machine) */
+  var AR_OPTS = ['Avoid collisions', 'Short',
+    'G53 A1 A2 A3 A4 A5 A6; G53 E1 E2 — From Previous',
+    'G53 A1 A2 A3 A4 A5 A6; G53 E1 E2 — From Root',
+    'G53 A1 A2 A3 A4 A5 A6; G53 E1 E2 — Return by default'];
+  var TOOLCHG_OPTS  = ['From Previous', 'From Root', 'Return by default'];
+  var SAFESURF_OPTS = ['Plane', 'Cylinder', 'Sphere', 'Box', 'None'];
   var PARAMS = {
     Setup: [
       {label:'Coordinate system', ctl:'dropdown', val:'World'},
@@ -159,11 +172,20 @@
       {label:'Offset', ctl:'input', val:'000.000', indent:1},
       {label:'Clamp', ctl:'toggle', on:false}
     ],
+    /* Links/Leads — the two approach / return combos share one option list;
+       "Custom…" at the end opens the rules editor (window comes later) */
     Links: [
-      {label:'Lead-in', ctl:'dropdown', val:'Arc'},
-      {label:'Lead-out', ctl:'dropdown', val:'Arc'},
-      {label:'Ramp', ctl:'toggle', on:true},
-      {label:'Distance', ctl:'input', val:'005.000', indent:1}
+      {label:'Approach/Return', shev:'open', ghead:'ar', headonly:true, bold:true},
+      {label:'Approach', ctl:'dropdown', val:'Avoid collisions', opts:AR_OPTS, custom:true, indent:1, gchild:'ar', nomore:true},
+      {label:'Return', ctl:'dropdown', val:'Avoid collisions', opts:AR_OPTS, custom:true, indent:1, gchild:'ar', nomore:true},
+      {label:'Tool change position', ctl:'dropdown', val:'From Previous', opts:TOOLCHG_OPTS, indent:1, gchild:'ar', nomore:true},
+      {type:'divider'},
+      {label:'Safe motions', shev:'open', ghead:'safe', headonly:true, bold:true},
+      {label:'Safe surface', ctl:'dropdown', val:'Plane', opts:SAFESURF_OPTS, indent:1, gchild:'safe', shev:'right', nomore:true},
+      {label:'Safe level', ctl:'input', val:'10 mm from the top', indent:1, gchild:'safe', nomore:true},
+      {label:'Avoid collisions at rapid', ctl:'toggle', on:false, indent:1, gchild:'safe', nomore:true},
+      {label:'Check workpiece', ctl:'toggle', on:false, indent:1, gchild:'safe', nomore:true},
+      {label:'Safe distance', ctl:'input', val:'20 mm', indent:1, gchild:'safe', nomore:true}
     ],
     More: [
       {label:'Notes', ctl:'dropdown', val:'Text for example'},
@@ -218,7 +240,7 @@
       ? '<img class="shev'+(p.ghead?' exp':'')+'" src="'+shevSrc(p.shev)+'">'
       : '<i class="shev"></i>';
     var lblCls = p.bold ? ' class="b"' : '';
-    var optsA  = p.opts  ? ' data-opts="'+p.opts.join('|')+'"'  : '';
+    var optsA  = (p.opts  ? ' data-opts="'+p.opts.join('|')+'"'  : '') + (p.custom ? ' data-custom="'+p.label+'"' : '');
     var optsB  = p.opts2 ? ' data-opts="'+p.opts2.join('|')+'"' : '';
     var ctlHtml = '', between = (p.ctl==='toggle' || p.ctl==='pair') && !p.tight;
     if(p.ctl==='dropdown'){
@@ -411,6 +433,13 @@
     else if(e.key==='Enter' || e.key==='Escape'){ e.preventDefault(); gotoTool(toolPrev||'view'); }
   });
 
+  /* Links tab: "Custom…" opens the approach / return rules editor.
+     The window itself is not built yet — this is the hook for it. */
+  function linksCustomOpen(which, anchor){
+    closeStatus();
+    if(window.arOpen) window.arOpen(which);   // rules.js — the "Approach / Return rules" window
+  }
+
   /* ---------- Inspector interactions (event delegation) ---------- */
   irows.addEventListener('click', function(e){
     var tgl = e.target.closest('.tgl');
@@ -424,6 +453,11 @@
       var opts = dd.dataset.opts ? dd.dataset.opts.split('|') : DD_OPTS.slice();
       if(opts.indexOf(v.textContent) < 0) opts = [v.textContent].concat(opts);
       var items = opts.map(function(o){ return {label:o, cur:o===v.textContent, onPick:function(){ v.textContent=o; }}; });
+      // "Custom…" — separated at the bottom; opens the rules editor for this combo
+      if(dd.dataset.custom){
+        items.push({sep:true});
+        items.push({label:'Custom…', cur:v.textContent==='Custom', onPick:function(){ v.textContent='Custom'; linksCustomOpen(dd.dataset.custom, dd); }});
+      }
       showMenu(dd.getBoundingClientRect(), items, dd, dd.getBoundingClientRect().width);
       return;
     }
@@ -466,7 +500,110 @@
       return;
     }
     var row = e.target.closest('.irow');
-    if(row){ irows.querySelectorAll('.irow').forEach(function(x){x.classList.remove('sel');}); row.classList.add('sel'); }
+    if(row){
+      irows.querySelectorAll('.irow').forEach(function(x){x.classList.remove('sel');}); row.classList.add('sel');
+      // "!" opens the smart hint; an open hint follows the selected parameter
+      if(e.target.closest('.hint')){ e.stopPropagation(); hintOpen(row); }
+      else if(hintPanel.classList.contains('open')) hintShow(row);
+    }
+  });
+
+  /* ---------- Smart hint: a 360px window to the right of the dock ----------
+     Opens on the "!" of an inspector row, follows the selected row while
+     open, closes only via ✕ / Esc. Content = title, image carousel, text. */
+  var hintPanel = document.getElementById('hintPanel');
+  // hint = text + one or more pictures (the pager flips pictures only).
+  // Keyed by parameter label; option hints are keyed "Label: Option" and show
+  // while the pointer runs over the dropdown items.
+  var HINTS = {
+    "Station": {imgs:["Turret with numbered stations", "Station reach relative to the spindle"],
+      text:["Selects the magazine or turret where the tool assembly is mounted and its position number.", "The station defines which side of the machine reaches the part and how the tool change is posted. Changing it re-numbers T# in the code."]},
+    "Corrector": {imgs:["Corrector register on the controller", "Auto vs fixed register"],
+      text:["Tool length / radius corrector register (H / D) used by the controller for this assembly.", "\"Auto\" takes the register from the station number, so re-arranging tools keeps offsets consistent. Set a fixed number only when the machine offset table is managed by hand."]},
+    "Orientation": {imgs:["Tool orientation relative to the spindle axis"],
+      text:["How the tool is oriented relative to the spindle axis. The orientation drives the default approach direction and the collision envelope used in simulation.", "Hover an option in the list to see what each orientation looks like."]},
+    "Orientation: Axial": {imgs:["Axial orientation"], text:["The tool axis is parallel to the spindle axis. Used for facing, centre drilling and boring."]},
+    "Orientation: Radial": {imgs:["Radial orientation"], text:["The tool points at the spindle axis. Used for turning the outer diameter and grooving."]},
+    "Orientation: Angular": {imgs:["Angular orientation"], text:["The tool sits at a fixed angle to the spindle axis, for chamfers and inclined faces."]},
+    "Orientation: Back-turning": {imgs:["Back-turning orientation"], text:["The tool works behind the part centre, cutting towards the chuck. Needs a sub-spindle side or a reversed holder."]},
+    "Approach": {imgs:["Approach path preview", "Rules editor"],
+      text:["The rule that builds the motions from the tool change position to the first cut of this operation.", "Machine rules are shared presets; \"Custom…\" opens the rules editor where the sequence is changed for this operation only."]},
+    "Approach: Avoid collisions": {imgs:["Approach around the stock"], text:["Builds the approach around the stock and fixtures with the safe distance kept on every rapid move."]},
+    "Approach: Short": {imgs:["Shortest approach"], text:["Straight move from the tool change position to the first cut. No collision checking on the way."]},
+    "Return": {imgs:["Return path preview", "Rules editor"],
+      text:["The rule that builds the motions from the last cut back to the tool change position.", "Auto values are resolved from the operation context; fixed values stay as typed."]},
+    "Return: Avoid collisions": {imgs:["Return around the stock"], text:["Retracts along the safe surface first, then moves to the tool change position."]},
+    "Return: Short": {imgs:["Shortest return"], text:["Straight move from the last cut to the tool change position. No collision checking on the way."]},
+    "Safe surface": {imgs:["Safe surface around the part"],
+      text:["Surface the tool retracts to between cuts. Rapid motions run along it; the safe level sets how far it sits from the stock."]},
+    "Safe surface: Plane": {imgs:["Plane"], text:["A plane above the part: the simplest safe surface for prismatic parts."]},
+    "Safe surface: Cylinder": {imgs:["Cylinder"], text:["A cylinder around the spindle axis: rapid moves follow the part on turning operations."]},
+    "Safe surface: Sphere": {imgs:["Sphere"], text:["A sphere around the part for multi-axis operations where the tool approaches from any side."]},
+    "Safe distance": {imgs:["Too small: tool grazes the stock", "Recommended: 2× stock allowance"],
+      text:["Clearance kept between the tool and the part on rapid moves when the safe surface is not used."]}
+  };
+  function hintData(k){
+    if(HINTS[k]) return HINTS[k];
+    var i = k.indexOf(": ");
+    if(i > 0) return {imgs:[k.slice(i + 2)], text:[k.slice(i + 2) + " — option of " + k.slice(0, i) + "."]};
+    return {imgs:[k], text:[k + " — parameter of the current operation.", "This hint explains what the value affects, how it is calculated and when to change it."]};
+  }
+  var hintKey = "", hintPage = 0;
+  function rowLabel(row){ var l = row && row.querySelector(".rlabel span"); return l ? l.textContent.trim() : ""; }
+  var HINT_PIC = '<svg viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">' +
+    '<rect x="0.5" y="0.5" width="319" height="159" rx="6" fill="none" stroke="currentColor" stroke-opacity=".16"/>' +
+    '<path d="M60 120 L130 60 L180 105 L215 80 L262 120 Z" fill="currentColor" fill-opacity=".08" stroke="currentColor" stroke-opacity=".32"/>' +
+    '<circle cx="232" cy="46" r="12" fill="currentColor" fill-opacity=".14"/></svg>';
+  // show the hint for a key ("Label" or "Label: Option"); the window stays
+  // aligned with the row the hint belongs to
+  function hintShowKey(k, row){
+    if(k !== hintKey){ hintKey = k; hintPage = 0; }
+    var d = hintData(k), n = d.imgs.length, p = Math.min(hintPage, n - 1);
+    hintPanel.querySelector("#hintTitle").textContent = k;
+    hintPanel.querySelector("#hintGal").innerHTML = '<div class="hint-img">' + HINT_PIC + '<span class="hint-cap">' + d.imgs[p] + '</span></div>';
+    hintPanel.querySelector("#hintText").innerHTML = d.text.map(function(t){ return "<p>" + t + "</p>"; }).join("");
+    hintPanel.querySelector("#hintNav").hidden = n < 2;
+    hintPanel.querySelector("#hintDots").innerHTML = n > 6 ? "" : d.imgs.map(function(_, i){ return '<i class="' + (i===p ? "on" : "") + '"></i>'; }).join("");
+    hintPanel.querySelector("#hintStep").textContent = (p + 1) + " / " + n;
+    hintPanel.querySelector("#hintPrev").disabled = p === 0;
+    hintPanel.querySelector("#hintNext").disabled = p >= n - 1;
+    if(row){
+      var vp = hintPanel.parentElement.getBoundingClientRect(), rr = row.getBoundingClientRect();
+      hintPanel.style.top = Math.max(8, Math.min(rr.top - vp.top, vp.height - hintPanel.offsetHeight - 8)) + "px";
+    }
+  }
+  function hintShow(row){ hintShowKey(rowLabel(row), row); }
+  function hintOpen(row){ hintPanel.classList.add("open"); hintShow(row); }
+  function hintClose(){ hintPanel.classList.remove("open"); }
+  function hintIsOpen(){ return hintPanel.classList.contains("open"); }
+  // hovering a row swaps the hint; leaving the list returns to the selected row
+  irows.addEventListener("mouseover", function(e){
+    if(!hintIsOpen() || openMenu) return;
+    var row = e.target.closest(".irow"); if(row) hintShow(row);
+  });
+  irows.addEventListener("mouseleave", function(){
+    if(!hintIsOpen() || openMenu) return;
+    var sel = irows.querySelector(".irow.sel"); if(sel) hintShow(sel);
+  });
+  // hovering a dropdown option shows "Label: Option" — the differences side by side
+  document.addEventListener("mouseover", function(e){
+    if(!hintIsOpen() || !openMenu || !openMenu._owner) return;
+    var row = openMenu._owner.closest(".irow"); if(!row) return;
+    var opt = e.target.closest(".dd-opt");
+    if(opt && openMenu.contains(opt)) hintShowKey(rowLabel(row) + ": " + opt.textContent.trim(), row);
+    else if(!e.target.closest(".dd-menu")) hintShow(row);
+  });
+  hintPanel.addEventListener("click", function(e){
+    e.stopPropagation();
+    if(e.target.closest("#hintClose")){ hintClose(); return; }
+    if(e.target.closest("#hintPrev")){ hintPage = Math.max(0, hintPage - 1); hintShowKey(hintKey); }
+    if(e.target.closest("#hintNext")){ if(hintPage < hintData(hintKey).imgs.length - 1) hintPage++; hintShowKey(hintKey); }
+  });
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape") hintClose();
+    if(!hintIsOpen() || /^(INPUT|TEXTAREA)$/.test(e.target.tagName) || e.target.isContentEditable) return;
+    if(e.key === "ArrowLeft"){ e.preventDefault(); hintPage = Math.max(0, hintPage - 1); hintShowKey(hintKey); }
+    if(e.key === "ArrowRight"){ e.preventDefault(); if(hintPage < hintData(hintKey).imgs.length - 1) hintPage++; hintShowKey(hintKey); }
   });
 
   renderInspector('Tool'); // initial

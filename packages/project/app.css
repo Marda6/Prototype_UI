@@ -362,9 +362,9 @@
 /* two columns so the whole set fits on screen without scrolling */
 .simpop{position:fixed;z-index:1000;width:272px;
   background:var(--pop-bg);border:1px solid var(--ec-fg-12);border-radius:10px;
-  padding:10px 12px;box-shadow:0 8px 28px rgba(0,0,0,.5);}
+  padding:12px;box-shadow:0 8px 28px rgba(0,0,0,.5);}   /* 12px on every side, like .stpanel */
 .simpop[hidden]{display:none !important;}
-.sp-head{font:600 13px/18px var(--ec-font);color:var(--ec-fg-96);padding:2px 2px 8px;}
+.sp-head{font:600 13px/18px var(--ec-font);color:var(--ec-fg-96);padding:0 0 8px;}
 /* the stop-conditions popover: icon + label + toggle per row */
 .stopspop{width:280px;}
 /* icon + label + toggle rows keep their layout in both popups */
@@ -695,7 +695,7 @@
 
 /* Status panel — opens on a status-circle click in the tree */
 .stpanel{position:absolute;top:8px;left:357px;display:none;flex-direction:column;gap:8px;width:300px;
-  background:var(--pop-bg);border:1px solid var(--ec-fg-12);border-radius:10px;padding:12px 8px;
+  background:var(--pop-bg);border:1px solid var(--ec-fg-12);border-radius:10px;padding:12px;
   box-shadow:0 8px 28px rgba(0,0,0,.5);z-index:50;}
 .stpanel.open{display:flex;}
 .stp-head{display:flex;align-items:center;gap:8px;}
@@ -728,7 +728,7 @@
   width:1px;height:19px;background:var(--ec-fg-24);}
 
 /* NC block panel — same surface as the status panel, extra blocks for the code frame */
-.ncpanel{width:328px;padding:12px;}
+.ncpanel{width:328px;}
 /* operation icon placeholder: the 20×20 slot with a faint rounded square */
 .opic{width:20px;height:20px;flex:0 0 20px;display:flex;align-items:center;justify-content:center;}
 .opic::before{content:'';width:16px;height:16px;border-radius:4px;background:var(--ec-fg-8);}
@@ -769,5 +769,178 @@
   font-variant-numeric:tabular-nums;}
 .simrow.code .sim-dot{cursor:pointer;}
 .simrow.code:hover .sim-dot:not(.err){background:var(--ec-fg-56);}
+
+/* Links window (rules.js) — approach / return rules, opened from Links → Custom…
+   Same frame as the NC block panel: 328px; padding/gap come from .stpanel (12px / 8px). */
+/* ---- Links window v2 (.arw) — rebuilt block by block ----
+   frame: 328px, 8px padding, no gap between blocks (each block sets its own rhythm);
+   header row: 28px — title (Title 14/20 600) on the left, 20px close button on the right */
+.arw{width:300px;height:auto;max-height:calc(100% - 16px);padding:8px;gap:0;}
+/* 3D preview: fills the viewport under the window while it is open; the placeholder hint hides */
+.arw-view{position:absolute;inset:0;z-index:1;overflow:hidden;}
+.arw-view canvas{display:block;width:100%;height:100%;}
+.viewport.ar-open .vp-hint{display:none;}
+.arw-head{display:flex;align-items:center;gap:8px;height:20px;flex:0 0 20px;padding:0 0 0 4px;}
+.arw-title{flex:1;min-width:0;color:var(--ec-fg-96);font:500 12px/20px var(--ec-font);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.arw-close{border:0;background:transparent;cursor:pointer;color:var(--ec-fg-56);display:grid;
+  place-items:center;width:20px;height:20px;flex:0 0 20px;border-radius:4px;padding:0;}
+.arw-close:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+.arw-close svg{width:14px;height:14px;}
+.arw-body{display:flex;flex-direction:column;min-height:0;}
+/* body rows are 24px with 24px icon buttons (16px icons); only the header row stays 20px.
+   player row: same width as the header row; the shared player pieces scaled down —
+   track 4px, knob 10px */
+.arw-ctl{display:flex;align-items:center;gap:2px;height:24px;flex:0 0 24px;margin-top:8px;}
+.arw-div{margin:8px 0;}
+/* section header: 24px row — title (Body 12/16, Layer 96%) + 24px icon buttons on the right */
+.arw-sec{display:flex;align-items:center;gap:2px;height:24px;flex:0 0 24px;padding-left:4px;}
+.arw-sec__t{flex:1;min-width:0;color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* command list: 4px below the section header; fixed room for 6 rows (6·24 + 5·2 = 154px).
+   No reserved gutter: rows run to the buttons' right edge; when the list overflows the scrollbar
+   appears on that same edge and the rows narrow by its 8px */
+.arw-list{flex:0 0 154px;height:154px;margin-top:4px;overflow:auto;scrollbar-gutter:auto;
+  display:flex;flex-direction:column;gap:2px;}
+.arw-list .arp-row{flex:0 0 24px;height:24px;gap:6px;padding:0 4px;}
+.arw-list .arp-empty{padding:4px;}
+/* "⋮" — 24px button, visible on hover and on the selected row */
+.arp-row__more{flex:0 0 24px;width:24px;height:24px;display:none;place-items:center;border:0;border-radius:4px;
+  padding:0;margin-right:-4px;background:transparent;color:var(--ec-fg-56);cursor:pointer;}
+.arp-row__more svg{width:16px;height:16px;}
+.arp-row:hover .arp-row__more,.arp-row.sel .arp-row__more{display:grid;}
+.arp-row__more:hover,.arp-row__more.dd-open{background:var(--ec-fg-12);color:var(--ec-fg-96);}
+/* parameters: Type row, then 4px, then axis groups (linear / rotary) — each group has a
+   sub-title row (Body 12/16, Layer 56%) and 24px axis rows; controls are 20px in 24px rows */
+.arw-params{display:flex;flex-direction:column;gap:2px;}
+.arw-row{display:grid;grid-template-columns:112px minmax(0,1fr);gap:4px;align-items:center;
+  height:24px;flex:0 0 24px;padding:0 4px;}
+.arw-row__l{display:flex;align-items:center;gap:6px;min-width:0;color:var(--ec-fg-96);
+  font:400 12px/16px var(--ec-font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.arw-row__c{display:flex;align-items:center;gap:4px;min-width:0;}
+.arw-row .dropdown,.arw-row .input{height:20px;box-sizing:border-box;padding:0 4px;flex:1 1 0;min-width:0;}
+.arw-axrow .dropdown{flex:2 1 0;}
+.arw-axrow .arp-in{flex:3 1 0;}
+.arw-grp{display:flex;flex-direction:column;gap:2px;margin-top:4px;}
+.arw-grp__t{height:20px;display:flex;align-items:center;padding:0 4px;color:var(--ec-fg-56);
+  font:400 12px/16px var(--ec-font);}
+.arw-note{padding:2px 4px;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);}
+/* checkbox — same recipe as Clouds (.chk): 14px, 4px radius, green fill with a dark tick */
+.arw .chk{width:14px;height:14px;flex:0 0 14px;box-sizing:border-box;border-radius:4px;
+  border:1px solid var(--ec-fg-24);position:relative;cursor:pointer;}
+.arw .chk:hover{border-color:var(--ec-fg-48);}
+.arw .chk.on{background:var(--st-green);border-color:var(--st-green);}
+.arw .chk.on::after{content:"";position:absolute;left:2.5px;top:3px;width:7px;height:3.5px;
+  border-left:1.5px solid #04150e;border-bottom:1.5px solid #04150e;transform:rotate(-45deg);}
+/* unchecked → the whole row is disabled: label dimmed, controls dimmed and inert, checkbox stays live */
+.arw-axrow.is-off .arw-row__l{color:var(--ec-fg-48);}
+.arw-axrow.is-off .arw-row__c{opacity:.4;pointer-events:none;}
+.arw .sd-btn{width:24px;height:24px;flex:0 0 24px;}
+.arw .sd-sep{height:12px;margin:0 4px;}
+.arw .sd-speed{height:24px;min-width:0;margin:0 4px 0 4px;}
+/* speed value: Body 12/16, tabular digits, fixed width so the slider doesn't jump at 100% */
+.arw-val{flex:0 0 32px;text-align:right;color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);
+  font-variant-numeric:tabular-nums;}
+.arw .sd-line,.arw .sd-fill{top:10px;height:4px;border-radius:2px;}
+.arw .sd-dot{top:11px;}
+.arw .sd-knob{top:7px;width:10px;height:10px;margin-left:-5px;box-shadow:0 0 0 2px var(--pop-bg);}
+.arw.playing .sd-play .sp-play{display:none;}
+.arw.playing .sd-play .sp-pause{display:block;}
+
+/* ---- v1 blocks (kept for re-attachment) ---- */
+/* height is frozen by the script on first open (list = 6 rows); afterwards the bottom edge
+   and the splitter resize it — see --arp-list */
+.arp{width:328px;height:auto;max-height:calc(100% - 16px);--arp-list:149px;}
+.arp-split{flex:0 0 9px;height:9px;margin:-4px 0;display:flex;align-items:center;cursor:row-resize;}
+.arp-split:hover .line,.arp-split:active .line{background:var(--ec-fg-24);}
+.arp-resize{position:absolute;left:8px;right:8px;bottom:-3px;height:8px;cursor:ns-resize;}
+/* the player row doubles as the first divider (its own top/bottom hairlines) */
+.arp-ctl{margin-top:-2px;}
+/* short fixed slider, no percent label */
+.arp-ctl .sd-speed{flex:0 0 96px;min-width:0;}
+/* parameters block follows the list directly: the Type row is its header, 4px above the axes */
+.arp-params .irow:not(.arp-axrow) + .arp-axrow{margin-top:4px;}
+.arp .sd-knob,.arp .sd-ghost{box-shadow:0 0 0 3px var(--pop-bg);}
+.arp.playing .sd-play .sp-play{display:none;}
+.arp.playing .sd-play .sp-pause{display:block;}
+/* block header: section title on the left, icon buttons (same .sd-btn as the player) on the right;
+   the 28px buttons overhang the 24px row by 2px each side so the title baseline stays on grid */
+.arp-bh{display:flex;align-items:center;gap:2px;min-height:24px;margin:-2px 0;}
+.arp-bh .stp-sec{flex:1;min-width:0;margin-top:0;}
+/* command list takes what is free, parameters keep a fixed share at the bottom */
+/* only the command list scrolls: its 8px scrollbar gutter is reserved (no jump when the bar appears);
+   the other blocks run the full content width */
+.arp-list{flex:0 0 var(--arp-list);min-height:0;overflow:auto;scrollbar-gutter:stable;}
+.arp-params{flex:1 1 auto;min-height:50px;overflow:auto;display:flex;flex-direction:column;gap:2px;}
+.arp-params > *{flex:0 0 auto;}   /* rows keep 24px, the block scrolls instead */
+.arp-params .line{margin:4px 0;}
+.arp-empty,.arp-note{color:var(--ec-fg-48);font:400 12px/16px var(--ec-font);padding:2px 4px;}
+/* command rows: number · kind mark · summary · ✕ on hover */
+.arp-list{display:flex;flex-direction:column;gap:1px;}
+/* flex:0 0 24px — rows never shrink inside the scrolling column, the list scrolls instead */
+.arp-row{display:flex;align-items:center;gap:6px;height:24px;flex:0 0 24px;padding:0 4px;border-radius:4px;cursor:pointer;
+  font:400 12px/16px var(--ec-font);color:var(--ec-fg-96);}
+.arp-row:hover{background:var(--ec-fg-8);}
+.arp-row.sel{background:var(--ec-fg-12);}
+.arp-row__n{flex:0 0 14px;color:var(--ec-fg-48);font-variant-numeric:tabular-nums;text-align:right;}
+.arp-row__t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;}
+.arp-row__del{flex:0 0 20px;width:20px;height:20px;display:none;place-items:center;border:0;border-radius:3px;padding:0;
+  background:transparent;color:var(--ec-fg-56);cursor:pointer;}
+.arp-row__del svg{width:12px;height:12px;}
+.arp-row:hover .arp-row__del,.arp-row.sel .arp-row__del{display:grid;}
+.arp-row__del:hover{background:var(--ec-fg-12);color:var(--ec-fg-96);}
+/* parameter rows: one grid for every row — label column 112px, controls take the rest —
+   so the Type dropdown and the axis controls start on the same vertical.
+   Every control is 20px tall in a 24px row (inspector metrics), gaps are 4px. */
+.arp-params .irow{display:grid;grid-template-columns:112px minmax(0,1fr);gap:4px;align-items:center;
+  height:24px;box-sizing:border-box;padding:2px;cursor:default;}
+.arp-params .irow:hover{background:transparent;}
+.arp-params .ilbl,.arp-params .ictl{flex:none;min-width:0;}
+.arp-params .ictl{display:flex;gap:4px;overflow:visible;}
+.arp-params .ictl .dropdown,.arp-params .ictl .input{height:20px;box-sizing:border-box;padding:0 4px;}
+.arp-params .ictl .dropdown{flex:1 1 0;}
+/* axis rows: checkbox · axis id on the left; mode (2 parts) · value (3 parts) on the right */
+.arp-axrow .ictl .dropdown{flex:2 1 0;}
+.arp-axrow .ictl .arp-in{flex:3 1 0;}
+.arp-axrow .rlabel > span{display:flex;align-items:center;gap:6px;}
+/* checkbox — same recipe as Clouds (.chk): 14px, 4px radius, green fill with a dark tick */
+.arp-axrow .chk{width:14px;height:14px;flex:0 0 14px;box-sizing:border-box;border-radius:4px;
+  border:1px solid var(--ec-fg-24);position:relative;cursor:pointer;}
+.arp-axrow .chk:hover{border-color:var(--ec-fg-48);}
+.arp-axrow .chk.on{background:var(--st-green);border-color:var(--st-green);}
+.arp-axrow .chk.on::after{content:"";position:absolute;left:2.5px;top:3px;width:7px;height:3.5px;
+  border-left:1.5px solid #04150e;border-bottom:1.5px solid #04150e;transform:rotate(-45deg);}
+/* unchecked → the whole row is disabled: controls dimmed and inert, only the checkbox stays live */
+.arp-axrow.is-off .ictl{opacity:.4;pointer-events:none;}
+.arp-axrow.is-off .dropdown,.arp-axrow.is-off .arp-in{cursor:default;}
+.arp-in{justify-content:flex-end;gap:4px;}
+.arp-in .v{text-align:right;color:var(--ec-fg-96);outline:none;min-width:0;}
+.arp-in .v:focus{color:var(--ec-fg-100);}
+.arp-in.is-auto .v{color:var(--ec-fg-48);}
+.arp-in:focus-within{box-shadow:inset 0 0 0 1px var(--ec-green);}
+.arp-unit{color:var(--ec-fg-48);font:400 12px/16px var(--ec-font);flex:0 0 auto;}
+.arp-axrow.is-off .rlabel span,.arp-axrow.is-off .arp-in .v,.arp-axrow.is-off .dropdown .v{color:var(--ec-fg-48);}
+.dd-opt.is-disabled{opacity:.4;pointer-events:none;}
+
+/* Smart hint window (inspector "!") */
+/* the 8px scrollbar gutter is part of the right padding: 4 + 8 = 12, same as the other sides */
+.hintpanel{width:360px;padding:12px 4px 12px 12px;gap:8px;max-height:calc(100% - 16px);overflow:auto;scrollbar-gutter:stable;}
+.hint-gal{position:relative;color:var(--ec-fg-96);}
+.hint-img{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.hint-img svg{width:100%;height:auto;display:block;border-radius:6px;background:var(--ec-fg-4);}
+.hint-cap{color:var(--ec-fg-48);font:400 11px/16px var(--ec-font);text-align:center;}
+.hint-nav{display:flex;align-items:center;justify-content:center;gap:8px;}
+.hint-nav[hidden]{display:none;}
+.hint-nav .sd-btn{border:0;padding:0;background:transparent;}
+.hint-nav .sd-btn:disabled{opacity:.3;pointer-events:none;}
+.hint-nav{margin-top:-4px;justify-content:flex-start;}
+.hint-dots{display:inline-flex;gap:6px;flex:1;justify-content:center;}
+.hint-step{color:var(--ec-fg-48);font:400 11px/16px var(--ec-font);font-variant-numeric:tabular-nums;}
+.hint-dots i{width:6px;height:6px;border-radius:50%;background:var(--ec-fg-24);}
+.hint-dots i.on{background:var(--ec-fg-72);}
+.hint-text{display:flex;flex-direction:column;gap:8px;}
+.hint-text p{margin:0;color:var(--ec-fg-72);font:400 12px/18px var(--ec-font);}
+.hint-text p:first-child{color:var(--ec-fg-96);}
+.hint{cursor:pointer;}
 
 #assetbank{display:none}

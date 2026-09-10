@@ -397,6 +397,25 @@
         </div>
       </div>
 
+      <!-- Smart hint — opens on the "!" of an inspector row -->
+      <div class="stpanel hintpanel" id="hintPanel">
+        <div class="stp-head">
+          <span class="stp-title" id="hintTitle">Parameter</span>
+          <button class="stp-close" id="hintClose" title="Close">
+            <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="hint-gal" id="hintGal"></div>
+        <!-- picture pager, right under the picture (fixed height, so the arrows stay put) -->
+        <div class="hint-nav" id="hintNav">
+          <button class="sd-btn" id="hintPrev" title="Previous page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.8 3.5L5.3 8l4.5 4.5"/></svg></button>
+          <span class="hint-dots" id="hintDots"></span>
+          <span class="hint-step" id="hintStep"></span>
+          <button class="sd-btn" id="hintNext" title="Next page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.2 3.5L10.7 8l-4.5 4.5"/></svg></button>
+        </div>
+        <div class="hint-text" id="hintText"></div>
+      </div>
+
       <div class="stpanel" id="statusPanel">
         <div class="stp-head">
           <span class="stp-title" id="stpTitle">Operation</span>
@@ -576,5 +595,8 @@
 
 <script src="../shared-ui/chrome.js"></script>
 <script src="app.js"></script>
+<!-- 3D robot preview for the Approach / Return window (Canvas 2D, no deps) -->
+<script src="lib/robot-preview/robot-preview.global.js"></script>
+<script src="rules.js"></script>
 </body>
 </html>

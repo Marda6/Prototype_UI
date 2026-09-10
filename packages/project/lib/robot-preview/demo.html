@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CAM Robot Preview — пример подключения</title>
+  <style>
+    :root { color-scheme: dark; font: 14px/1.45 "Segoe UI", Arial, sans-serif; color: #e5e7e5; background: #191c1a; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 28px; }
+    button, input { font: inherit; }
+    button { padding: 8px 13px; border: 1px solid #4b514c; border-radius: 5px; background: #363b37; color: #e5e7e5; cursor: pointer; }
+    button:hover { background: #444b45; }
+    button:focus-visible, input:focus-visible, canvas:focus-visible { outline: 2px solid #42d4a5; outline-offset: 3px; }
+    .primary { background: #00a77b; color: #09261d; border-color: #00a77b; font-weight: 600; }
+    .primary:hover { background: #17bd90; }
+    main { max-width: 1160px; margin: 0 auto; border: 1px solid #454b46; border-radius: 10px; overflow: hidden; background: #282c29; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; border-bottom: 1px solid #424843; }
+    h1 { margin: 0; font-size: 18px; font-weight: 600; }
+    p { margin: 5px 0 0; }
+    .muted { color: #aab3ac; font-size: 12px; }
+    .workspace { display: grid; grid-template-columns: 210px minmax(0, 1fr); }
+    aside { padding: 18px; border-right: 1px solid #424843; }
+    h2 { margin: 0 0 16px; font-size: 14px; font-weight: 600; }
+    .axis { display: grid; grid-template-columns: 32px 1fr 12px; gap: 9px; align-items: center; margin: 9px 0; }
+    .axis input { width: 100%; min-width: 0; background: #323833; color: #e5e7e5; border: 1px solid #4b514c; border-radius: 4px; padding: 5px 7px; font-variant-numeric: tabular-nums; }
+    .axis span { color: #aab3ac; }
+    .pose-actions { display: grid; gap: 8px; margin-top: 20px; }
+    .viewport-column { min-width: 0; }
+    /* Copy this size rule together with the mounting div into your project. */
+    #preview { width: 100%; height: 460px; overflow: hidden; }
+    .scene-caption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; padding: 10px 16px; border-top: 1px solid #364038; }
+    .playback { padding: 16px 20px; border-top: 1px solid #424843; }
+    .transport { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .transport .time { margin-left: auto; font-variant-numeric: tabular-nums; color: #bcc6bf; }
+    #timeline { width: 100%; accent-color: #00b58a; margin: 15px 0 4px; }
+    details { border-top: 1px solid #424843; padding: 13px 20px; color: #aab3ac; }
+    summary { cursor: pointer; font-size: 12px; }
+    pre { white-space: pre-wrap; font-size: 12px; }
+    footer { max-width: 1160px; margin: 12px auto 0; color: #87928a; font-size: 12px; }
+    @media (max-width: 650px) {
+      body { padding: 12px; }
+      .workspace { grid-template-columns: 1fr; }
+      aside { border-right: 0; border-bottom: 1px solid #424843; }
+      #axes { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+      .pose-actions { grid-template-columns: 1fr 1fr; }
+      #preview { height: 350px; }
+      header { align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div><h1>3D preview</h1><p class="muted">Отдельный компонент из редактора Approach / Return</p></div>
+      <button id="fit" type="button">Fit view</button>
+    </header>
+    <div class="workspace">
+      <aside>
+        <h2>Поза робота</h2>
+        <div id="axes"></div>
+        <div class="pose-actions">
+          <button id="start" type="button">Начальная поза</button>
+          <button id="snapshot" type="button">Текущее состояние</button>
+        </div>
+        <p class="muted" style="margin-top:14px">Измените угол — сцена обновится. Снимок возвращает значения всех осей.</p>
+      </aside>
+      <div class="viewport-column">
+        <div id="preview"></div>
+        <div class="scene-caption muted">
+          <span>Перетаскивание · поворот &nbsp; Колесо · масштаб</span>
+          <span>Клик по траектории · выбор участка</span>
+        </div>
+      </div>
+    </div>
+    <div class="playback">
+      <div class="transport">
+        <button id="play" class="primary" type="button">Воспроизвести</button>
+        <button id="reset" type="button">В начало</button>
+        <button id="path-toggle" type="button" aria-pressed="true">Траектория</button>
+        <span id="time" class="time">0.00 / 5.00 s</span>
+      </div>
+      <input id="timeline" type="range" min="0" max="5" step="0.01" value="0" aria-label="Позиция воспроизведения">
+      <p id="status" class="muted" aria-live="polite">Участок 1 · оси A1–A6</p>
+    </div>
+    <details id="state-details">
+      <summary>Снимок позы для Add current state</summary>
+      <pre id="state-output">Нажмите «Текущее состояние».</pre>
+    </details>
+  </main>
+  <footer>Условная модель робота и линейная интерполяция углов. Canvas 2D, без внешних библиотек. Управление воспроизведением находится в этом примере, отдельно от рендера.</footer>
+
+  <!-- Classic build works when this HTML is opened directly from disk. -->
+  <script src="./robot-preview.global.js"></script>
+  <script>
+    const { RobotPreview, AXES, DEFAULT_POSE, interpolatePose } = CamRobotPreview;
+    const startPose = { ...DEFAULT_POSE };
+    const approachPose = { ...startPose, A1: 0, A2: -45, A3: 90, A4: 0, A5: 45, A6: 0 };
+    const finalPose = { ...approachPose, E1: 15, E2: -10 };
+    const segments = [
+      { id: 'approach-axes', from: startPose, to: approachPose },
+      { id: 'external-axes', from: approachPose, to: finalPose },
+    ];
+    const durations = [3, 2];
+    const total = durations.reduce((sum, duration) => sum + duration, 0);
+    let time = 0, playing = false, frame = 0, last = 0, pathVisible = true;
+    const $ = id => document.getElementById(id);
+    const fields = new Map();
+
+    const preview = new RobotPreview($('preview'), {
+      pose: startPose,
+      segments,
+      selectedSegmentId: segments[0].id,
+      ariaLabel: 'Превью робота. Стрелки — поворот, плюс и минус — масштаб, F — вписать сцену.',
+      onSegmentSelect(id) {
+        pause();
+        seek(id === segments[0].id ? durations[0] - 0.001 : total);
+      },
+    });
+
+    for (const axis of AXES) {
+      const label = document.createElement('label');
+      label.className = 'axis';
+      const name = document.createElement('span'); name.textContent = axis;
+      const input = document.createElement('input');
+      input.type = 'number'; input.step = '0.1'; input.value = startPose[axis].toFixed(2);
+      const unit = document.createElement('span'); unit.textContent = '°';
+      label.append(name, input, unit); $('axes').append(label); fields.set(axis, input);
+      input.addEventListener('input', () => {
+        pause();
+        if (!Number.isFinite(input.valueAsNumber)) return;
+        preview.setPose({ [axis]: input.valueAsNumber });
+        preview.setSelectedSegment(null);
+        $('status').textContent = 'Ручная поза · воспроизведение вернёт робота на заданную траекторию';
+      });
+    }
+
+    function updateFields() {
+      const pose = preview.getPose();
+      for (const axis of AXES) fields.get(axis).value = pose[axis].toFixed(2);
+    }
+
+    function seek(value) {
+      time = Math.max(0, Math.min(total, value));
+      const index = time < durations[0] ? 0 : 1;
+      const localTime = index === 0 ? time : time - durations[0];
+      const segment = segments[index];
+      preview.setPose(interpolatePose(segment.from, segment.to, localTime / durations[index]));
+      preview.setSelectedSegment(segment.id);
+      $('timeline').value = time;
+      $('time').textContent = `${time.toFixed(2)} / ${total.toFixed(2)} s`;
+      $('status').textContent = index === 0 ? 'Участок 1 · оси A1–A6' : 'Участок 2 · внешние оси E1, E2';
+      updateFields();
+    }
+
+    function pause() {
+      playing = false; cancelAnimationFrame(frame); frame = 0;
+      $('play').textContent = 'Воспроизвести';
+    }
+
+    function tick(now) {
+      if (!playing) return;
+      const dt = Math.min((now - last) / 1000, 0.1); last = now;
+      seek(time + dt);
+      if (time >= total) pause();
+      else frame = requestAnimationFrame(tick);
+    }
+
+    $('play').addEventListener('click', () => {
+      if (playing) { pause(); return; }
+      if (time >= total) seek(0);
+      playing = true; last = performance.now();
+      $('play').textContent = 'Пауза'; frame = requestAnimationFrame(tick);
+    });
+    $('timeline').addEventListener('input', event => { pause(); seek(Number(event.target.value)); });
+    $('reset').addEventListener('click', () => { pause(); seek(0); });
+    $('start').addEventListener('click', () => { pause(); seek(0); preview.fitToView(); });
+    $('fit').addEventListener('click', () => preview.fitToView());
+    $('snapshot').addEventListener('click', () => {
+      $('state-output').textContent = JSON.stringify(preview.getPose(), null, 2);
+      $('state-details').open = true;
+    });
+    $('path-toggle').addEventListener('click', () => {
+      pathVisible = !pathVisible;
+      preview.setVisibility({ trajectory: pathVisible });
+      $('path-toggle').setAttribute('aria-pressed', String(pathVisible));
+    });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+    window.addEventListener('pagehide', event => {
+      pause();
+      if (!event.persisted) preview.destroy();
+    });
+  </script>
+</body>
+</html>
