@@ -147,7 +147,7 @@
         '<div class="sinfo">' +
           // the value is swapped live by ENCY_CHROME.setLicense()
           '<div class="grp"><span class="lbl">Active license:</span><span class="val" id="sbLic">' +
-            (LIC === 'expired' ? '#421481 · Expired 2026-08-30' : '#421480') + '</span></div>' +
+            (LIC === 'expired' ? '#421481 · Expired' : '#421480') + '</span></div>' +
           '<div class="grp"><span class="lbl">Licensee:</span><span class="val">TONINI FABIO ELETTROMECCANICA</span></div>' +
         '</div>' +
         '<div class="sdiv"></div>' +
@@ -223,7 +223,7 @@
     var bad = state === 'expired';
     app.classList.toggle('lic-expired', bad);
     var v = document.getElementById('sbLic');
-    if (v){ v.textContent = bad ? '#421481 · Expired 2026-08-30' : '#421480'; v.classList.toggle('bad', bad); }
+    if (v){ v.textContent = bad ? '#421481 · Expired' : '#421480'; v.classList.toggle('bad', bad); }
   }
   setLicense(LIC);
 
