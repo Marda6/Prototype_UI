@@ -15,8 +15,10 @@ var LICENSES = {
             'ENCY NB 3 operations','Multichannel','Nesting@trial:23','Robot+@trial:12','Robotic turning',
             'SOLIDWORKS Reader','Spraying/Painting','Teamcenter integration','Turn XZCYB','Welding',
             'Wire EDM@trial:5']},
-    {id:'#421481', name:'ENCY 3x Mill Advanced', remaining:null, type:'Commercial', prot:'software',
-     maint:'2026-05-30', status:'valid', ver:true,
+    // term expired on 2026-08-30 — kept in the default list and still selectable: activating it
+    // is the prototype's way into the "expired license" state (Clouds, sidebar, project tabs)
+    {id:'#421481', name:'ENCY 3x Mill Advanced', remaining:0, type:'Commercial', prot:'software',
+     maint:'2026-05-30', status:'valid', ver:true, expired:true,
      items:['Adaptive','ENCY NB 3 5D','ENCY NB 3 2D','Disc Roughing','Multichannel','Nesting']},
     {id:'#421495', name:'ENCY Lathe', remaining:29, type:'Commercial', prot:'account',
      maint:'2026-09-12', status:'valid',
@@ -146,10 +148,10 @@ var LICENSES = {
   function row(l){
     // data-status is used by the filter, data-prot by the offline mode
     // "expired" refers to the license's own term; exactly these rows are hidden by default
-    var filter = l.remaining === 0 ? 'expired'
-               : (l.remaining !== null && l.remaining <= SOON ? 'expiring' : 'active');
+    var filter = l.remaining === 0 && !l.expired ? 'expired'
+               : (l.remaining !== null && l.remaining <= SOON && l.remaining > 0 ? 'expiring' : 'active');
     return '<div class="lgrid xrow' + (l.status === 'active' ? ' inuse' : '') + '"' +
-      ' data-prot="' + l.prot + '" data-status="' + filter + '"' +
+      ' data-prot="' + l.prot + '" data-status="' + filter + '"' + (l.expired ? ' data-expired="1"' : '') +
       ' data-kind="' + (l.type || '').toLowerCase() + '">' +
       '<span class="xnum">' + l.id + '</span>' +
       '<span class="xprod" data-items="' + l.items.join('|') + '">' +
@@ -308,8 +310,15 @@ document.querySelectorAll('.ph-tab').forEach(function(t){
     cell.querySelector('.v').textContent = text;
   }
 
+  // the license state the whole prototype reacts to (chrome.js: sidebar, tabs; Clouds: banner, cards)
+  function setLic(state){
+    try { localStorage.setItem('ency.lic', state); } catch(e){}
+    if (window.ENCY_CHROME && window.ENCY_CHROME.setLicense) window.ENCY_CHROME.setLicense(state);
+  }
+
   function clear(){
     if (!pending) return;
+    if (pending.dataset.expired) setLic('ok');      // the expired one is not going to be used after all
     setState(pending, 'st-valid', prevText);
     pending.querySelector('.ucell').innerHTML = '<button class="xd-btn uset">Activate</button>';
     bind(pending);
@@ -322,6 +331,7 @@ document.querySelectorAll('.ph-tab').forEach(function(t){
     clear();
     prevText = row.querySelector('.xstate .v').textContent;
     pending = row;
+    setLic(row.dataset.expired ? 'expired' : 'ok');
     setState(row, 'st-pending', 'Pending restart');
     row.querySelector('.ucell').innerHTML =
       '<button class="xd-btn rel canc" title="Keep using the current license">Cancel</button>';

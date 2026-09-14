@@ -28,6 +28,13 @@
           <span class="ph-tab active" data-area="projects">Projects</span>
           <span class="ph-tab" data-area="dmc">Digital Machine Center</span>
         </div>
+        <!-- expired license: a state strip in the header, after the tabs (no dismiss) —
+             explains why opening / creating is off. Shown by .app.lic-expired (chrome.js: ?license=expired) -->
+        <div class="lic-banner" title="Projects are available for preview only: opening, creating and uploading are disabled until the license is renewed.">
+          <img class="lb-icn" src="../project/assets/status-error.svg" alt="">
+          <span class="lb-text"><b>License #421480 expired on 2026-08-30.</b> Preview only</span>
+          <button class="lb-btn lb-btn--pri" data-app="../license-manager/">Open License manager</button>
+        </div>
         <div class="ph-actions">
           <button class="btn-upload">Upload project <img src="assets/icn-chev-8x4.svg" alt=""></button>
         </div>

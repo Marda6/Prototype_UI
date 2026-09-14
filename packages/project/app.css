@@ -797,6 +797,35 @@
 .arw-sec{display:flex;align-items:center;gap:2px;height:24px;flex:0 0 24px;padding-left:4px;}
 .arw-sec__t{flex:1;min-width:0;color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* CLData side panel: same frame as the window, to its right. Rows reuse the Simulation code tree
+   (.simrow grp / code): a group row per command with a chevron, its frames underneath */
+.arw-cl{width:300px;max-height:calc(100% - 16px);}
+.arw-cl__body{flex:1 1 auto;min-height:0;margin-top:8px;overflow:auto;scrollbar-gutter:stable;
+  display:flex;flex-direction:column;gap:1px;}
+.arw-cl .simrow{height:24px;box-sizing:border-box;padding:2px 2px 2px 4px;border-radius:4px;flex:0 0 24px;}
+.arw-cl .simrow.grp{cursor:pointer;}
+.arw-cl .simrow.code{padding-left:38px;cursor:pointer;}
+.arw-cl .simrow.grp.cur{background:var(--ec-fg-12);}
+.arw-cl .simrow.code.cur{background:var(--ec-fg-4);}
+.arw-cl .simrow.code.cur .lbl{color:var(--ec-fg-96);}
+.arw-cl .simrow .lbl{font-variant-numeric:tabular-nums;}
+.arw-cl .cl-n{flex:0 0 14px;text-align:right;color:var(--ec-fg-48);font:400 12px/16px var(--ec-font);font-variant-numeric:tabular-nums;}
+.arw .sd-btn.on{background:var(--ec-fg-12);color:var(--ec-fg-96);}
+/* template picker in the section header: a regular 20px dropdown, capped width */
+.arw-tpl{flex:0 1 128px;min-width:72px;height:20px;box-sizing:border-box;padding:0 4px;margin-right:2px;}
+/* inline bar for confirmations / template name: 24px row, 4px above the list */
+.arw-bar{display:flex;align-items:center;gap:4px;height:24px;flex:0 0 24px;margin-top:4px;padding:0 4px;}
+.arw-bar[hidden]{display:none;}
+.arw-bar__t{flex:1;min-width:0;color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.arw-bar__in{flex:1;min-width:0;height:20px;box-sizing:border-box;padding:0 4px;}
+.arw-bar__in .v{flex:1;min-width:0;outline:none;color:var(--ec-fg-96);}
+.arw-bar__in .v:empty::before{content:attr(data-placeholder);color:var(--ec-fg-48);}
+.arw-btn{height:20px;padding:0 8px;border:0;border-radius:4px;background:var(--ec-fg-8);color:var(--ec-fg-72);
+  font:400 12px/16px var(--ec-font);cursor:pointer;white-space:nowrap;}
+.arw-btn:hover{background:var(--ec-fg-12);color:var(--ec-fg-96);}
+.arw-btn--pri{background:var(--st-green);color:#04150e;}
+.arw-btn--pri:hover{background:var(--st-green);color:#04150e;filter:brightness(1.08);}
 /* command list: 4px below the section header; fixed room for 6 rows (6·24 + 5·2 = 154px).
    No reserved gutter: rows run to the buttons' right edge; when the list overflows the scrollbar
    appears on that same edge and the rows narrow by its 8px */

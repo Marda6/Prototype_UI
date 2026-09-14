@@ -4,6 +4,10 @@
   'use strict';
 
   var A = 'assets/';
+  // expired license (chrome.js sets .lic-expired): the Open row carries the reason as a tooltip
+  var LIC_TITLE = document.getElementById('app').classList.contains('lic-expired')
+    ? ' title="The active license has expired. Projects can be previewed, but not opened until the license is renewed in License manager."'
+    : '';
   // favorite star: hollow icon in this package, the filled state is shared
   var STAR = A + 'icn-star-16.svg',
       STAR_ON = '../shared-ui/assets/st-star16-filled.svg';
@@ -140,7 +144,7 @@
   function projectCard(p, i){
     return '<div class="card" data-name="' + p.name + '">' +
       '<div class="preview">' +
-        '<div class="hovermenu"><button data-open>Open project</button><button data-preview>Preview</button></div>' +
+        '<div class="hovermenu"><button data-open' + LIC_TITLE + '>Open project</button><button data-preview>Preview</button></div>' +
         (p.featured ? '<span class="tag">Featured</span>' : '') +
         '<img src="' + part(i) + '" alt="">' +
       '</div>' +
@@ -612,6 +616,8 @@
 
   document.getElementById('projects').addEventListener('click', function(e){
     if (e.target.hasAttribute && e.target.hasAttribute('data-open')){
+      // expired license: the button is inert (it explains itself), no download starts
+      if (document.getElementById('app').classList.contains('lic-expired')) return;
       startDownload(e.target.closest('.card'));
       return;
     }

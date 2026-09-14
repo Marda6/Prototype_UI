@@ -21,6 +21,33 @@
 /* ——— page header: markup and styles are shared (chrome.css), only local bits here ——— */
 .ph-icn img{width:20px;height:20px;}
 .ph-actions{flex:1;display:flex;justify-content:flex-end;}
+/* ===== expired license state ===== */
+/* lives in the page header right after the tabs: takes the free width up to Upload project */
+.lic-banner{display:none;align-items:center;gap:10px;flex:0 1 auto;min-width:0;margin:0 8px 0 8px;padding:0 4px 0 10px;height:32px;
+  border-radius:16px;background:rgba(255,92,119,.08);border:1px solid rgba(255,92,119,.35);}
+.app.lic-expired .lic-banner{display:flex;}
+.app.lic-expired .ph-actions{flex:1 0 auto;}   /* Upload stays at the right edge; the strip hugs its content */
+.lb-icn{width:16px;height:16px;flex:0 0 16px;}
+.lb-text{flex:1;min-width:0;color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lb-text b{color:var(--ec-fg-96);font-weight:500;margin-right:6px;}
+.lb-text{margin-right:12px;}   /* 12px + the 10px gap = 22px between the text and the button */
+.lb-btn{height:24px;padding:0 10px;border:0;border-radius:12px;background:var(--ec-fg-8);color:var(--ec-fg-96);
+  font:400 12px/16px var(--ec-font);cursor:pointer;white-space:nowrap;}
+.lb-btn:hover{background:var(--ec-fg-12);}
+/* primary = white on dark: Layer 100% fill, ink = background colour; hover dims to Layer 80% */
+.lb-btn--pri{background:var(--ec-fg-100);color:var(--ec-bg);}
+.lb-btn--pri:hover{background:var(--ec-fg-80);color:var(--ec-bg);}
+/* actions that need a valid license are off; the cards stay open for preview */
+.app.lic-expired .btn-upload{opacity:.4;pointer-events:none;}
+/* hover menu: "Open project" becomes an inert "Unavailable" row in the same type as Preview;
+   an ⓘ at its right end carries the reason as a tooltip (set by app.js). Preview stays live */
+.app.lic-expired .hovermenu button[data-open]{position:relative;display:flex;align-items:center;cursor:default;font-size:0;}
+.app.lic-expired .hovermenu button[data-open]:hover{background:var(--st-w04);}
+.app.lic-expired .hovermenu button[data-open]::after{content:"Unavailable";font:400 12px/16px var(--ec-font);color:#fff;}
+.app.lic-expired .hovermenu button[data-open]::before{content:"i";position:absolute;right:14px;top:50%;margin-top:-7px;
+  width:14px;height:14px;box-sizing:border-box;border-radius:50%;border:1px solid var(--ec-fg-48);
+  color:var(--ec-fg-72);font:500 10px/12px var(--ec-font);text-align:center;}
 .btn-upload{display:flex;align-items:center;justify-content:space-between;width:140px;
   padding:8px 12px 8px 20px;border-radius:20px;border:1px solid var(--st-green);
   background:var(--st-w08);color:var(--ec-fg-100);font:400 12px/16px var(--ec-font);cursor:pointer;}

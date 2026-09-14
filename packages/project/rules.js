@@ -64,23 +64,79 @@
   function homeSpec(){ var s = {}; JOINTS.forEach(function(j){ s[j] = HOMEPOSE[j]; }); return s; }
   function autoSpec(ids){ var s = {}; ids.forEach(function(a){ s[a] = 'auto'; }); return s; }
 
-  var CMDS = {
+  /* ============ templates ============
+     Built-in templates build a fresh command list; user templates are stored serialized
+     in localStorage (per mode). A template is "dirty" when the current list differs from
+     the snapshot taken when it was applied. */
+  // Machine presets — the same items the inspector's Approach / Return dropdown lists.
+  // They come from the machine settings; `short` is how the window's picker shows them.
+  var G53 = 'G53 A1 A2 A3 A4 A5 A6; G53 E1 E2 — ';
+  function preset(short, build){ return {name:G53 + short, short:short, build:build}; }
+  var MACHINE = {
     Approach: [
-      motion('HOME', homeSpec()),
-      event('TOOL', 0),
-      event('BASE', 1),
-      motion('PTP', autoSpec(JOINTS)),
-      event('WAITIN', 0),
-      motion('LIN', {Z:'auto'})
+      // From Previous: robot comes from where the previous operation left it
+      preset('From Previous', function(){ return [
+        motion('PTP', autoSpec(JOINTS)), motion('EXTMOVE', autoSpec(EXT)), motion('LIN', {Z:'auto'})]; }),
+      // From Root: start at the robot home (root) position
+      preset('From Root', function(){ return [
+        motion('HOME', homeSpec()), event('TOOL', 0), event('BASE', 1),
+        motion('PTP', autoSpec(JOINTS)), motion('EXTMOVE', autoSpec(EXT)), event('WAITIN', 0), motion('LIN', {Z:'auto'})]; }),
+      // Return by default: approach mirrors the default return
+      preset('Return by default', function(){ return [
+        motion('PTP', autoSpec(JOINTS)), motion('LIN', {Z:'auto'})]; })
     ],
     Return: [
-      motion('LIN', {Z:'auto'}),
-      event('OUT', 1),
-      motion('PTP', autoSpec(JOINTS)),
-      motion('HOME', homeSpec()),
-      event('OPTSTOP')
+      preset('From Previous', function(){ return [
+        motion('LIN', {Z:'auto'}), motion('EXTMOVE', autoSpec(EXT)), motion('PTP', autoSpec(JOINTS))]; }),
+      preset('From Root', function(){ return [
+        motion('LIN', {Z:'auto'}), event('OUT', 1), motion('EXTMOVE', autoSpec(EXT)),
+        motion('PTP', autoSpec(JOINTS)), motion('HOME', homeSpec()), event('OPTSTOP')]; }),
+      preset('Return by default', function(){ return [
+        motion('LIN', {Z:'auto'}), motion('PTP', autoSpec(JOINTS)), motion('HOME', homeSpec())]; })
     ]
   };
+  var TPL_KEY = 'ency.ar.templates';
+  function userTpls(){ try { return JSON.parse(localStorage.getItem(TPL_KEY)) || {Approach:[], Return:[]}; } catch(e){ return {Approach:[], Return:[]}; } }
+  function saveUserTpls(t){ try { localStorage.setItem(TPL_KEY, JSON.stringify(t)); } catch(e){} }
+  // serialization: ids are dropped and re-issued on load
+  function serialize(list){
+    return list.map(function(c){
+      var o = {type:c.type};
+      if(c.axes){ o.axes = {}; Object.keys(c.axes).forEach(function(a){ var t = c.axes[a]; o.axes[a] = [t.on ? 1 : 0, t.mode, t.value]; }); }
+      if(c.state !== undefined) o.state = c.state;
+      if(c.value !== undefined) o.value = c.value;
+      return o;
+    });
+  }
+  function deserialize(data){
+    return (data || []).map(function(o){
+      var c = {id:'c'+(++uid), type:o.type};
+      if(o.axes){ c.axes = {}; AXES.forEach(function(a){ var t = o.axes[a.id] || [0,'fixed',0]; c.axes[a.id] = ax(t[0], t[1], t[2]); }); }
+      if(o.state !== undefined) c.state = o.state;
+      if(o.value !== undefined) c.value = o.value;
+      return c;
+    });
+  }
+  // active template per mode: {name, user, snap}
+  var TPL = {Approach:null, Return:null};
+  var CMDS = {Approach:[], Return:[]};
+  function applyTemplate(m, name, user){
+    var list;
+    if(user){ var u = userTpls()[m].filter(function(t){ return t.name === name; })[0]; list = deserialize(u && u.cmds); }
+    else { var b = MACHINE[m].filter(function(t){ return t.name === name || t.short === name; })[0]; list = b ? b.build() : []; if(b) name = b.name; }
+    CMDS[m] = list;
+    TPL[m] = {name:name, user:!!user, snap:JSON.stringify(serialize(list))};
+  }
+  function tplDirty(){ return !TPL[mode] || JSON.stringify(serialize(cmds())) !== TPL[mode].snap; }
+  function tplShort(t){ if(!t) return 'Custom'; var m = MACHINE[mode].filter(function(x){ return x.name === t.name; })[0]; return m ? m.short : t.name; }
+  applyTemplate('Approach', 'From Root');
+  applyTemplate('Return', 'From Root');
+
+  // the inspector shows the template name while the list matches it, otherwise "Custom"
+  function inspectorSync(){
+    var dd = document.querySelector('.irows .dropdown[data-custom="' + mode + '"] .v');
+    if(dd) dd.textContent = TPL[mode] && !tplDirty() ? TPL[mode].name : 'Custom';
+  }
 
   /* ============ state ============ */
   var panel = null, mode = 'Approach', speed = 50, playing = false, selId = null;
@@ -99,6 +155,7 @@
     pause: '<svg class="sp-pause" viewBox="0 0 16 16" fill="currentColor"><rect x="3.6" y="3" width="3.2" height="10" rx="1"/><rect x="9.2" y="3" width="3.2" height="10" rx="1"/></svg>',
     close: '<svg viewBox="0 0 14 14" fill="none"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>',
     more: '<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="3.5" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="8" cy="12.5" r="1.2"/></svg>',
+    code: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5M9.2 3L6.8 13"/></svg>',
     plus:  '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>',
     // crosshair = "current position of the machine"
     snap:  '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="8" cy="8" r="4.5"/><circle cx="8" cy="8" r="1" fill="currentColor" stroke="none"/><path d="M8 1.5v2.5M8 12v2.5M1.5 8H4M12 8h2.5"/></svg>'
@@ -175,9 +232,14 @@
           // 2 · commands header (20px): section title + two icon buttons on the right
           '<div class="arw-sec">' +
             '<span class="arw-sec__t">Commands list</span>' +
+            // template picker: built-in · user · save / delete; "•" marks unsaved changes
+            '<span class="dropdown arw-tpl" id="arpTpl" title="Template"><span class="v"></span><img class="i16" src="' + A.chev + '"></span>' +
             '<div class="sd-btn" id="arpAdd" title="Add command">' + ICO.plus + '</div>' +
             '<div class="sd-btn" id="arpSnap" title="Add current state as a command">' + ICO.snap + '</div>' +
+            '<div class="sd-btn" id="arpCl" title="Show CLData">' + ICO.code + '</div>' +
           '</div>' +
+          // inline bar (24px) for confirmations and the template name — shown instead of a modal
+          '<div class="arw-bar" id="arpBar" hidden></div>' +
           // 3 · command list: room for 6 rows is reserved (6·24 + 5·2), scrolls beyond that
           '<div class="arw-list" id="arpList"></div>' +
           // divider after the list: same 8px above and below
@@ -198,6 +260,8 @@
       var spec = {}; JOINTS.concat(EXT).forEach(function(a){ spec[a] = AUTO[mode][a]; });
       insert(motion('PTP', spec));
     });
+    panel.querySelector('#arpTpl').addEventListener('click', function(e){ e.stopPropagation(); tplMenu(this); });
+    panel.querySelector('#arpCl').addEventListener('click', function(){ clToggle(); });
     panel.querySelector('#arpList').addEventListener('click', function(e){
       var row = e.target.closest('.arp-row'); if(!row) return;
       var more = e.target.closest('[data-act="more"]');
@@ -350,6 +414,143 @@
     setSpeed(speed);
   }
 
+  /* ============ CLData view ============
+     The generated CLData of the rule, in a side panel next to the window, so the user does not
+     have to run the simulation to see it. One block per command; selection is mirrored both ways. */
+  var cl = null, clOpen = false, clExp = {};   // clExp[cmdId] = expanded
+  // CLData frames in the same notation as the Simulation code tree ("RAPID: 10000", "MultiGOTO: X…")
+  // vals — resolved axis values after the command (Auto already substituted); {t, c:'red'|'blue'}
+  function clLines(c, vals){
+    var T = typeOf(c.type);
+    function axes(ids){ return ids.filter(function(a){ return c.axes[a].on; }).map(function(a){ return a + fmt(vals[a]); }).join(', '); }
+    function opt(){ return T.options[c.state] || ''; }
+    function q(s){ return '"' + s.split(' · ').pop() + '"'; }
+    switch(c.type){
+      case 'PTP':     return [{t:'RAPID: 10000', c:'red'}, {t:'PhysicGOTO: ' + axes(JOINTS.concat(EXT)), c:'red'}];
+      case 'EXTMOVE': return [{t:'RAPID: 10000', c:'red'}, {t:'PhysicGOTO: ' + axes(EXT), c:'red'}];
+      case 'HOME':    return [{t:'COMMENT: "HOME"'}, {t:'RAPID: 10000', c:'red'}, {t:'PhysicGOTO: ' + axes(JOINTS), c:'red'}];
+      case 'LIN':     return [{t:'RAPID: 10000', c:'red'}, {t:'MultiGOTO: ' + axes(CART), c:'red'}];
+      case 'TOOL':    return [{t:'LOADTL: #' + (c.state + 1) + ' (0), H#-' + (c.state + 1) + ', D#' + (c.state + 1)}, {t:'COMMENT: ' + q(opt())}];
+      case 'BASE':    return [{t:'ORIGIN: #' + c.state + ' ' + q(opt())}];
+      case 'OUT':     return [{t:'OUTPUT: ' + opt().replace(/^OUT\[(\d+)\].*= (\w+)$/, function(_, n, v){ return '#' + n + ', ' + (v === 'TRUE' ? 'On' : 'Off'); })}];
+      case 'WAITIN':  return [{t:'WAIT: IN#' + (c.state + 1) + ' ' + q(opt())}];
+      case 'WAITSEC': return [{t:'DELAY: ' + fmt(c.value) + ' s'}];
+      case 'HALT':    return [{t:'STOP'}];
+      case 'OPTSTOP': return [{t:'OPSTOP'}];
+    }
+    return [{t:'COMMENT: "' + T.label + '"'}];
+  }
+  function clBuild(){
+    cl = h('<div class="stpanel arw arw-cl" id="arCl">' +
+      '<div class="arw-head"><span class="arw-title" id="arClTitle">CLData</span>' +
+        '<button class="arw-close" id="arClClose" title="Close">' + ICO.close + '</button></div>' +
+      '<div class="arw-cl__body" id="arClBody"></div></div>');
+    document.querySelector('.viewport').appendChild(cl);
+    cl.querySelector('#arClClose').addEventListener('click', function(){ clToggle(false); });
+    cl.addEventListener('click', function(e){
+      e.stopPropagation(); closeMenu();
+      var row = e.target.closest('.simrow[data-id]'); if(!row) return;
+      var id = row.dataset.id;
+      // chevron toggles the frames; anywhere else selects the command
+      if(e.target.closest('.shev')){ clExp[id] = !clExp[id]; clRender(); return; }
+      if(playing) setPlaying(false);
+      selId = id; render();
+    });
+  }
+  function clToggle(on){
+    if(!cl) clBuild();
+    clOpen = on === undefined ? !clOpen : on;
+    panel.querySelector('#arpCl').classList.toggle('on', clOpen);
+    cl.classList.toggle('open', clOpen);
+    if(clOpen){ clPlace(); clRender(); }
+  }
+  // sits to the right of the window, top-aligned with it
+  function clPlace(){
+    cl.style.left = (panel.offsetLeft + panel.offsetWidth + 8) + 'px';
+    cl.style.top = panel.offsetTop + 'px';
+  }
+  function clRender(){
+    if(!cl || !clOpen) return;
+    cl.querySelector('#arClTitle').textContent = 'CLData · ' + mode;
+    // same rows as the Simulation code tree: a group row per command (chevron · summary · dot),
+    // its CLData frames underneath when expanded; the selected command is expanded automatically
+    if(selId && clExp[selId] === undefined) clExp[selId] = true;
+    var cur = startVals(), s = '';
+    cmds().forEach(function(c, i){
+      var T = typeOf(c.type), next = Object.assign({}, cur), on = !!clExp[c.id], isCur = c.id === selId;
+      if(T.kind === 'motion') T.axes.forEach(function(a){ var t = c.axes[a]; if(t.on) next[a] = t.mode === 'auto' ? AUTO[mode][a] : t.value; });
+      s += '<div class="simrow grp' + (on ? '' : ' closed') + (isCur ? ' cur' : '') + '" data-id="' + c.id + '" title="' + esc(T.label) + '">' +
+        '<img class="shev" src="assets/t-shev-open.svg" alt="">' +
+        '<span class="cl-n">' + (i + 1) + '</span><span class="lbl">' + esc(summary(c)) + '</span><span class="sim-dot"></span></div>';
+      if(on) clLines(c, next).forEach(function(l){
+        s += '<div class="simrow code' + (l.c ? ' c-' + l.c : '') + (isCur ? ' cur' : '') + '" data-id="' + c.id + '">' +
+          '<span class="lbl">' + esc(l.t) + '</span><span class="sim-dot"></span></div>';
+      });
+      cur = next;
+    });
+    var body = cl.querySelector('#arClBody');
+    body.innerHTML = s || '<div class="arp-empty">No commands.</div>';
+    var selRow = body.querySelector('.simrow.grp.cur'); if(selRow && selRow.scrollIntoView) selRow.scrollIntoView({block:'nearest'});
+  }
+
+  /* ============ template UI ============ */
+  function barShow(html){ var b = panel.querySelector('#arpBar'); b.innerHTML = html; b.hidden = false; return b; }
+  function barHide(){ var b = panel.querySelector('#arpBar'); b.hidden = true; b.innerHTML = ''; }
+  function tplLabel(){
+    var el = panel.querySelector('#arpTpl .v'); if(!el) return;
+    el.textContent = tplShort(TPL[mode]) + (TPL[mode] && tplDirty() ? ' •' : '');
+    inspectorSync();
+  }
+  function tplMenu(anchor){
+    var items = [], t = TPL[mode], u = userTpls()[mode];
+    // machine presets first (short names — the inspector shows the full G53 form)
+    MACHINE[mode].forEach(function(b){ items.push({label:b.short + '  · machine', cur:t && !t.user && t.name===b.name, onPick:function(){ tplPick(b.name, false); }}); });
+    if(u.length){
+      items.push({sep:true});
+      u.forEach(function(x){ items.push({label:x.name, cur:t && t.user && t.name===x.name, onPick:function(){ tplPick(x.name, true); }}); });
+    }
+    items.push({sep:true});
+    items.push({label:'Save as template…', onPick:tplSaveAs});
+    if(t && t.user) items.push({label:'Delete "' + t.name + '"', onPick:tplDelete});
+    showMenu(anchor, items);
+  }
+  // replacing an edited list asks first — inline, in the window
+  function tplPick(name, user){
+    var go = function(){ barHide(); if(playing) setPlaying(false); applyTemplate(mode, name, user); selId = null; render(); };
+    if(!tplDirty() || !cmds().length){ go(); return; }
+    var b = barShow('<span class="arw-bar__t">Replace current commands with “' + esc(name) + '”?</span>' +
+      '<button class="arw-btn arw-btn--pri" data-act="ok">Replace</button><button class="arw-btn" data-act="no">Cancel</button>');
+    b.onclick = function(e){ var a = e.target.closest('[data-act]'); if(!a) return; if(a.dataset.act === 'ok') go(); else barHide(); };
+  }
+  function tplSaveAs(){
+    var t = TPL[mode];
+    var b = barShow('<span class="input arw-bar__in"><span class="v" contenteditable="true" spellcheck="false" data-placeholder="Template name"></span></span>' +
+      '<button class="arw-btn arw-btn--pri" data-act="ok">Save</button><button class="arw-btn" data-act="no">Cancel</button>');
+    var v = b.querySelector('.v');
+    v.textContent = t && t.user ? t.name : '';
+    var save = function(){
+      var name = v.textContent.trim(); if(!name) { v.focus(); return; }
+      var all = userTpls(), list = all[mode].filter(function(x){ return x.name !== name; });
+      list.push({name:name, cmds:serialize(cmds())}); all[mode] = list; saveUserTpls(all);
+      TPL[mode] = {name:name, user:true, snap:JSON.stringify(serialize(cmds()))};
+      barHide(); tplLabel();
+    };
+    b.onclick = function(e){ var a = e.target.closest('[data-act]'); if(!a) return; if(a.dataset.act === 'ok') save(); else barHide(); };
+    v.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){ e.preventDefault(); save(); }
+      if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); barHide(); }
+    });
+    v.focus();
+    // caret at the end of a pre-filled name
+    if(v.textContent){ var r = document.createRange(); r.selectNodeContents(v); r.collapse(false); var s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+  }
+  function tplDelete(){
+    var t = TPL[mode]; if(!t || !t.user) return;
+    var all = userTpls(); all[mode] = all[mode].filter(function(x){ return x.name !== t.name; }); saveUserTpls(all);
+    TPL[mode] = null;                              // the list stays; it is now unsaved
+    tplLabel();
+  }
+
   /* ============ list ops ============ */
   function idx(id){ var l = cmds(); for(var i=0;i<l.length;i++) if(l[i].id===id) return i; return -1; }
   function insert(c){ var l = cmds(), i = idx(selId); l.splice(i < 0 ? l.length : i + 1, 0, c); selId = c.id; render(); }
@@ -382,7 +583,9 @@
     panel.querySelector('#arpPrev').classList.toggle('disabled', idx(selId) <= 0);
     panel.querySelector('#arpNext').classList.toggle('disabled', idx(selId) >= l.length-1);
     if(has('arpParams')) renderParams();
+    tplLabel();
     viewSync();
+    clRender();
   }
 
   function row(label, ctl, cls){
@@ -597,14 +800,28 @@
     if(on) playLoop(); else viewSync();          // paused: the pose snaps to the selected command
   }
 
-  function open(which){
+  // open(which, templateName?, isUser?) — with a template the list is replaced by it (inspector pick)
+  function open(which, tplName, user){
     if(!panel) build();
+    var m = which === 'Return' ? 'Return' : 'Approach';
+    if(tplName){ if(playing) setPlaying(false); applyTemplate(m, tplName, user); selId = null; }
     viewOpen();
-    setMode(which === 'Return' ? 'Return' : 'Approach');
+    setMode(m);
     panel.classList.add('open');
   }
-  function close(){ if(panel){ setPlaying(false); closeMenu(); panel.classList.remove('open'); viewClose(); } }
+  // close(which?) — with a mode: close only if the window shows that mode (inspector picked a strategy)
+  function close(which){
+    if(!panel || (which && which !== mode)) return;
+    setPlaying(false); closeMenu(); panel.classList.remove('open'); viewClose();
+    if(clOpen) clToggle(false);
+  }
+  // template names for the inspector dropdown
+  function templates(which){
+    var m = which === 'Return' ? 'Return' : 'Approach';
+    return {machine: MACHINE[m].map(function(t){ return t.name; }), user: userTpls()[m].map(function(t){ return t.name; })};
+  }
 
   window.arOpen = open;
   window.arClose = close;
+  window.arTemplates = templates;
 })();

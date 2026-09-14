@@ -11,6 +11,8 @@
   .hbtn.on:hover{background:var(--ec-fg-24);}
   .hgroup-left{display:flex;align-items:center;gap:4px;}
   .hgroup-right{display:flex;align-items:center;gap:12px;}
+  /* the "+ new tab" button is not available while the license has expired */
+  .app.lic-expired .htabs .hbtn{opacity:.35;pointer-events:none;}
   .hicn32{width:32px;height:32px;}
   .hicn-act{width:32px;height:32px;}
   .hicn-logo{width:15px;height:15px;}
@@ -84,6 +86,12 @@
   .sinfo .grp{display:flex;flex-direction:column;gap:2px;}
   .sinfo .lbl{color:var(--st-text-60);}
   .sinfo .val{color:var(--st-text);}
+  .sinfo .val.bad{color:#ff5c77;}
+  /* red dot on the account icon — visible in the collapsed sidebar too */
+  .sacc-icn{position:relative;overflow:visible;}
+  .sacc-bad{display:none;position:absolute;right:-2px;top:-2px;width:7px;height:7px;border-radius:50%;
+    background:#ff5c77;box-shadow:0 0 0 2px var(--ec-bg);}
+  .app.lic-expired .sacc-bad{display:block;}
   .slinks{padding:12px 10px;display:flex;flex-direction:column;gap:8px;}
   .slinks a{color:var(--st-green);text-decoration:none;white-space:nowrap;}
   .slinks a:hover{text-decoration:underline;}

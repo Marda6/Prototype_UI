@@ -86,11 +86,9 @@
   var HOLDERTYPE_OPTS = ['Any', 'L — Left hand', 'R — Right hand', 'N — Neutral'];
   var INSERTTYPE_OPTS = ['Any', 'C — 80° rhombic', 'D — 55° rhombic', 'V — 35° rhombic', 'W — 80° trigon', 'T — 60° triangle', 'S — square'];
   var HANDTYPE_OPTS   = ['Right (R)', 'Left (L)', 'Neutral (N)'];
-  /* Links tab: approach / return rules (the G53 presets come from the machine) */
-  var AR_OPTS = ['Avoid collisions', 'Short',
-    'G53 A1 A2 A3 A4 A5 A6; G53 E1 E2 — From Previous',
-    'G53 A1 A2 A3 A4 A5 A6; G53 E1 E2 — From Root',
-    'G53 A1 A2 A3 A4 A5 A6; G53 E1 E2 — Return by default'];
+  /* Links tab: approach / return rules. The list is: strategies (computed by the solver) ·
+     machine presets and user templates (command lists, come from rules.js) · Custom… */
+  var AR_OPTS = ['Avoid collisions', 'Short'];
   var TOOLCHG_OPTS  = ['From Previous', 'From Root', 'Return by default'];
   var SAFESURF_OPTS = ['Plane', 'Cylinder', 'Sphere', 'Box', 'None'];
   var PARAMS = {
@@ -453,10 +451,18 @@
       var opts = dd.dataset.opts ? dd.dataset.opts.split('|') : DD_OPTS.slice();
       if(opts.indexOf(v.textContent) < 0) opts = [v.textContent].concat(opts);
       var items = opts.map(function(o){ return {label:o, cur:o===v.textContent, onPick:function(){ v.textContent=o; }}; });
-      // "Custom…" — separated at the bottom; opens the rules editor for this combo
+      // Approach / Return: strategies · machine presets · user templates · Custom…
       if(dd.dataset.custom){
+        var which = dd.dataset.custom, tpl = window.arTemplates ? window.arTemplates(which) : {machine:[], user:[]};
+        items = AR_OPTS.map(function(o){ return {label:o, cur:o===v.textContent, onPick:function(){
+          v.textContent = o; if(window.arClose) window.arClose(which);     // a strategy has no command list
+        }}; });
+        var pick = function(name, user){ return {label:name, cur:name===v.textContent, onPick:function(){
+          v.textContent = name; closeStatus(); if(window.arOpen) window.arOpen(which, name, user); }}; };
+        if(tpl.machine.length){ items.push({sep:true}); tpl.machine.forEach(function(n){ items.push(pick(n, false)); }); }
+        if(tpl.user.length){ items.push({sep:true}); tpl.user.forEach(function(n){ items.push(pick(n, true)); }); }
         items.push({sep:true});
-        items.push({label:'Custom…', cur:v.textContent==='Custom', onPick:function(){ v.textContent='Custom'; linksCustomOpen(dd.dataset.custom, dd); }});
+        items.push({label:'Custom…', cur:v.textContent==='Custom', onPick:function(){ v.textContent='Custom'; linksCustomOpen(which, dd); }});
       }
       showMenu(dd.getBoundingClientRect(), items, dd, dd.getBoundingClientRect().width);
       return;

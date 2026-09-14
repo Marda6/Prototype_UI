@@ -28,6 +28,14 @@
   var AREA = APP.area || 'home';
   // from packages/<id>/ to packages/shared-ui/ is exactly one level up
   var BASE = '../shared-ui/assets/';
+  // prototype switch for the active license state: ?license=expired | ?license=ok
+  // (persisted so that it survives navigation between sections, which reloads the page)
+  var LIC = 'ok';
+  try {
+    var q = new URLSearchParams(location.search).get('license');
+    if (q) localStorage.setItem('ency.lic', q);
+    LIC = localStorage.getItem('ency.lic') || 'ok';
+  } catch(e){}
 
   function icon(s){
     if (s.svg) return '<span class="icn16">' + s.svg + '</span>';
@@ -76,6 +84,7 @@
         '<div class="hbtn" title="New tab"><img class="hicn-plus" src="' + BASE + 'hdr-plus.svg" alt=""></div>' +
       '</div>' +
       '<div class="hgroup-right">' +
+        // (license state is not shown here: the top bar is reserved for global notifications)
         // temporary prototype toggle: shows the sections online and without network
         '<div class="cseg" id="connSeg">' +
           '<span class="ci on" data-net="online">Online</span>' +
@@ -136,14 +145,18 @@
         '</div>' +
         '<div class="sdiv"></div>' +
         '<div class="sinfo">' +
-          '<div class="grp"><span class="lbl">Active license:</span><span class="val">#421480</span></div>' +
+          // the value is swapped live by ENCY_CHROME.setLicense()
+          '<div class="grp"><span class="lbl">Active license:</span><span class="val" id="sbLic">' +
+            (LIC === 'expired' ? '#421481 · Expired 2026-08-30' : '#421480') + '</span></div>' +
           '<div class="grp"><span class="lbl">Licensee:</span><span class="val">TONINI FABIO ELETTROMECCANICA</span></div>' +
         '</div>' +
         '<div class="sdiv"></div>' +
         '<nav class="snav">' +
           group('account') +
           '<div class="srow srow-user">' +
-            '<span class="icn16 sacc-icn"><img src="' + BASE + 'sb-account.svg" alt=""></span>' +
+            // the red dot is the collapsed-sidebar echo of the expired license
+            '<span class="icn16 sacc-icn"><img src="' + BASE + 'sb-account.svg" alt="">' +
+              '<i class="sacc-bad" title="License expired"></i></span>' +
             '<span class="t suser">' +
               '<span class="suser-name">Ruslan Mardanshin</span>' +
               '<span class="suser-mail">ruslan.m@encycam.io</span>' +
@@ -165,6 +178,7 @@
       workspace = app && app.querySelector('.workspace');
   if (!app || !workspace) return;
 
+  if (LIC === 'expired') app.classList.add('lic-expired');
   app.insertAdjacentHTML('afterbegin', topbar());
   // the home sidebar exists only outside a project
   if (AREA !== 'project') workspace.insertAdjacentHTML('afterbegin', sidebar());
@@ -204,6 +218,15 @@
     });
   })();
 
+  // license state, switchable at runtime (License manager activates an expired license)
+  function setLicense(state){
+    var bad = state === 'expired';
+    app.classList.toggle('lic-expired', bad);
+    var v = document.getElementById('sbLic');
+    if (v){ v.textContent = bad ? '#421481 · Expired 2026-08-30' : '#421480'; v.classList.toggle('bad', bad); }
+  }
+  setLicense(LIC);
+
   // sections sometimes need the registry — e.g. to build their own list of links
-  window.ENCY_CHROME = {sections: SECTIONS.slice()};
+  window.ENCY_CHROME = {sections: SECTIONS.slice(), setLicense: setLicense};
 })();
