@@ -228,6 +228,69 @@
 
 /* simulation panel on the 3D view: control row on top, timeline below.
    Stretched across the viewport width, same panel finish as the dock. */
+/* ===== Calculation progress bar: bottom of the viewport, from the dock to the right edge =====
+   same surface as the simulation bar; 36px: spinner · "Calculating <op>" · n of N · track · % · time · Cancel */
+/* ===== View cube — bottom-left of the 3D view, between the dock and the calc bar =====
+   same panel pattern as .filters (light frame, dark inset); the cube itself is an
+   SVG drawn by the "View cube" section in app.js */
+.vcube{position:absolute;left:357px;bottom:8px;z-index:20;width:96px;height:96px;
+  touch-action:none;user-select:none;cursor:grab;}
+.vcube.dragging{cursor:grabbing;}
+.vcube svg{display:block;width:96px;height:96px;overflow:visible;}
+/* faces: the top is the lit one; the two sides differ by how much they face the viewer */
+.vc-face{fill:var(--ec-fg-8);stroke:var(--ec-fg-24);stroke-width:1;stroke-linejoin:round;pointer-events:none;}
+.vc-face.lit{fill:var(--ec-fg-12);}
+.vc-face.top{fill:var(--ec-fg-16);}
+/* hit cells: 3×3 per face → face centre, edge strips, corner squares; the whole
+   region (both halves of an edge, all three parts of a corner) lights up together */
+.vc-cell{fill:transparent;stroke:none;cursor:pointer;}
+.vc-cell.hov{fill:var(--ec-fg-24);}
+.vc-lbl{fill:var(--ec-fg-72);font:500 8px/8px var(--ec-font);letter-spacing:.04em;text-anchor:middle;
+  dominant-baseline:central;pointer-events:none;text-transform:uppercase;}
+/* axis triad drawn from the cube's origin corner along its edges */
+.vc-ax{stroke-width:1.2;stroke-linecap:round;fill:none;pointer-events:none;}
+.vc-axl{font:600 8px/8px var(--ec-font);text-anchor:middle;dominant-baseline:central;pointer-events:none;}
+.vc-ax.x,.vc-axl.x{stroke:#ff5c77;fill:#ff5c77;}
+.vc-ax.y,.vc-axl.y{stroke:var(--st-green);fill:var(--st-green);}
+.vc-ax.z,.vc-axl.z{stroke:var(--st-blue);fill:var(--st-blue);}
+.vc-ax{fill:none;}
+/* controls show on hover: Home at the top-left, ±90° turns at the bottom corners */
+.vc-btn{position:absolute;width:20px;height:20px;display:grid;place-items:center;border-radius:4px;
+  color:var(--ec-fg-56);cursor:pointer;opacity:0;transition:opacity .12s ease;}
+.vcube:hover .vc-btn{opacity:1;}
+.vc-btn:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+.vc-btn svg{width:14px;height:14px;}
+.vc-home{left:0;top:0;}
+.vc-more{right:0;top:0;}
+.vc-ccw{left:0;bottom:0;}
+.vc-cw{right:0;bottom:0;}
+.vcube.menu-open .vc-btn{opacity:1;}
+.vcube.menu-open .vc-more{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+.vcube.no-axes .vc-ax,.vcube.no-axes .vc-axl{display:none;}
+/* ⋮ menu of the cube (uses the shared .dd-menu); the check slot keeps labels aligned */
+.dd-ck{display:inline-block;width:14px;margin-right:4px;color:var(--ec-fg-96);text-align:center;}
+/* the cube reserves 96 + 8px on the left of the bar */
+.calcbar{position:absolute;left:461px;right:8px;bottom:8px;z-index:20;height:36px;
+  display:flex;align-items:center;gap:12px;padding:0 6px;border-radius:8px;
+  background:color-mix(in srgb, #f5f5f5 8%, var(--ec-bg));border:1px solid var(--ec-fg-12);}
+.calcbar[hidden]{display:none;}
+/* Cancel sits 6px from the bar's edge on every side (36 − 24 = 2·6) and 6px from the divider */
+.cb-cancel + .cb-sep{margin-left:-6px;}
+.cb-icn{width:20px;height:20px;flex:0 0 20px;display:flex;align-items:center;justify-content:center;}
+/* fixed slot for the operation name, so the track keeps its length when the operation changes */
+.cb-title{flex:0 0 240px;min-width:0;color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cb-title b{color:var(--ec-fg-96);font-weight:500;}
+.cb-sep{width:1px;height:16px;flex:0 0 1px;background:var(--ec-fg-12);}
+.cb-meta{flex:0 0 auto;color:var(--ec-fg-48);font:400 12px/16px var(--ec-font);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.cb-track{flex:1 1 0;min-width:80px;height:4px;border-radius:2px;background:var(--ec-fg-12);overflow:hidden;}
+.cb-track i{display:block;height:100%;width:0;border-radius:2px;background:var(--st-green);transition:width .12s linear;}
+.cb-pct{flex:0 0 36px;text-align:right;color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);font-variant-numeric:tabular-nums;}
+.cb-time{flex:0 0 auto;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.cb-cancel{height:24px;padding:0 12px;border:0;border-radius:4px;background:var(--ec-fg-8);color:var(--ec-fg-96);
+  font:400 12px/16px var(--ec-font);text-align:center;cursor:pointer;flex:0 0 auto;}
+.cb-cancel:hover{background:var(--ec-fg-12);}
+/* finished: Cancel is inert (the layout stays put) */
+.calcbar.done .cb-cancel{opacity:.35;pointer-events:none;}
 .simbar{position:absolute;left:8px;right:8px;bottom:8px;z-index:20;
   display:flex;flex-direction:column;align-items:stretch;gap:2px;padding:2px;border-radius:8px;
   background:color-mix(in srgb, #f5f5f5 8%, var(--ec-bg));border:1px solid var(--ec-fg-12);}

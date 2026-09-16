@@ -744,17 +744,307 @@
       }
       var stIcons = scope.map(function(r){ return r.querySelector('.st'); }).filter(Boolean);
       if(!stIcons.length) return;
-      calcBtn.classList.add('busy');
       // Auto approach/return restores the links on recalculation
       var srAutoBtn = document.getElementById('srAuto');
       if(srAutoBtn && srAutoBtn.classList.contains('on')) tree.classList.add('linked');
-      stIcons.forEach(function(img){ img.src = EMPTY; });
-      var step = 160, done = 0;
-      stIcons.forEach(function(img, i){
-        setTimeout(function(){ img.src = CALC; if(++done === stIcons.length) calcBtn.classList.remove('busy'); }, (i+1)*step);
-      });
+      calcRun(scope);
     });
   }
+
+  /* ---------- View cube (bottom-left of the viewport, next to the dock) ----------
+     CAD-style navigation cube: 6 faces, 12 edges and 8 corners are separate hit regions,
+     a click snaps the camera to look from that direction (corners give the isometric views);
+     drag orbits, double-click resets. Home and ±90° turn buttons appear on hover.
+     Same yaw / pitch camera as lib/robot-preview: the cube drives the preview while the
+     Approach / Return window is open and follows it when the 3D view is dragged. */
+  (function(){
+    var box = document.getElementById('vcube'); if(!box) return;
+    var HOME = {yaw:0.68, pitch:0.49};                       // Top · Front · Right
+    var cam = {yaw:HOME.yaw, pitch:HOME.pitch};
+    var S = 96, C = S / 2, R = 19;                           // svg size, centre, half edge
+    var FACES = [
+      {n:[0,0,1],  lbl:'Top',    cls:'top'},
+      {n:[0,0,-1], lbl:'Bottom', cls:''},
+      {n:[0,1,0],  lbl:'Front',  cls:''},
+      {n:[0,-1,0], lbl:'Back',   cls:''},
+      {n:[1,0,0],  lbl:'Right',  cls:''},
+      {n:[-1,0,0], lbl:'Left',   cls:''}
+    ];
+    var BANDS = [[-1,-0.5,-1],[-0.5,0.5,0],[0.5,1,1]];       // [from, to, sign] across a face
+    function cross(a,b){ return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+    function add(){ var r=[0,0,0]; for(var i=0;i<arguments.length;i++){ var v=arguments[i]; r[0]+=v[0]; r[1]+=v[1]; r[2]+=v[2]; } return r; }
+    function mul(v,k){ return [v[0]*k, v[1]*k, v[2]*k]; }
+    function tangents(n){ var u = n[2] ? [1,0,0] : [0,0,1]; return [u, cross(n,u)]; }
+    // same projection as robot-preview: x right, y depth, z up; +depth faces the viewer
+    function proj(p){
+      var cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+      var x = cy*p[0] - sy*p[1], y = sy*p[0] + cy*p[1];
+      return [C + x, C + (sp*y - cp*p[2]), cp*y + sp*p[2]];
+    }
+    function pts(list){ return list.map(function(p){ return p[0].toFixed(1)+','+p[1].toFixed(1); }).join(' '); }
+    var svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('viewBox','0 0 '+S+' '+S); box.appendChild(svg);
+    function el(tag, attrs){ var e = document.createElementNS(svg.namespaceURI, tag); for(var k in attrs) e.setAttribute(k, attrs[k]); svg.appendChild(e); return e; }
+    function draw(){
+      var vis = FACES.map(function(f){ return {f:f, facing:proj(f.n)[2] / R}; })
+        .filter(function(o){ return o.facing > 0.02; })
+        .sort(function(a,b){ return a.facing - b.facing; });
+      svg.innerHTML = '';
+      // axis triad anchored at the cube's origin corner (−X −Y −Z), arms along the edges.
+      // Lines go first so the cube occludes them: only the tips past the edges show;
+      // the letters are drawn last, outside the silhouette
+      var AX = [['x',[1,0,0]],['y',[0,1,0]],['z',[0,0,1]]], o0 = [-R,-R,-R], p0 = proj(o0);
+      AX.forEach(function(a){
+        var p1 = proj(add(o0, mul(a[1], 2*R + 8)));
+        el('line', {x1:p0[0].toFixed(1), y1:p0[1].toFixed(1), x2:p1[0].toFixed(1), y2:p1[1].toFixed(1), 'class':'vc-ax '+a[0]});
+      });
+      vis.forEach(function(o){
+        var n = o.f.n, t = tangents(n), u = t[0], v = t[1];
+        var quad = [[1,1],[-1,1],[-1,-1],[1,-1]].map(function(k){ return proj(mul(add(n, mul(u,k[0]), mul(v,k[1])), R)); });
+        el('polygon', {points:pts(quad), 'class':'vc-face' + (o.f.cls ? ' '+o.f.cls : '') + (o.facing > 0.55 && !o.f.cls ? ' lit' : '')});
+        // 3×3 hit cells; the region key is the view direction they snap to
+        BANDS.forEach(function(bs){ BANDS.forEach(function(bt){
+          var cell = [[bs[0],bt[0]],[bs[1],bt[0]],[bs[1],bt[1]],[bs[0],bt[1]]]
+            .map(function(k){ return proj(mul(add(n, mul(u,k[0]), mul(v,k[1])), R)); });
+          var dir = add(n, mul(u,bs[2]), mul(v,bt[2]));
+          el('polygon', {points:pts(cell), 'class':'vc-cell', 'data-dir':dir.join(',')});
+        }); });
+        if(o.facing > 0.4){
+          var c = proj(mul(n, R));
+          el('text', {x:c[0].toFixed(1), y:c[1].toFixed(1), 'class':'vc-lbl'}).textContent = o.f.lbl;
+        }
+      });
+      AX.forEach(function(a){
+        var pl = proj(add(o0, mul(a[1], 2*R + 15)));
+        el('text', {x:pl[0].toFixed(1), y:pl[1].toFixed(1), 'class':'vc-axl '+a[0]}).textContent = a[0].toUpperCase();
+      });
+    }
+    // region hover: light every cell of the same region
+    svg.addEventListener('mouseover', function(e){
+      var d = e.target.getAttribute && e.target.getAttribute('data-dir'); if(!d) return;
+      Array.prototype.forEach.call(svg.querySelectorAll('.vc-cell'), function(c){ c.classList.toggle('hov', c.getAttribute('data-dir') === d); });
+    });
+    svg.addEventListener('mouseleave', function(){
+      Array.prototype.forEach.call(svg.querySelectorAll('.vc-cell.hov'), function(c){ c.classList.remove('hov'); });
+    });
+    // camera from a view direction (unit vector towards the viewer)
+    function camFrom(d){
+      var l = Math.hypot(d[0], d[1], d[2]) || 1, x = d[0]/l, y = d[1]/l, z = d[2]/l;
+      var pitch = Math.asin(Math.max(-1, Math.min(1, z)));
+      var yaw = (Math.abs(x) + Math.abs(y) < 1e-6) ? cam.yaw : Math.atan2(x, y);  // top / bottom keep the turn
+      return {yaw:yaw, pitch:pitch};
+    }
+    // preview sync: push the cube camera (pitch clamped to the preview's range) and pull
+    // the preview camera back while it is being dragged in the 3D view
+    function clampP(p){ return Math.min(1.2, Math.max(0.08, p)); }
+    function push(){
+      var v = window.arView && window.arView(); if(!v) return;
+      try{ v.setCamera({yaw:cam.yaw, pitch:clampP(cam.pitch)}); }catch(e){}
+    }
+    function pull(){
+      var v = window.arView && window.arView();
+      if(v && !anim && !drag){
+        var c = v.getCamera();
+        if(Math.abs(c.yaw - cam.yaw) > 1e-4 || Math.abs(c.pitch - clampP(cam.pitch)) > 1e-4){
+          cam.yaw = c.yaw; cam.pitch = c.pitch; draw();
+        }
+      }
+      requestAnimationFrame(pull);
+    }
+    var anim = false;
+    function set(yaw, pitch, animate){
+      if(!animate){ cam.yaw = yaw; cam.pitch = pitch; draw(); push(); return; }
+      var from = {yaw:cam.yaw, pitch:cam.pitch}, t0 = performance.now(), D = 240;
+      var dy = yaw - from.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));  // shortest turn
+      anim = true;
+      (function step(now){
+        var k = Math.min(1, (now - t0) / D); k = 1 - Math.pow(1 - k, 3);
+        cam.yaw = from.yaw + dy*k; cam.pitch = from.pitch + (pitch - from.pitch)*k; draw(); push();
+        if(k < 1) requestAnimationFrame(step); else anim = false;
+      })(t0);
+    }
+    var drag = null;
+    box.addEventListener('pointerdown', function(e){
+      if(e.button !== 0 || e.target.closest('.vc-btn')) return;
+      // remember the region under the pointer now — after capture the events target the box
+      var d = e.target.getAttribute && e.target.getAttribute('data-dir');
+      drag = {x:e.clientX, y:e.clientY, yaw:cam.yaw, pitch:cam.pitch, moved:false, dir:d};
+      box.setPointerCapture(e.pointerId);
+    });
+    box.addEventListener('pointermove', function(e){
+      if(!drag) return;
+      var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if(!drag.moved && Math.abs(dx) + Math.abs(dy) < 3) return;
+      drag.moved = true; box.classList.add('dragging');
+      cam.yaw = drag.yaw + dx*0.012;
+      cam.pitch = Math.max(-1.5, Math.min(1.5, drag.pitch + dy*0.008));
+      draw(); push();
+    });
+    box.addEventListener('pointerup', function(){
+      if(!drag) return;
+      var moved = drag.moved, d = drag.dir; drag = null; box.classList.remove('dragging');
+      if(moved || !d) return;
+      var c = camFrom(d.split(',').map(Number));
+      set(c.yaw, c.pitch, true);
+    });
+    box.addEventListener('pointercancel', function(){ drag = null; box.classList.remove('dragging'); });
+    box.addEventListener('dblclick', function(e){ if(!e.target.closest('.vc-btn')) set(HOME.yaw, HOME.pitch, true); });
+    // controls
+    var ICON_HOME = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><path d="M2.5 8 8 3l5.5 5"/><path d="M4 7v6h8V7"/></svg>';
+    var ICON_TURN = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8a4.5 4.5 0 1 0 1.3-3.2"/><path d="M4.5 2v3h3"/></svg>';
+    function btn(cls, title, svgIcon, fn){
+      var b = document.createElement('div'); b.className = 'vc-btn '+cls; b.title = title; b.innerHTML = svgIcon;
+      b.addEventListener('click', function(e){ e.stopPropagation(); fn(); }); box.appendChild(b); return b;
+    }
+    btn('vc-home', 'Home view', ICON_HOME, function(){ set(HOME.yaw, HOME.pitch, true); });
+    btn('vc-ccw', 'Turn 90° counter-clockwise', ICON_TURN, function(){ set(cam.yaw - Math.PI/2, cam.pitch, true); });
+    var cw = btn('vc-cw', 'Turn 90° clockwise', ICON_TURN, function(){ set(cam.yaw + Math.PI/2, cam.pitch, true); });
+    cw.firstChild.style.transform = 'scaleX(-1)';
+
+    /* ⋮ menu (Fusion-style cube menu, without the projection switch — the view is
+       always orthographic here). Home management, orientation to a coordinate system,
+       a new LCS from the current view, and the triad toggle. */
+    var ICON_MORE = '<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="3.5" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="8" cy="12.5" r="1.3"/></svg>';
+    var CS = ['World', 'Machine', 'Job (G54)', 'Tool'], csCur = 0, axesOn = true;
+    var menu = null;
+    function menuClose(){ if(menu){ menu.remove(); menu = null; box.classList.remove('menu-open'); } }
+    function menuOpen(anchor){
+      if(menu){ menuClose(); return; }
+      var opts = [
+        {t:'Go Home', fn:function(){ set(HOME.yaw, HOME.pitch, true); }},
+        {t:'Fit to view', fn:function(){ var v = window.arView && window.arView(); if(v) v.fitToView(); }},
+        {sep:true},
+        {t:'Set current view as Home', fn:function(){ HOME = {yaw:cam.yaw, pitch:cam.pitch}; }},
+        {t:'Reset Home', fn:function(){ HOME = {yaw:0.68, pitch:0.49}; set(HOME.yaw, HOME.pitch, true); }},
+        {sep:true},
+        {head:'Orient to'}
+      ].concat(CS.map(function(n, i){
+        return {t:n, ck:i === csCur, fn:function(){ csCur = i; set(HOME.yaw, HOME.pitch, true); }};
+      })).concat([
+        {sep:true},
+        {t:'New LCS from current view…', title:'Local coordinate system: Z along the view direction, X to the right', fn:function(){}},
+        {sep:true},
+        {t:'Show axes', ck:axesOn, fn:function(){ axesOn = !axesOn; box.classList.toggle('no-axes', !axesOn); }}
+      ]);
+      menu = document.createElement('div'); menu.className = 'dd-menu';
+      opts.forEach(function(o){
+        var d = document.createElement('div');
+        if(o.sep){ d.className = 'dd-sep'; }
+        else if(o.head){ d.className = 'dd-head'; d.textContent = o.head; }
+        else {
+          d.className = 'dd-opt' + (o.ck ? ' cur' : '');
+          d.innerHTML = '<span class="dd-ck">' + (o.ck ? '✓' : '') + '</span>' + o.t;
+          if(o.title) d.title = o.title;
+          d.addEventListener('click', function(){ o.fn(); menuClose(); });
+        }
+        menu.appendChild(d);
+      });
+      document.body.appendChild(menu);
+      // above the button, left-aligned with it; keep inside the window
+      var r = anchor.getBoundingClientRect(), mh = menu.offsetHeight, mw = menu.offsetWidth;
+      var top = r.top - mh - 4; if(top < 8) top = r.bottom + 4;
+      var left = Math.min(r.left, window.innerWidth - mw - 8);
+      menu.style.left = left + 'px'; menu.style.top = top + 'px';
+      box.classList.add('menu-open');
+    }
+    var more = btn('vc-more', 'View options', ICON_MORE, function(){ menuOpen(more); });
+    document.addEventListener('pointerdown', function(e){
+      if(menu && !menu.contains(e.target) && !more.contains(e.target)) menuClose();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') menuClose(); });
+    draw();
+    requestAnimationFrame(pull);
+    window.viewCube = {set:set, get:function(){ return {yaw:cam.yaw, pitch:cam.pitch}; }, look:function(d){ var c = camFrom(d); set(c.yaw, c.pitch, true); }};
+  })();
+
+  /* ---------- Calculation progress bar (bottom of the viewport) ----------
+     Operations are calculated one after another; the bar shows the current operation,
+     its elapsed time, the overall progress and Cancel. Containers (setup / part / machine)
+     get their status once everything below them is done. */
+  var calcBar = document.createElement('div');
+  calcBar.className = 'calcbar'; calcBar.hidden = true;
+  // Cancel first (always in the same place) · spinner + operation name in a fixed-width slot
+  // · divider · n of N · track · % · time
+  calcBar.innerHTML =
+    '<button class="cb-cancel" id="cbCancel">Cancel</button>' +
+    '<span class="cb-sep"></span>' +
+    '<span class="cb-icn" id="cbIcn"></span>' +          // the operation's own icon
+    '<span class="cb-title" id="cbTitle">Calculating <b id="cbName"></b></span>' +
+    '<span class="cb-sep"></span>' +
+    '<span class="cb-meta" id="cbCount"></span>' +
+    '<span class="cb-track"><i id="cbFill"></i></span>' +
+    '<span class="cb-pct" id="cbPct">0%</span>' +
+    '<span class="cb-time" id="cbTime" title="Time of the current operation">00:00.0</span>';
+  document.querySelector('.viewport').appendChild(calcBar);
+  var calcState = null;
+
+  function fmtT(ms){ var s = ms / 1000; return (s < 600 ? ('0' + Math.floor(s / 60)).slice(-2) : Math.floor(s / 60)) + ':' + ('0' + (s % 60).toFixed(1)).slice(-4); }
+
+  function calcRun(scope){
+    if(calcState) return;
+    var ops = scope.filter(function(r){ return r.dataset.type === 'operation'; }),
+        containers = scope.filter(function(r){ return r.dataset.type !== 'operation'; });
+    if(!ops.length){ containers.forEach(function(r){ var s = r.querySelector('.st'); if(s) s.src = CALC; }); return; }
+    scope.forEach(function(r){ var s = r.querySelector('.st'); if(s) s.src = EMPTY; });
+    calcBtn.classList.add('busy');
+    // demo durations: 1.2–2.8 s per operation
+    var plan = ops.map(function(r){ return {row:r, ms:1200 + Math.random() * 1600}; });
+    calcState = {plan:plan, i:0, t0:performance.now(), opT0:performance.now(), raf:0, blink:0};
+    calcBar.hidden = false;
+    calcTick();
+  }
+  function calcTick(){
+    var st = calcState; if(!st) return;
+    var now = performance.now(), cur = st.plan[st.i], el = now - st.opT0;
+    if(el >= cur.ms){
+      cur.row.querySelector('.st').src = CALC;
+      st.i++;
+      if(st.i >= st.plan.length){ calcFinish(true); return; }
+      st.opT0 = now; cur = st.plan[st.i]; el = 0;
+    }
+    var frac = Math.min(1, el / cur.ms), total = (st.i + frac) / st.plan.length;
+    // the current operation blinks between the two "in progress" glyphs
+    var icon = cur.row.querySelector('.st');
+    if(Math.floor(now / 350) !== st.blink){ st.blink = Math.floor(now / 350); icon.src = st.blink % 2 ? P1 : P2; }
+    var nameEl = cur.row.querySelector('.rlabel');
+    document.getElementById('cbName').textContent = nameEl ? nameEl.textContent.trim() : cur.row.dataset.id;
+    if(st.iconOf !== cur.row){                        // operation changed → its icon
+      st.iconOf = cur.row;
+      var ic = cur.row.querySelector('.opic');
+      document.getElementById('cbIcn').innerHTML = ic ? ic.outerHTML : '';
+    }
+    document.getElementById('cbCount').textContent = (st.i + 1) + ' of ' + st.plan.length;
+    document.getElementById('cbFill').style.width = (total * 100).toFixed(1) + '%';
+    document.getElementById('cbPct').textContent = Math.round(total * 100) + '%';
+    document.getElementById('cbTime').textContent = fmtT(el);
+    st.raf = requestAnimationFrame(calcTick);
+  }
+  function calcFinish(done){
+    var st = calcState; if(!st) return;
+    cancelAnimationFrame(st.raf);
+    calcState = null;
+    calcBtn.classList.remove('busy');
+    if(done){
+      // containers follow their operations
+      document.querySelectorAll('.trow:not([data-type="operation"]) .st').forEach(function(s){ if(s.src === EMPTY) s.src = CALC; });
+      calcBar.classList.add('done');
+      // same nodes, new text — nothing is re-laid out, so the bar does not jump
+      document.getElementById('cbTitle').innerHTML = 'Calculated <b>' + st.plan.length + (st.plan.length === 1 ? ' operation' : ' operations') + '</b>';
+      document.getElementById('cbCount').textContent = st.plan.length + ' of ' + st.plan.length;
+      document.getElementById('cbTime').textContent = fmtT(performance.now() - st.t0);
+      document.getElementById('cbFill').style.width = '100%';
+      document.getElementById('cbPct').textContent = '100%';
+      setTimeout(function(){
+        calcBar.hidden = true; calcBar.classList.remove('done');
+        document.getElementById('cbTitle').innerHTML = 'Calculating <b id="cbName"></b>';
+      }, 1400);
+    } else {
+      // cancelled: the current one goes back to "not calculated", the rest stay empty
+      st.plan.slice(st.i).forEach(function(p){ p.row.querySelector('.st').src = EMPTY; });
+      calcBar.hidden = true;
+    }
+  }
+  document.getElementById('cbCancel').addEventListener('click', function(){ calcFinish(false); });
 
   /* ---------- Reset statuses (sync button, left of Calculate) ---------- */
   var resetBtn = document.getElementById('resetBtn');
@@ -1817,6 +2107,7 @@
      it is the default — the wide bottom panel is opt-in via the toggle */
   var simCompact = true;
   var simDock = document.getElementById('simDock');
+  var vcube = document.getElementById('vcube');
   function setSimMode(on){
     document.querySelector('.dock').classList.toggle('sim', on);
     document.querySelector('.panel-tree').classList.toggle('sim', on);
@@ -1830,8 +2121,11 @@
       // the wide sim panel spans the viewport — pull the dock up above it;
       // in compact mode there is no bottom panel, the dock takes full height
       dock.style.bottom = simCompact ? '' : (simBar.offsetHeight + 8 + 8) + 'px';
+      // the view cube sits above the wide panel too
+      vcube.style.bottom = dock.style.bottom;
     } else {
       dock.style.bottom = '';
+      vcube.style.bottom = '';
       simPause();
     }
   }

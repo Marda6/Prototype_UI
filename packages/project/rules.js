@@ -824,4 +824,6 @@
   window.arOpen = open;
   window.arClose = close;
   window.arTemplates = templates;
+  // the view cube (app.js) drives / follows the preview camera while the window is open
+  window.arView = function(){ return view; };
 })();
