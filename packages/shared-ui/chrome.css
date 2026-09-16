@@ -87,11 +87,13 @@
   .sinfo .lbl{color:var(--st-text-60);}
   .sinfo .val{color:var(--st-text);}
   .sinfo .val.bad{color:#ff5c77;}
-  /* red dot on the account icon — visible in the collapsed sidebar too */
-  .sacc-icn{position:relative;overflow:visible;}
-  .sacc-bad{display:none;position:absolute;right:-2px;top:-2px;width:7px;height:7px;border-radius:50%;
-    background:#ff5c77;box-shadow:0 0 0 2px var(--ec-bg);}
-  .app.lic-expired .sacc-bad{display:block;}
+  /* connection: green dot + Online, or amber dot + Offline (the app has no internet) */
+  .sinfo-conn{display:flex;align-items:center;gap:6px;}
+  .sinfo-conn i{width:6px;height:6px;border-radius:50%;background:var(--st-green);flex:0 0 6px;}
+  .sinfo-conn .off{display:none;}
+  .app.offline .sinfo-conn .on{display:none;}
+  .app.offline .sinfo-conn .off{display:inline;color:var(--ec-amber, #ebc14a);}
+  .app.offline .sinfo-conn i{background:var(--ec-amber, #ebc14a);}
   .slinks{padding:12px 10px;display:flex;flex-direction:column;gap:8px;}
   .slinks a{color:var(--st-green);text-decoration:none;white-space:nowrap;}
   .slinks a:hover{text-decoration:underline;}
@@ -102,6 +104,26 @@
   .sacc-icn{border-radius:50%;}
   .sacc-icn img{width:10px;height:17px;margin-top:5px;}
   /* account row: login + e-mail on two lines (36px, same 8px padding) */
+  /* signed out: the same row slot holds a "Sign in" action in the accent colour */
+  .srow-signin .t{color:var(--st-green);}
+  .srow-signin:hover .t{text-decoration:underline;text-underline-offset:2px;}
+  /* account popover: to the right of the account row — name, e-mail, Sign out */
+  .acc-pop{position:fixed;z-index:80;width:220px;padding:10px;border-radius:8px;
+    background:var(--ec-popover, #1e2223);border:1px solid var(--ec-fg-12);
+    box-shadow:0 12px 40px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:8px;}
+  .acc-head{display:flex;align-items:center;gap:10px;min-width:0;}
+  .acc-avatar{width:32px;height:32px;flex:0 0 32px;border-radius:50%;background:var(--ec-fg-8);
+    display:flex;align-items:center;justify-content:center;}
+  .acc-avatar img{width:12px;height:20px;margin-top:2px;}
+  .acc-txt{display:flex;flex-direction:column;min-width:0;}
+  .acc-name{font:500 12px/16px var(--ec-font);color:var(--ec-fg-100);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .acc-mail{font:400 11px/14px var(--ec-font);color:var(--st-text-60);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .acc-div{height:1px;background:var(--ec-fg-8);}
+  .acc-btn{height:24px;padding:0 10px;border:0;border-radius:4px;background:var(--ec-fg-8);color:var(--ec-fg-96);
+    font:400 12px/16px var(--ec-font);cursor:pointer;align-self:flex-start;}
+  .acc-btn:hover{background:var(--ec-fg-12);}
   .srow-user{height:auto;min-height:32px;padding:6px 8px;}
   .srow-user .suser{display:flex;flex-direction:column;gap:0;overflow:hidden;}
   .suser-name{font:400 12px/16px var(--ec-font);color:var(--ec-fg-100);

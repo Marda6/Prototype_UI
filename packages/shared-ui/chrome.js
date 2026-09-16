@@ -149,22 +149,36 @@
           '<div class="grp"><span class="lbl">Active license:</span><span class="val" id="sbLic">' +
             (LIC === 'expired' ? '#421481 · Expired' : '#421480') + '</span></div>' +
           '<div class="grp"><span class="lbl">Licensee:</span><span class="val">TONINI FABIO ELETTROMECCANICA</span></div>' +
+          // connection state follows the Online / Offline toggle (.app.offline) — CSS swaps the two values
+          '<div class="grp"><span class="lbl">Connection:</span>' +
+            '<span class="val sinfo-conn"><i></i><span class="on">Online</span><span class="off">Offline · no internet</span></span></div>' +
         '</div>' +
         '<div class="sdiv"></div>' +
         '<nav class="snav">' +
           group('account') +
-          '<div class="srow srow-user">' +
-            // the red dot is the collapsed-sidebar echo of the expired license
-            '<span class="icn16 sacc-icn"><img src="' + BASE + 'sb-account.svg" alt="">' +
-              '<i class="sacc-bad" title="License expired"></i></span>' +
-            '<span class="t suser">' +
-              '<span class="suser-name">Ruslan Mardanshin</span>' +
-              '<span class="suser-mail">ruslan.m@encycam.io</span>' +
-            '</span>' +
-          '</div>' +
+          '<div id="sbAccount">' + accountRow() + '</div>' +
         '</nav>' +
       '</div>' +
     '</aside>';
+  }
+
+  // ——— account: signed in → name + e-mail row (click opens the account popover);
+  //     signed out → a "Sign in" row in the same place ———
+  var USER = {name:'Ruslan Mardanshin', mail:'ruslan.m@encycam.io'};
+  var AUTH = 'in';
+  try { AUTH = localStorage.getItem('ency.auth') || 'in'; } catch(e){}
+  function accountRow(){
+    if (AUTH !== 'in') {
+      return '<div class="srow srow-signin" data-act="signin" title="Sign in">' +
+        '<span class="icn16 sacc-icn"><img src="' + BASE + 'sb-account.svg" alt=""></span>' +
+        '<span class="t">Sign in</span></div>';
+    }
+    return '<div class="srow srow-user" data-act="account">' +
+      '<span class="icn16 sacc-icn"><img src="' + BASE + 'sb-account.svg" alt=""></span>' +
+      '<span class="t suser">' +
+        '<span class="suser-name">' + USER.name + '</span>' +
+        '<span class="suser-mail">' + USER.mail + '</span>' +
+      '</span></div>';
   }
 
   function fav(file, title, cls){
@@ -216,6 +230,50 @@
     seg.querySelectorAll('.ci').forEach(function(x){
       x.addEventListener('click', function(){ apply(x.dataset.net); });
     });
+  })();
+
+  // account popover (name · e-mail · Sign out) and the sign-in / sign-out switch
+  (function(){
+    var host = document.getElementById('sbAccount');
+    if (!host) return;
+    var pop = null;
+    function setAuth(a){
+      AUTH = a;
+      try { localStorage.setItem('ency.auth', a); } catch(e){}
+      closePop();
+      host.innerHTML = accountRow();
+    }
+    function closePop(){ if (pop){ pop.remove(); pop = null; } }
+    function openPop(row){
+      closePop();
+      pop = document.createElement('div');
+      pop.className = 'acc-pop';
+      pop.innerHTML =
+        '<div class="acc-head">' +
+          '<span class="acc-avatar"><img src="' + BASE + 'sb-account.svg" alt=""></span>' +
+          '<span class="acc-txt"><span class="acc-name">' + USER.name + '</span>' +
+            '<span class="acc-mail">' + USER.mail + '</span></span>' +
+        '</div>' +
+        '<div class="acc-div"></div>' +
+        '<button class="acc-btn" data-act="signout">Sign out</button>';
+      document.body.appendChild(pop);
+      // to the right of the row, bottom edges aligned; never below the window edge
+      var r = row.getBoundingClientRect(), h = pop.offsetHeight;
+      pop.style.left = (r.right + 8) + 'px';
+      pop.style.top = Math.max(8, Math.min(r.bottom - h, window.innerHeight - h - 8)) + 'px';
+      pop.addEventListener('click', function(e){
+        e.stopPropagation();
+        if (e.target.closest('[data-act="signout"]')) setAuth('out');
+      });
+    }
+    host.addEventListener('click', function(e){
+      var row = e.target.closest('[data-act]'); if (!row) return;
+      e.stopPropagation();
+      if (row.dataset.act === 'signin') { setAuth('in'); return; }
+      if (pop) closePop(); else openPop(row);
+    });
+    document.addEventListener('click', closePop);
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closePop(); });
   })();
 
   // license state, switchable at runtime (License manager activates an expired license)
