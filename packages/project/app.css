@@ -284,7 +284,7 @@
 .vb-sys{right:8px;}
 .vb-sys .cb-sep{margin:0 6px;}
 /* progress: left / right are set from the side panels in calcPlace() */
-.calcbar{gap:12px;padding:0 6px;}
+.calcbar{gap:12px;padding:0 6px;left:461px;right:8px;}   /* fallback until calcPlace() runs */
 .calcbar[hidden]{display:none !important;}
 /* Cancel sits 6px from the bar's edge on every side (36 − 24 = 2·6) and 6px from the divider */
 .cb-cancel + .cb-sep{margin-left:-6px;}
