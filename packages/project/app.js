@@ -865,7 +865,7 @@
     }
     var drag = null;
     box.addEventListener('pointerdown', function(e){
-      if(e.button !== 0 || e.target.closest('.vc-btn')) return;
+      if(e.button !== 0 || e.target.closest('.vc-btn') || e.target.closest('.vc-cs')) return;
       // remember the region under the pointer now — after capture the events target the box
       var d = e.target.getAttribute && e.target.getAttribute('data-dir');
       drag = {x:e.clientX, y:e.clientY, yaw:cam.yaw, pitch:cam.pitch, moved:false, dir:d};
@@ -888,7 +888,7 @@
       set(c.yaw, c.pitch, true);
     });
     box.addEventListener('pointercancel', function(){ drag = null; box.classList.remove('dragging'); });
-    box.addEventListener('dblclick', function(e){ if(!e.target.closest('.vc-btn')) set(HOME.yaw, HOME.pitch, true); });
+    box.addEventListener('dblclick', function(e){ if(!e.target.closest('.vc-btn') && !e.target.closest('.vc-cs')) set(HOME.yaw, HOME.pitch, true); });
     // controls
     var ICON_HOME = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><path d="M2.5 8 8 3l5.5 5"/><path d="M4 7v6h8V7"/></svg>';
     var ICON_TURN = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8a4.5 4.5 0 1 0 1.3-3.2"/><path d="M4.5 2v3h3"/></svg>';
@@ -902,80 +902,246 @@
     cw.firstChild.style.transform = 'scaleX(-1)';
 
     /* ⋮ menu (Fusion-style cube menu, without the projection switch — the view is
-       always orthographic here). Home management, orientation to a coordinate system,
-       a new LCS from the current view, and the triad toggle. */
+       always orthographic here). Home management, the coordinate-system list with the
+       "new CS" flyout (shared with the caption under the cube), and the triad toggle.
+       Menus are built by vbMenuOpen() from the view-bar section; CS data lives there too. */
     var ICON_MORE = '<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="3.5" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="8" cy="12.5" r="1.3"/></svg>';
-    var CS = ['World', 'Machine', 'Job (G54)', 'Tool'], csCur = 0, axesOn = true;
-    var menu = null;
-    function menuClose(){ if(menu){ menu.remove(); menu = null; box.classList.remove('menu-open'); } }
-    function menuOpen(anchor){
-      if(menu){ menuClose(); return; }
-      var opts = [
+    var axesOn = true;
+    function csSection(){
+      return [{head:'Coordinate system'}].concat(csItems()).concat([{t:'New coordinate system', fly:csNewItems()}]);
+    }
+    function cubeMenu(){
+      return [
         {t:'Go Home', fn:function(){ set(HOME.yaw, HOME.pitch, true); }},
         {t:'Fit to view', fn:function(){ var v = window.arView && window.arView(); if(v) v.fitToView(); }},
         {sep:true},
         {t:'Set current view as Home', fn:function(){ HOME = {yaw:cam.yaw, pitch:cam.pitch}; }},
         {t:'Reset Home', fn:function(){ HOME = {yaw:0.68, pitch:0.49}; set(HOME.yaw, HOME.pitch, true); }},
+        {sep:true}
+      ].concat(csSection()).concat([
         {sep:true},
-        {head:'Orient to'}
-      ].concat(CS.map(function(n, i){
-        return {t:n, ck:i === csCur, fn:function(){ csCur = i; set(HOME.yaw, HOME.pitch, true); }};
-      })).concat([
-        {sep:true},
-        {t:'New LCS from current view…', title:'Local coordinate system: Z along the view direction, X to the right', fn:function(){}},
-        {sep:true},
-        {t:'Show axes', ck:axesOn, fn:function(){ axesOn = !axesOn; box.classList.toggle('no-axes', !axesOn); }}
+        {t:'Show axes', chk:axesOn, fn:function(){ axesOn = !axesOn; box.classList.toggle('no-axes', !axesOn); return true; }}
       ]);
-      menu = document.createElement('div'); menu.className = 'dd-menu';
-      opts.forEach(function(o){
-        var d = document.createElement('div');
-        if(o.sep){ d.className = 'dd-sep'; }
-        else if(o.head){ d.className = 'dd-head'; d.textContent = o.head; }
-        else {
-          d.className = 'dd-opt' + (o.ck ? ' cur' : '');
-          d.innerHTML = '<span class="dd-ck">' + (o.ck ? '✓' : '') + '</span>' + o.t;
-          if(o.title) d.title = o.title;
-          d.addEventListener('click', function(){ o.fn(); menuClose(); });
-        }
-        menu.appendChild(d);
-      });
-      document.body.appendChild(menu);
-      // above the button, left-aligned with it; keep inside the window
-      var r = anchor.getBoundingClientRect(), mh = menu.offsetHeight, mw = menu.offsetWidth;
-      var top = r.top - mh - 4; if(top < 8) top = r.bottom + 4;
-      var left = Math.min(r.left, window.innerWidth - mw - 8);
-      menu.style.left = left + 'px'; menu.style.top = top + 'px';
-      box.classList.add('menu-open');
     }
-    var more = btn('vc-more', 'View options', ICON_MORE, function(){ menuOpen(more); });
-    document.addEventListener('pointerdown', function(e){
-      if(menu && !menu.contains(e.target) && !more.contains(e.target)) menuClose();
-    });
-    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') menuClose(); });
+    var more = btn('vc-more', 'View options', ICON_MORE, function(){ vbMenuOpen(more, cubeMenu); });
+    // active coordinate system as a caption under the cube; click opens the CS list
+    var cap = document.createElement('div'); cap.className = 'vc-cs'; cap.id = 'vcCs'; cap.title = 'Active coordinate system';
+    cap.addEventListener('click', function(e){ e.stopPropagation(); vbMenuOpen(cap, csSection); });
+    box.appendChild(cap);
     draw();
     requestAnimationFrame(pull);
     window.viewCube = {set:set, get:function(){ return {yaw:cam.yaw, pitch:cam.pitch}; }, look:function(d){ var c = camFrom(d); set(c.yaw, c.pitch, true); }};
   })();
 
-  /* ---------- Calculation progress bar (bottom of the viewport) ----------
-     Operations are calculated one after another; the bar shows the current operation,
-     its elapsed time, the overall progress and Cancel. Containers (setup / part / machine)
-     get their status once everything below them is done. */
+  /* ---------- Bottom view bar (right of the cube) ----------
+     Left: view tools — Zoom extents, rotation mode, display mode, section plane.
+     Middle: the calculation progress (see below), shown only while calculating.
+     Right: new CS (+), CS picker, notifications, CPU load. Menus use the shared .dd-menu. */
+  var VBI = {
+    zoom:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5V2h3.5M10.5 2H14v3.5M14 10.5V14h-3.5M5.5 14H2v-3.5"/><rect x="5" y="5" width="6" height="6" rx="1"/></svg>',
+    rot:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="3.2"/><path d="M13.6 6.2A6 6 0 0 0 3.3 4.4M2.4 9.8a6 6 0 0 0 10.3 1.8"/><path d="M13.7 3.2v3h-3M2.3 12.8v-3h3"/></svg>',
+    disp:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11M2.5 8h11M4.2 4.4a5.5 5.5 0 0 0 7.6 0M4.2 11.6a5.5 5.5 0 0 1 7.6 0"/></svg>',
+    sect:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><path d="M8 2 13.5 5v6L8 14 2.5 11V5L8 2Z"/><path d="M2.5 5 8 8l5.5-3M8 8v6"/><path d="M1.5 9.5 14.5 3.5" stroke-dasharray="2 1.5"/></svg>',
+    plus:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>',
+    cs:'<svg viewBox="0 0 16 16" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9V3" stroke="var(--st-blue)"/><path d="M8 9l5.2 3" stroke="#ff5c77"/><path d="M8 9l-5.2 3" stroke="var(--st-green)"/><path d="M6.6 4.4 8 3l1.4 1.4" stroke="var(--st-blue)"/></svg>',
+    csg:'<svg viewBox="0 0 16 16" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9V3" stroke="var(--st-blue)"/><path d="M8 9l5.2 3" stroke="#ff5c77"/><path d="M8 9l-5.2 3" stroke="var(--st-green)"/><circle cx="8" cy="9" r="1.6" fill="currentColor" stroke="none"/></svg>',
+    bell:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11V7.5a4 4 0 0 1 8 0V11l1 1.5H3L4 11Z"/><path d="M6.5 14a1.5 1.5 0 0 0 3 0"/></svg>',
+    chev:'<svg class="chev" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 3 4 5.5 6.5 3"/></svg>',
+    dlg:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="11" rx="1.5"/><path d="M2 5.5h12"/></svg>',
+    more:'<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="12.5" cy="8" r="1.3"/></svg>',
+    x:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>'
+  };
+  // three separate floating panels: view tools · calculation progress · CS / status
+  var vp = document.querySelector('.viewport');
+  var viewTools = document.createElement('div');
+  viewTools.className = 'vbar vb-tools';
+  viewTools.innerHTML =
+    '<div class="vb-btn" id="vbZoom" title="Zoom extents">' + VBI.zoom + '</div>' +
+    '<div class="vb-btn" id="vbRot" title="Rotation">' + VBI.rot + '</div>' +
+    '<div class="vb-btn" id="vbDisp" title="Display">' + VBI.disp + '</div>' +
+    '<div class="vb-btn" id="vbSect" title="Section plane">' + VBI.sect + '</div>';
+  vp.appendChild(viewTools);
+  var sysBar = document.createElement('div');
+  sysBar.className = 'vbar vb-sys';
+  sysBar.innerHTML =
+    '<div class="vb-cpu" id="vbCpu" title="CPU load"><span id="vbCpuPct">0%</span><span class="meter"><i id="vbCpuFill"></i></span></div>';
+  vp.appendChild(sysBar);
+  // Cancel first (always in the same place) · operation icon + name in a fixed-width slot
+  // · divider · n of N · track · % · time
   var calcBar = document.createElement('div');
   calcBar.className = 'calcbar'; calcBar.hidden = true;
-  // Cancel first (always in the same place) · spinner + operation name in a fixed-width slot
-  // · divider · n of N · track · % · time
   calcBar.innerHTML =
-    '<button class="cb-cancel" id="cbCancel">Cancel</button>' +
+    '<button class="cb-cancel" id="cbCancel" title="Cancel"><span class="txt">Cancel</span>' + VBI.x + '</button>' +
     '<span class="cb-sep"></span>' +
-    '<span class="cb-icn" id="cbIcn"></span>' +          // the operation's own icon
+    '<span class="cb-icn" id="cbIcn"></span>' +
     '<span class="cb-title" id="cbTitle">Calculating <b id="cbName"></b></span>' +
     '<span class="cb-sep"></span>' +
     '<span class="cb-meta" id="cbCount"></span>' +
     '<span class="cb-track"><i id="cbFill"></i></span>' +
+    '<span class="cb-ring" title="Overall progress"></span>' +
     '<span class="cb-pct" id="cbPct">0%</span>' +
     '<span class="cb-time" id="cbTime" title="Time of the current operation">00:00.0</span>';
-  document.querySelector('.viewport').appendChild(calcBar);
+  vp.appendChild(calcBar);
+  // the progress panel fills the gap between the two side panels
+  function calcPlace(){
+    var a = viewTools.getBoundingClientRect(), b = sysBar.getBoundingClientRect(), r = vp.getBoundingClientRect();
+    calcBar.style.left = (a.right - r.left + 8) + 'px';
+    calcBar.style.right = (r.right - b.left + 8) + 'px';
+  }
+  window.addEventListener('resize', calcPlace);
+  // density steps by the panel's own width: c1 — Cancel becomes an icon, the name slot
+  // gives way; c2 — "n of N" and the time go; c3 — the track goes, the progress is drawn
+  // as a ring around the operation icon
+  if(window.ResizeObserver) new ResizeObserver(function(){
+    var w = calcBar.clientWidth;
+    calcBar.classList.toggle('c1', w < 640);
+    calcBar.classList.toggle('c2', w < 460);
+    calcBar.classList.toggle('c3', w < 320);
+  }).observe(calcBar);
+
+  /* generic bottom-anchored menu on top of the shared .dd-menu
+     items: {t, icon, ck, chk, fn, dis, sub, tail:[{icon,fn,title}]} | {sep} | {head} | {seg:[..], cur, fn(i)} */
+  var vbMenu = null, vbMenuAnchor = null, vbFly = null;
+  function vbFlyClose(){ if(vbFly){ vbFly.remove(); vbFly = null; } if(vbMenu){ var h = vbMenu.querySelector('.dd-opt.fly-open'); if(h) h.classList.remove('fly-open'); } }
+  function vbMenuClose(){ vbFlyClose(); if(vbMenu){ vbMenu.remove(); vbMenu = null; } if(vbMenuAnchor){ vbMenuAnchor.classList.remove('open'); vbMenuAnchor = null; } }
+  function vbMenuFill(m, items, render){
+    m.innerHTML = '';
+    items.forEach(function(o){
+      var d = document.createElement('div');
+      if(o.sep){ d.className = 'dd-sep'; }
+      else if(o.head){ d.className = 'dd-head'; d.textContent = o.head; }
+      else if(o.seg){
+        d.className = 'vb-seg';
+        o.seg.forEach(function(s, i){
+          var c = document.createElement('div'); c.textContent = s; if(i === o.cur) c.className = 'cur';
+          c.addEventListener('click', function(){ o.fn(i); render(); }); d.appendChild(c);
+        });
+      } else {
+        d.className = 'dd-opt' + (o.ck || o.chk ? ' cur' : '') + (o.dis ? ' dis' : '') + (o.ind ? ' ind' : '') + (o.fly ? ' has-fly' : '');
+        var html = '';
+        if('chk' in o) html += '<span class="dd-chk">' + (o.chk ? '✓' : '') + '</span>';
+        else if('ck' in o) html += '<span class="dd-ck">' + (o.ck ? '✓' : '') + '</span>';
+        if(o.icon) html += o.icon;
+        html += '<span class="lbl">' + o.t + '</span>';
+        if(o.tail) html += '<span class="tail">' + o.tail.map(function(x, i){ return '<span data-i="' + i + '" title="' + (x.title || '') + '">' + x.icon + '</span>'; }).join('') + '</span>';
+        if(o.title) d.title = o.title;
+        d.innerHTML = html;
+        if(o.fly){
+          // flyout submenu to the right of the row; opens on hover, the row click toggles it
+          d.addEventListener('mouseenter', function(){ vbFlyOpen(d, o.fly); });
+          d.addEventListener('click', function(){ if(vbFly && d.classList.contains('fly-open')) return; vbFlyOpen(d, o.fly); });
+        } else {
+          d.addEventListener('mouseenter', function(){ if(m === vbMenu) vbFlyClose(); });
+          d.addEventListener('click', function(e){
+            var t = e.target.closest('.tail span');
+            if(t){ o.tail[+t.dataset.i].fn(); render(); return; }
+            var keep = o.fn && o.fn() === true;      // return true to keep the menu open
+            if(keep) render(); else vbMenuClose();
+          });
+        }
+      }
+      m.appendChild(d);
+    });
+  }
+  function vbFlyOpen(row, items){
+    if(vbFly && row.classList.contains('fly-open')) return;
+    vbFlyClose();
+    var f = document.createElement('div'); f.className = 'dd-menu vb-menu vb-fly';
+    (function rerender(){ vbMenuFill(f, items, rerender); })();
+    document.body.appendChild(f);
+    var r = row.getBoundingClientRect(), fw = f.offsetWidth, fh = f.offsetHeight;
+    var left = r.right + 4; if(left + fw > window.innerWidth - 8) left = r.left - fw - 4;
+    var top = Math.min(r.top - 3, window.innerHeight - fh - 8);
+    f.style.left = left + 'px'; f.style.top = top + 'px';
+    row.classList.add('fly-open'); vbFly = f;
+  }
+  function vbMenuOpen(anchor, build){
+    if(vbMenuAnchor === anchor){ vbMenuClose(); return; }
+    vbMenuClose();
+    var m = document.createElement('div'); m.className = 'dd-menu vb-menu';
+    function render(){ vbFlyClose(); vbMenuFill(m, build(), render); }
+    render();
+    document.body.appendChild(m);
+    var r = anchor.getBoundingClientRect(), mh = m.offsetHeight, mw = m.offsetWidth;
+    var top = r.top - mh - 6; if(top < 8) top = r.bottom + 6;
+    var left = Math.min(r.left, window.innerWidth - mw - 8);
+    m.style.left = left + 'px'; m.style.top = top + 'px';
+    vbMenu = m; vbMenuAnchor = anchor; anchor.classList.add('open');
+  }
+  document.addEventListener('pointerdown', function(e){
+    if(vbMenu && !vbMenu.contains(e.target) && !(vbFly && vbFly.contains(e.target)) && !(vbMenuAnchor && vbMenuAnchor.contains(e.target))) vbMenuClose();
+  });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') vbMenuClose(); });
+
+  // --- left tools ---
+  document.getElementById('vbZoom').addEventListener('click', function(){
+    var v = window.arView && window.arView(); if(v) v.fitToView();
+  });
+  var vbRotMode = 1, vbAxis = 2;                       // Orbit · fixed axis Z
+  document.getElementById('vbRot').addEventListener('click', function(){
+    vbMenuOpen(this, function(){ return [
+      {t:'Trackball (free rotation)', ck:vbRotMode === 0, fn:function(){ vbRotMode = 0; return true; }},
+      {t:'Orbit control',             ck:vbRotMode === 1, fn:function(){ vbRotMode = 1; return true; }},
+      {sep:true},
+      {head:'Fixed axis'},
+      {seg:['X','Y','Z'], cur:vbRotMode === 1 ? vbAxis : -1, fn:function(i){ vbRotMode = 1; vbAxis = i; }}
+    ]; });
+  });
+  var vbShade = 0, vbAO = true, vbGround = false, vbScheme = 0;
+  document.getElementById('vbDisp').addEventListener('click', function(){
+    var SH = ['Shade', 'Shade plus Wire', 'Wire'], SC = ['Project colors', 'Gunmetal', 'Restrained'];
+    vbMenuOpen(this, function(){
+      return SH.map(function(n, i){ return {t:n, ck:vbShade === i, fn:function(){ vbShade = i; return true; }}; })
+        .concat([
+          {sep:true},
+          {t:'Ambient occlusion', chk:vbAO,     fn:function(){ vbAO = !vbAO; return true; }},
+          {t:'Ground plane',      chk:vbGround, fn:function(){ vbGround = !vbGround; return true; }},
+          {sep:true},
+          {head:'Color scheme'}
+        ])
+        .concat(SC.map(function(n, i){ return {t:n, ck:vbScheme === i, fn:function(){ vbScheme = i; return true; }}; }));
+    });
+  });
+  document.getElementById('vbSect').addEventListener('click', function(){ this.classList.toggle('on'); });
+
+  // --- coordinate systems: data + menu items, shown in the cube's ⋮ menu and under the cube ---
+  var CS_SYS = ['XY plane', 'YZ plane', 'ZX plane', 'XZ-ZX plane'];
+  var csUser = ['Plano XY', 'Plano YZ'], csCur = 'Plano XY';
+  function csName(){ var c = document.getElementById('vcCs'); if(c) c.textContent = csCur; }
+  csName();
+  function csItems(){
+    var items = [{t:'Global CS', icon:VBI.csg, ck:csCur === 'Global CS', fn:function(){ csCur = 'Global CS'; csName(); }}];
+    CS_SYS.forEach(function(n){ items.push({t:n, icon:VBI.cs, ind:true, ck:csCur === n, fn:function(){ csCur = n; csName(); }}); });
+    csUser.forEach(function(n){
+      items.push({t:n, icon:VBI.cs, ck:csCur === n, fn:function(){ csCur = n; csName(); },
+        tail:[{icon:VBI.more, title:'Edit…', fn:function(){}},
+              {icon:VBI.x, title:'Delete', fn:function(){ csUser = csUser.filter(function(x){ return x !== n; }); if(csCur === n){ csCur = 'Global CS'; csName(); } }}]});
+    });
+    return items;
+  }
+  function csNewItems(){
+    return [
+      {t:'With selected geometry', icon:VBI.csg, dis:true},
+      {t:'Dialog…', icon:VBI.dlg, fn:function(){}},
+      {t:'By starting point, X and Y axes', icon:VBI.cs, fn:function(){}},
+      {t:'By starting point and current view vector', icon:VBI.cs, fn:function(){}}
+    ];
+  }
+
+  // --- right: CPU load (demo: idle 2–8 %, 40–90 % while calculating) ---
+  var cpu = document.getElementById('vbCpu'), cpuV = 4;
+  setInterval(function(){
+    var target = calcState ? 40 + Math.random() * 50 : 2 + Math.random() * 6;
+    cpuV += (target - cpuV) * 0.5;
+    document.getElementById('vbCpuPct').textContent = Math.round(cpuV) + '%';
+    document.getElementById('vbCpuFill').style.height = Math.round(cpuV) + '%';
+    cpu.classList.toggle('hot', cpuV > 80);
+  }, 600);
+
+  /* ---------- Calculation progress (middle of the view bar) ----------
+     Operations are calculated one after another; the bar shows the current operation,
+     its elapsed time, the overall progress and Cancel. Containers (setup / part / machine)
+     get their status once everything below them is done. */
   var calcState = null;
 
   function fmtT(ms){ var s = ms / 1000; return (s < 600 ? ('0' + Math.floor(s / 60)).slice(-2) : Math.floor(s / 60)) + ':' + ('0' + (s % 60).toFixed(1)).slice(-4); }
@@ -990,7 +1156,7 @@
     // demo durations: 1.2–2.8 s per operation
     var plan = ops.map(function(r){ return {row:r, ms:1200 + Math.random() * 1600}; });
     calcState = {plan:plan, i:0, t0:performance.now(), opT0:performance.now(), raf:0, blink:0};
-    calcBar.hidden = false;
+    calcPlace(); calcBar.hidden = false;
     calcTick();
   }
   function calcTick(){
@@ -1015,6 +1181,7 @@
     }
     document.getElementById('cbCount').textContent = (st.i + 1) + ' of ' + st.plan.length;
     document.getElementById('cbFill').style.width = (total * 100).toFixed(1) + '%';
+    calcBar.style.setProperty('--p', (total * 100).toFixed(1));
     document.getElementById('cbPct').textContent = Math.round(total * 100) + '%';
     document.getElementById('cbTime').textContent = fmtT(el);
     st.raf = requestAnimationFrame(calcTick);
@@ -1032,7 +1199,7 @@
       document.getElementById('cbTitle').innerHTML = 'Calculated <b>' + st.plan.length + (st.plan.length === 1 ? ' operation' : ' operations') + '</b>';
       document.getElementById('cbCount').textContent = st.plan.length + ' of ' + st.plan.length;
       document.getElementById('cbTime').textContent = fmtT(performance.now() - st.t0);
-      document.getElementById('cbFill').style.width = '100%';
+      document.getElementById('cbFill').style.width = '100%'; calcBar.style.setProperty('--p', 100);
       document.getElementById('cbPct').textContent = '100%';
       setTimeout(function(){
         calcBar.hidden = true; calcBar.classList.remove('done');
@@ -2123,9 +2290,11 @@
       dock.style.bottom = simCompact ? '' : (simBar.offsetHeight + 8 + 8) + 'px';
       // the view cube sits above the wide panel too
       vcube.style.bottom = dock.style.bottom;
+      calcBar.style.bottom = viewTools.style.bottom = sysBar.style.bottom = dock.style.bottom;
     } else {
       dock.style.bottom = '';
       vcube.style.bottom = '';
+      calcBar.style.bottom = viewTools.style.bottom = sysBar.style.bottom = '';
       simPause();
     }
   }
