@@ -333,9 +333,11 @@
 .cb-track i{display:block;height:100%;width:0;border-radius:2px;background:var(--st-green);transition:width .12s linear;}
 .cb-pct{flex:0 0 36px;text-align:right;color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);font-variant-numeric:tabular-nums;}
 .cb-time{flex:0 0 auto;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);font-variant-numeric:tabular-nums;white-space:nowrap;}
-.cb-cancel{height:24px;padding:0 12px;border:0;border-radius:4px;background:var(--ec-fg-8);color:var(--ec-fg-96);
+/* destructive accent, kept light: translucent red fill + thin red border */
+.cb-cancel{height:24px;padding:0 12px;border:1px solid rgba(255,92,119,.4);border-radius:4px;
+  background:rgba(255,92,119,.12);color:#ff8ea0;box-sizing:border-box;
   font:400 12px/16px var(--ec-font);text-align:center;cursor:pointer;flex:0 0 auto;}
-.cb-cancel:hover{background:var(--ec-fg-12);}
+.cb-cancel:hover{background:rgba(255,92,119,.22);border-color:rgba(255,92,119,.6);color:#ffb0bc;}
 /* finished: Cancel is inert (the layout stays put) */
 .calcbar.done .cb-cancel{opacity:.35;pointer-events:none;}
 /* --- density steps (classes set from the panel width by a ResizeObserver) --- */
