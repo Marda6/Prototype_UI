@@ -474,6 +474,142 @@
           </div>
         </div>
       </div>
+
+      <!-- ===== Automation panel: the Macro utility window (opened from the title-bar Utilities list).
+           A 1:1 port of packages/macro/cam-automation.html (title bar · tabs · body · footer) restyled with
+           ENCY Core tokens. Tabs: Macro (steps for one model) · Batch (folders and rules) · Run (progress, queue, log). ===== -->
+      <div class="stpanel mcpanel" id="macroPanel">
+        <header class="mc-titlebar">
+          <div class="mc-title">Automation</div>
+          <span class="mc-demo">Interactive prototype</span>
+          <button class="stp-close" id="mcClose" title="Close">
+            <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+          </button>
+        </header>
+        <!-- compact recording bar: while recording the whole window collapses to this strip
+             so the user can work in the panels and the 3D view -->
+        <div class="mc-recbar" id="mcRecBar" hidden>
+          <span class="mc-record-dot"></span>
+          <span class="mc-recbar__t" id="mcRecText">Recording · 0 steps</span>
+          <span class="mc-recbar__last" id="mcRecLast"></span>
+          <button class="mc-button mc-icon-button" id="mcRecPause" title="Pause recording"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="3.5" width="3" height="9" rx=".8"/><rect x="9" y="3.5" width="3" height="9" rx=".8"/></svg></button>
+          <button class="mc-button" id="mcRecStop"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="4" width="8" height="8" rx="1"/></svg>Stop</button>
+        </div>
+        <div class="mc-tabs">
+          <button class="mc-tab" data-tab="macro" aria-selected="true">Macro</button>
+          <button class="mc-tab" data-tab="batch" aria-selected="false">Batch run</button>
+          <button class="mc-tab" data-tab="run" aria-selected="false" disabled>Execution</button>
+        </div>
+
+        <!-- ===== Macro ===== -->
+        <section class="mc-page" id="mcPageMacro">
+          <div class="mc-body">
+            <div class="mc-macro-head">
+              <div class="mc-macro-name"><label class="mc-label" for="mcName">Macro name</label><input class="mc-input" id="mcName" value="New macro" spellcheck="false"></div>
+              <!-- Open: the library of recorded macros + "Open from file…" -->
+              <button class="mc-button" id="mcOpen" title="Open a recorded macro"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg>Open<svg class="mc-caret" viewBox="0 0 8 5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l3 3 3-3"/></svg></button>
+              <button class="mc-button" id="mcNew"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>New</button>
+              <button class="mc-button" id="mcSave"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><path d="M3 3h8l2 2v8H3z"/><path d="M5 3v4h5V3M5.5 13V9.5h5V13"/></svg>Save</button>
+            </div>
+            <div class="mc-editor">
+              <div class="mc-command-pane">
+                <div class="mc-section-head"><span>STEPS FOR ONE MODEL</span><span id="mcStepCount">Steps: 0</span></div>
+                <div id="mcCmds"></div>
+              </div>
+            </div>
+            <div class="mc-recorder">
+              <button class="mc-button" id="mcRec"><span class="mc-record-dot"></span>Record</button>
+              <button class="mc-button" id="mcAdd"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>Command</button>
+              <span class="mc-spacer"></span>
+              <button class="mc-button mc-icon-button" id="mcUp" title="Move step up"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button>
+              <button class="mc-button mc-icon-button" id="mcDown" title="Move step down"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button>
+              <button class="mc-button mc-icon-button" id="mcDel" title="Delete selected step"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5h10M6 4.5V3h4v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button>
+            </div>
+            <div class="mc-picker" id="mcAddBox" hidden>
+              <label class="mc-label">Add to the end of the macro</label>
+              <div class="mc-folder">
+                <span class="mc-select mc-dd" id="mcAddType"><span class="dd-t">Create operations</span><svg viewBox="0 0 8 5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l3 3 3-3"/></svg></span>
+                <button class="mc-button" id="mcAddOk">Add</button>
+              </div>
+            </div>
+            <div class="mc-status" id="mcMacroStatus">Press Record and work in the project: parameters, operations, Calculate — every action becomes a step.</div>
+          </div>
+          <footer class="mc-foot">
+            <span class="mc-foot-note" id="mcValid">Ready for batch run</span>
+            <button class="mc-button mc-primary" id="mcToBatch">To batch run<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg></button>
+          </footer>
+        </section>
+
+        <!-- ===== Batch run ===== -->
+        <section class="mc-page" id="mcPageBatch" hidden>
+          <div class="mc-body">
+            <div class="mc-batch-macro">
+              <div><span class="mc-muted mc-small">Macro</span><div id="mcBatchMacro">Housing · 3-axis machining</div></div>
+              <button class="mc-button mc-link" id="mcEditMacro">Edit</button>
+            </div>
+            <div class="mc-form-section">
+              <label class="mc-label">Folder with 3D models</label>
+              <div class="mc-folder"><svg class="mc-folder-icn" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg><input class="mc-input" id="mcSrc" value="D:\Models\Housings" readonly><button class="mc-button" id="mcSrcChoose">Choose…</button></div>
+              <div class="mc-picker" id="mcSrcPicker" hidden>
+                <span class="mc-label">Sample folders</span>
+                <label class="mc-folder-choice"><span class="mc-radio on" data-folder="housings"></span>D:\Models\Housings</label>
+                <label class="mc-folder-choice"><span class="mc-radio" data-folder="covers"></span>D:\Models\Covers</label>
+                <button class="mc-button" id="mcApplySrc">Choose folder</button>
+              </div>
+              <div class="mc-source-options">
+                <label class="mc-check" id="mcRecursive"><span class="mc-checkbox"></span>Include subfolders</label>
+                <span class="mc-select mc-dd mc-select-auto" id="mcFormat" data-opts="STEP + IGES|STEP only|IGES only"><span class="dd-t">STEP + IGES</span><svg viewBox="0 0 8 5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l3 3 3-3"/></svg></span>
+              </div>
+              <div class="mc-files" id="mcFiles"></div>
+              <div class="mc-row mc-between mc-small mc-muted" style="margin-top:6px"><span id="mcFileCount"></span><span>Sample files</span></div>
+            </div>
+            <div class="mc-form-section">
+              <label class="mc-label">Results folder</label>
+              <div class="mc-folder"><svg class="mc-folder-icn" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/><path d="M8 7.5v3M6.8 9.3 8 10.5l1.2-1.2"/></svg><input class="mc-input" id="mcDst" value="D:\CAM\Results"><button class="mc-button" id="mcDstChoose">Choose…</button></div>
+              <div class="mc-picker" id="mcDstPicker" hidden>
+                <label class="mc-label" for="mcDstPath">Folder path</label>
+                <div class="mc-folder"><input class="mc-input" id="mcDstPath" value="D:\CAM\Results"><button class="mc-button" id="mcApplyDst">Choose</button></div>
+              </div>
+              <label class="mc-check on" id="mcPerModel" style="margin-top:8px"><span class="mc-checkbox"></span>Separate folder for each model</label>
+              <div class="mc-destination-preview"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg><div class="mc-output-tree"><div id="mcPrevPath"></div><div class="mc-output-items"><span id="mcPrevProj"></span><span id="mcPrevNc"></span></div></div></div>
+              <div class="mc-grid-two">
+                <div><label class="mc-label">If results already exist</label><span class="mc-select mc-dd" id="mcCollision" data-opts="Add version number|Skip the model|Overwrite results"><span class="dd-t">Add version number</span><svg viewBox="0 0 8 5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l3 3 3-3"/></svg></span></div>
+                <div><label class="mc-label">On error in a model</label><span class="mc-select mc-dd" id="mcErrPolicy" data-opts="Go to the next model|Stop the batch"><span class="dd-t">Go to the next model</span><svg viewBox="0 0 8 5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l3 3 3-3"/></svg></span></div>
+              </div>
+            </div>
+            <div class="mc-notice mc-notice-danger" id="mcBatchErr" hidden></div>
+          </div>
+          <footer class="mc-foot">
+            <span class="mc-foot-note" id="mcBatchSum"></span>
+            <div class="mc-row"><button class="mc-button" id="mcTest">Test on 1 model</button><button class="mc-button mc-primary" id="mcStart"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.2v9.6L12.6 8z"/></svg><span id="mcStartLabel">Run batch</span></button></div>
+          </footer>
+        </section>
+
+        <!-- ===== Execution ===== -->
+        <section class="mc-page" id="mcPageRun" hidden>
+          <div class="mc-body">
+            <div class="mc-row mc-between"><span class="mc-run-summary" id="mcRunTitle">Execution</span><span class="mc-pill" id="mcRunMode">Batch</span></div>
+            <div class="mc-progress"><div class="mc-progress-fill" id="mcProgBar"></div></div>
+            <div class="mc-row mc-between mc-small mc-muted"><span id="mcRunCaption"></span><span id="mcRunCounter"></span></div>
+            <div class="mc-queue"><div class="mc-queue-head">MODEL AND RESULT</div><div id="mcQueue"></div></div>
+            <div class="mc-notice mc-notice-warn" id="mcRunErr" hidden></div>
+            <div class="mc-log" id="mcLog">
+              <div class="mc-log-summary" id="mcLogH"><span class="mc-chev"><svg viewBox="0 0 12 12" fill="none"><path d="M4.5 2.5 8 6l-3.5 3.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Run log</div>
+              <div id="mcLogB" hidden></div>
+            </div>
+            <div class="mc-status">Demo: calculation and file saving are simulated.</div>
+          </div>
+          <footer class="mc-foot">
+            <button class="mc-button" id="mcToSettings">To settings</button>
+            <div class="mc-row">
+              <button class="mc-button mc-link" id="mcInjectErr">Simulate error</button>
+              <button class="mc-button" id="mcPause"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="3.5" width="3" height="9" rx=".8"/><rect x="9" y="3.5" width="3" height="9" rx=".8"/></svg><span id="mcPauseLabel">Pause</span></button>
+              <button class="mc-button" id="mcStopRun"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="4" width="8" height="8" rx="1"/></svg>Stop</button>
+              <button class="mc-button mc-primary" id="mcRetry" hidden>Retry errors</button>
+            </div>
+          </footer>
+        </section>
+      </div>
     </main>
 
   </div>

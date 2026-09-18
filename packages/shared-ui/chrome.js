@@ -65,7 +65,8 @@
         '<div class="hbtn' + (AREA === 'home' ? ' on' : '') + '" title="Home"' +
           (AREA === 'project' ? ' data-app="../clouds/"' : '') + '>' +
           '<img class="hicn-act" src="' + BASE + 'hdr-home.svg" alt=""></div>' +
-        '<div class="hbtn" title="List"><img class="hicn-act" src="' + BASE + 'hdr-list.svg" alt=""></div>' +
+        '<div class="hbtn" id="hdrExt" title="Utilities">' +
+          '<img class="hicn-act" src="' + BASE + 'hdr-list.svg" alt=""></div>' +
         '<div class="hbtn" title="New file"><img class="hicn-act" src="' + BASE + 'hdr-file.svg" alt=""></div>' +
         '<div class="hbtn" title="Open"><img class="hicn-act" src="' + BASE + 'hdr-folder.svg" alt=""></div>' +
         '<div class="hbtn" title="Save"><img class="hicn-act hicn-save" src="' + BASE + 'hdr-save.svg" alt=""></div>' +
@@ -271,6 +272,95 @@
       e.stopPropagation();
       if (row.dataset.act === 'signin') { setAuth('in'); return; }
       if (pop) closePop(); else openPop(row);
+    });
+    document.addEventListener('click', closePop);
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closePop(); });
+  })();
+
+  // ——— Utilities window (the "list" button in the title bar) ———
+  // Search · Recent / All filter · "+" (new utility) · the list of utilities.
+  // Entries with `app` open a section of the prototype; the rest are inert stubs.
+  // Icons are 16×16 inline glyphs (currentColor) — one glyph per utility type.
+  var UTIL_ICON = {
+    macro:  '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 13V3.5l5.5 6 5.5-6V13"/></svg>',
+    post:   '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 8.5h6M5 11h3.5"/></svg>',
+    interp: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 2.5v4.5M5.5 10v3.5M10.5 2.5v6M10.5 12v1.5"/><circle cx="5.5" cy="8.5" r="1.5"/><circle cx="10.5" cy="10.5" r="1.5"/></svg>',
+    machine:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 13.5 13.5 2.5M2.5 2.5l11 11"/><path d="M2.5 2.5h4v4M13.5 13.5h-4v-4"/></svg>',
+    cldata: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2.5h5.5L13 6v7.5H4z"/><path d="M9.5 2.5V6H13"/><path d="M6 9.5c1.5-1 3 1 4.5 0"/></svg>',
+    nccld:  '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5v7M6.5 4.5v7M2.5 4.5l4 7M9.5 4.5v7M9.5 11.5h4"/></svg>',
+    addin:  '<svg viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="4" height="4" rx=".8"/><rect x="10" y="2" width="4" height="4" rx=".8"/><rect x="2" y="10" width="4" height="4" rx=".8"/><path d="M12 9.5v5M9.5 12h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
+    calc:   '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><rect x="3" y="2" width="10" height="12" rx="1.5"/><path d="M5.5 5h5M5.5 8.5h1M8 8.5h1M10.5 8.5h1M5.5 11h1M8 11h1M10.5 11h1"/></svg>'
+  };
+  var UTILITIES = [
+    {title:'Macro',                    icon:'macro',   app:'macro'},
+    {title:'Postprocessors generator', icon:'post'},
+    {title:'Interpreter configurator', icon:'interp'},
+    {title:'MachineMaker',             icon:'machine'},
+    {title:'CLData viewer',            icon:'cldata'},
+    {title:'Create interpreter',       icon:'nccld'},
+    {title:'Addin manager',            icon:'addin'},
+    {title:'Calculator',               icon:'calc'}
+  ];
+  (function(){
+    var btn = document.getElementById('hdrExt');
+    if (!btn) return;
+    var pop = null;
+    function closePop(){ if (pop){ pop.remove(); pop = null; btn.classList.remove('open'); } }
+    // utility windows live inside a project: in the project area the row opens the
+    // panel in place (window.ENCY_<UTIL>.open), elsewhere it opens the project with ?utility=<id>
+    function row(x){
+      return '<div class="ut-row" data-title="' + x.title.toLowerCase() + '"' +
+        (x.app ? ' data-util="' + x.app + '"' : '') + '>' +
+        '<span class="icn16">' + UTIL_ICON[x.icon] + '</span>' +
+        '<span class="ut-name">' + x.title + '</span></div>';
+    }
+    function runUtil(id){
+      var api = window['ENCY_' + id.toUpperCase()];
+      if (AREA === 'project' && api && api.open) { api.open(); return; }
+      location.href = '../project/?utility=' + id;
+    }
+    function openPop(){
+      pop = document.createElement('div');
+      pop.className = 'ut-pop';
+      pop.innerHTML =
+        '<div class="ut-bar">' +
+          '<input class="ut-search" type="text" placeholder="Search…">' +
+          '<div class="ut-sel" data-mode="recent"><span class="ut-sel-t">Recent</span>' +
+            '<svg viewBox="0 0 8 5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l3 3 3-3"/></svg></div>' +
+          '<div class="ut-plus" title="New utility">' +
+            '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg></div>' +
+        '</div>' +
+        '<div class="ut-list">' + UTILITIES.map(row).join('') + '</div>';
+      document.body.appendChild(pop);
+      var r = btn.getBoundingClientRect();
+      pop.style.left = r.left + 'px';
+      pop.style.top = (r.bottom + 4) + 'px';
+      btn.classList.add('open');
+      // search filters the list by title
+      var q = pop.querySelector('.ut-search');
+      q.addEventListener('input', function(){
+        var s = q.value.trim().toLowerCase();
+        pop.querySelectorAll('.ut-row').forEach(function(x){
+          x.hidden = !!s && x.dataset.title.indexOf(s) < 0;
+        });
+      });
+      // Recent / All — a two-state toggle in the prototype
+      var sel = pop.querySelector('.ut-sel');
+      sel.addEventListener('click', function(){
+        var m = sel.dataset.mode === 'recent' ? 'all' : 'recent';
+        sel.dataset.mode = m;
+        sel.querySelector('.ut-sel-t').textContent = m === 'recent' ? 'Recent' : 'All';
+      });
+      pop.addEventListener('click', function(e){
+        e.stopPropagation();
+        var t = e.target.closest('[data-util]');
+        if (t) { closePop(); runUtil(t.dataset.util); }
+      });
+      setTimeout(function(){ q.focus(); }, 0);
+    }
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      if (pop) closePop(); else openPop();
     });
     document.addEventListener('click', closePop);
     document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closePop(); });

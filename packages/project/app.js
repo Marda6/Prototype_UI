@@ -59,6 +59,17 @@
   }
   document.addEventListener('click', closeMenu);
   window.addEventListener('resize', closeMenu);
+  // other blocks (e.g. the Macro panel) reuse the same menu
+  window.ENCY_MENU = {show:showMenu, close:closeMenu};
+
+  /* ---------- Action bus: user actions the macro recorder can capture ----------
+     label — what was done ("Radial stock", "New operation", "Calculate"),
+     val   — the value / object, cmd — the command behind it (shown in the macro's inspector). */
+  function emitAction(label, val, cmd){
+    var sel = document.querySelector('#tree .trow.tsel'), opName = '';
+    if(sel){ var n = sel.querySelector('.rlabel span'); opName = n ? n.textContent : ''; }
+    document.dispatchEvent(new CustomEvent('ency:action', {detail:{label:label, val:val, cmd:cmd, op:opName}}));
+  }
 
   /* ---------- Filters: open/close + chips + tree type-filter ---------- */
   var filters = document.getElementById('filters');
@@ -441,7 +452,12 @@
   /* ---------- Inspector interactions (event delegation) ---------- */
   irows.addEventListener('click', function(e){
     var tgl = e.target.closest('.tgl');
-    if(tgl){ e.stopPropagation(); var on = tgl.classList.toggle('on'); tgl.src = on ? A['tgl-on'] : A['tgl-off']; return; }
+    if(tgl){
+      e.stopPropagation(); var on = tgl.classList.toggle('on'); tgl.src = on ? A['tgl-on'] : A['tgl-off'];
+      var tr = tgl.closest('.irow'), tl = tr && tr.querySelector('.rlabel span');
+      if(tl) emitAction(tl.textContent, on ? 'On' : 'Off', 'OP.PARAM "' + tl.textContent + '" ' + (on ? 'TRUE' : 'FALSE'));
+      return;
+    }
     /* .selbox is not a menu anymore — it navigates to the full-panel picker (data-act=pickAsm), so let it bubble */
     var dd = e.target.closest('.dropdown:not(.selbox)');
     if(dd){
@@ -450,7 +466,11 @@
       var v = dd.querySelector('.v');
       var opts = dd.dataset.opts ? dd.dataset.opts.split('|') : DD_OPTS.slice();
       if(opts.indexOf(v.textContent) < 0) opts = [v.textContent].concat(opts);
-      var items = opts.map(function(o){ return {label:o, cur:o===v.textContent, onPick:function(){ v.textContent=o; }}; });
+      var ddRow = dd.closest('.irow'), ddLbl = ddRow && ddRow.querySelector('.rlabel span');
+      var ddName = ddLbl ? ddLbl.textContent : 'Parameter';
+      var items = opts.map(function(o){ return {label:o, cur:o===v.textContent, onPick:function(){
+        v.textContent=o; emitAction(ddName, o, 'OP.PARAM "' + ddName + '" "' + o + '"');
+      }}; });
       // Approach / Return: strategies · machine presets · user templates · Custom…
       if(dd.dataset.custom){
         var which = dd.dataset.custom, tpl = window.arTemplates ? window.arTemplates(which) : {machine:[], user:[]};
@@ -748,6 +768,8 @@
       var srAutoBtn = document.getElementById('srAuto');
       if(srAutoBtn && srAutoBtn.classList.contains('on')) tree.classList.add('linked');
       calcRun(scope);
+      var scopeName = sel && sel.dataset.type !== 'machine' ? (sel.querySelector('.rlabel span') || {}).textContent : 'All operations';
+      emitAction('Calculate', scopeName || 'All operations', 'OP.CALC ' + (sel && sel.dataset.type === 'operation' ? 'SELECTED' : 'ALL'));
     });
   }
 
@@ -906,9 +928,8 @@
        "new CS" flyout (shared with the caption under the cube), and the triad toggle.
        Menus are built by vbMenuOpen() from the view-bar section; CS data lives there too. */
     var ICON_MORE = '<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="3.5" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="8" cy="12.5" r="1.3"/></svg>';
-    var axesOn = true;
     function csSection(){
-      return [{head:'Coordinate system'}].concat(csItems()).concat([{t:'New coordinate system', fly:csNewItems()}]);
+      return [{head:'Coordinate system'}].concat(csItems()).concat([{sep:true}, {t:'New coordinate system', fly:csNewItems()}]);
     }
     function cubeMenu(){
       return [
@@ -918,10 +939,7 @@
         {t:'Set current view as Home', fn:function(){ HOME = {yaw:cam.yaw, pitch:cam.pitch}; }},
         {t:'Reset Home', fn:function(){ HOME = {yaw:0.68, pitch:0.49}; set(HOME.yaw, HOME.pitch, true); }},
         {sep:true}
-      ].concat(csSection()).concat([
-        {sep:true},
-        {t:'Show axes', chk:axesOn, fn:function(){ axesOn = !axesOn; box.classList.toggle('no-axes', !axesOn); return true; }}
-      ]);
+      ].concat(csSection());
     }
     var more = btn('vc-more', 'View options', ICON_MORE, function(){ vbMenuOpen(more, cubeMenu); });
     // active coordinate system as a caption under the cube; click opens the CS list
@@ -1017,7 +1035,7 @@
           c.addEventListener('click', function(){ o.fn(i); render(); }); d.appendChild(c);
         });
       } else {
-        d.className = 'dd-opt' + (o.ck || o.chk ? ' cur' : '') + (o.dis ? ' dis' : '') + (o.ind ? ' ind' : '') + (o.fly ? ' has-fly' : '');
+        d.className = 'dd-opt' + (o.ck || o.chk ? ' cur' : '') + (o.sel ? ' sel' : '') + (o.dis ? ' dis' : '') + (o.ind ? ' ind' : '') + (o.fly ? ' has-fly' : '');
         var html = '';
         if('chk' in o) html += '<span class="dd-chk">' + (o.chk ? '✓' : '') + '</span>';
         else if('ck' in o) html += '<span class="dd-ck">' + (o.ck ? '✓' : '') + '</span>';
@@ -1110,10 +1128,12 @@
   function csName(){ var c = document.getElementById('vcCs'); if(c) c.textContent = csCur; }
   csName();
   function csItems(){
-    var items = [{t:'Global CS', icon:VBI.csg, ck:csCur === 'Global CS', fn:function(){ csCur = 'Global CS'; csName(); }}];
-    CS_SYS.forEach(function(n){ items.push({t:n, icon:VBI.cs, ind:true, ck:csCur === n, fn:function(){ csCur = n; csName(); }}); });
+    // tree: Global CS → its standard planes; user systems at the root level.
+    // The active one is a highlighted row (no check column)
+    var items = [{t:'Global CS', icon:VBI.csg, sel:csCur === 'Global CS', fn:function(){ csCur = 'Global CS'; csName(); }}];
+    CS_SYS.forEach(function(n){ items.push({t:n, icon:VBI.cs, ind:true, sel:csCur === n, fn:function(){ csCur = n; csName(); }}); });
     csUser.forEach(function(n){
-      items.push({t:n, icon:VBI.cs, ck:csCur === n, fn:function(){ csCur = n; csName(); },
+      items.push({t:n, icon:VBI.cs, sel:csCur === n, fn:function(){ csCur = n; csName(); },
         tail:[{icon:VBI.more, title:'Edit…', fn:function(){}},
               {icon:VBI.x, title:'Delete', fn:function(){ csUser = csUser.filter(function(x){ return x !== n; }); if(csCur === n){ csCur = 'Global CS'; csName(); } }}]});
     });
@@ -1333,6 +1353,7 @@
     var anchor = siblings.length ? siblings[siblings.length-1] : rowById(parentId);
     if(anchor) tree.insertBefore(r, anchor.nextSibling); else tree.appendChild(r);
     rows.push(r); bindRow(r); renderTree(); r.click();
+    emitAction('New operation', name, 'OP.CREATE "' + name + '"');
     return r;
   }
   var addBtn = document.querySelector('.b24.more');
@@ -2443,4 +2464,393 @@
       document.addEventListener('mouseup', onUp);
     });
   }
+})();
+
+/* ---------- Macro panel: the Automation window ----------
+   Port of packages/macro/cam-automation.html into the ENCY shell. Tabs:
+   · Macro — the steps for ONE model. Steps are recorded from real actions in the project
+     (the 'ency:action' bus: inspector changes, new operations, Calculate) or added by hand
+     from the six base commands. While recording the window collapses to a compact strip.
+   · Batch run — folder with models, formats, file picks, results folder, rules;
+   · Execution — progress, the queue of models with statuses, log; pause / stop / retry.
+   CAM work, file system and saving are simulated. */
+(function(){
+  'use strict';
+  var panel = document.getElementById('macroPanel');
+  if(!panel) return;
+  var $ = function(id){ return document.getElementById(id); };
+  var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+  var menu = function(anchor, opts, cur, pick){
+    window.ENCY_MENU.show(anchor.getBoundingClientRect(), opts.map(function(o){
+      return {label:o, cur:o === cur, onPick:function(){ pick(o); }};
+    }), anchor, anchor.offsetWidth);
+  };
+
+  // ——— the six base commands (added by hand; import / save are what a batch needs) ———
+  var DEFS = {
+    'new':        {label:'Create new project',   val:'Clean project · mm',            cmd:'PROJECT.NEW UNITS=MM'},
+    'import':     {label:'Import 3D model',      val:'Current file from the folder',  cmd:'MODEL.IMPORT {current_model}'},
+    'operations': {label:'Create operations',    val:'Recorded technology',           cmd:'OP.CREATE …'},
+    'calculate':  {label:'Calculate operations', val:'All operations of the project', cmd:'OP.CALC ALL'},
+    'export':     {label:'Output NC program',    val:'{model_name}.nc',               cmd:'NC.SAVE {result_folder}\\{model_name}.nc'},
+    'save':       {label:'Save project',         val:'{model_name}',                  cmd:'PROJECT.SAVE {result_folder}\\{model_name}'}
+  };
+  var SEQ = Object.keys(DEFS);
+  function base(type){ var d = DEFS[type]; return {type:type, label:d.label, val:d.val, cmd:d.cmd}; }
+  var steps = [], selStep = -1, recording = false, recPaused = false, revision = 1;
+  // library of recorded macros (kept for the session); two samples so Open has something to show
+  var saved = {
+    'Housing \u00b7 3-axis roughing':[base('new'), base('import'),
+      {type:'event', label:'New operation', val:'Adaptive Clearing', cmd:'OP.CREATE "Adaptive Clearing"', op:''},
+      {type:'event', label:'Radial stock', val:'0.5 mm', cmd:'OP.PARAM "Radial stock" "0.5 mm"', op:'Adaptive Clearing'},
+      {type:'event', label:'Calculate', val:'All operations', cmd:'OP.CALC ALL', op:''}, base('export'), base('save')],
+    'Probing cycle':[base('import'),
+      {type:'event', label:'New operation', val:'Drilling', cmd:'OP.CREATE "Drilling"', op:''},
+      {type:'event', label:'Calculate', val:'Drilling', cmd:'OP.CALC SELECTED', op:'Drilling'}]
+  }, savedName = '';
+  var group = 'housings', excluded = {}, run = null, timer = null, existing = {};
+  var recursive = false, perModel = true, format = 'STEP + IGES', collision = 'Add version number', errPolicy = 'Go to the next model';
+  var DATA = {
+    housings:[{id:'h1', name:'Housing_01.step', size:'2.4 MB', type:'step', sub:false},
+              {id:'h2', name:'Housing_02.step', size:'3.1 MB', type:'step', sub:false},
+              {id:'h3', name:'Housing_03.iges', size:'1.8 MB', type:'iges', sub:false},
+              {id:'h4', name:'Variants/Housing_04.step', size:'2.7 MB', type:'step', sub:true}],
+    covers:  [{id:'c1', name:'Cover_01.step', size:'1.2 MB', type:'step', sub:false},
+              {id:'c2', name:'Cover_02.step', size:'1.5 MB', type:'step', sub:false}]
+  };
+  var FOLDERS = {housings:'D:\\Models\\Housings', covers:'D:\\Models\\Covers'};
+  var visibleFiles = function(){
+    return DATA[group].filter(function(f){
+      return (!f.sub || recursive) && (format === 'STEP + IGES' || (format === 'STEP only' ? f.type === 'step' : f.type === 'iges'));
+    });
+  };
+  var chosenFiles = function(){ return visibleFiles().filter(function(f){ return !excluded[f.id]; }); };
+  var stem = function(f){ return f.name.split('/').pop().replace(/\.[^.]+$/, ''); };
+  var outDir = function(){ return $('mcDst').value.trim().replace(/[\\\/]+$/, ''); };
+  var has = function(type){ return steps.some(function(s){ return s.type === type; }); };
+
+  // blocking problems return a message; soft advice goes to the status line
+  function validation(){
+    if(!$('mcName').value.trim()) return 'Give the macro a name.';
+    if(recording) return 'Finish recording before running.';
+    if(!steps.length) return 'Record or add at least one step.';
+    return '';
+  }
+  function advice(){
+    if(!steps.length || validation()) return '';
+    if(!has('import')) return 'Add \u201cImport 3D model\u201d so the macro can take the current file from the folder.';
+    if(!has('export') && !has('save')) return 'Add \u201cOutput NC program\u201d or \u201cSave project\u201d to keep the results.';
+    return '';
+  }
+
+  // ——— tabs ———
+  var tabs = {macro:$('mcPageMacro'), batch:$('mcPageBatch'), run:$('mcPageRun')};
+  function tabBtn(n){ return panel.querySelector('.mc-tab[data-tab="' + n + '"]'); }
+  function view(name){
+    Object.keys(tabs).forEach(function(n){ tabBtn(n).setAttribute('aria-selected', String(n === name)); tabs[n].hidden = n !== name; });
+    if(name === 'batch') refreshBatch();
+  }
+  panel.querySelector('.mc-tabs').addEventListener('click', function(e){
+    var t = e.target.closest('.mc-tab'); if(t && !t.disabled) view(t.dataset.tab);
+  });
+  function lock(on){ tabBtn('macro').disabled = on; tabBtn('batch').disabled = on; $('mcToSettings').disabled = on; }
+
+  // ——— Macro: the step list ———
+  function renderSteps(){
+    $('mcCmds').innerHTML = steps.length ? steps.map(function(s, i){
+      return '<button type="button" class="mc-command" data-step="' + i + '" aria-pressed="' + (i === selStep) + '">' +
+        '<span class="mc-command-num">' + String(i + 1).padStart(2, '0') + '</span>' +
+        '<span class="mc-command-label">' + esc(s.label) + (s.op && s.type === 'event' && s.label !== 'New operation' ? '<span class="mc-command-sub">' + esc(s.op) + '</span>' : '') +
+        (i === selStep ? '<span class="mc-command-cmd">' + esc(s.cmd) + '</span>' : '') + '</span>' +
+        '<span class="mc-command-val">' + esc(s.val) + '</span></button>';
+    }).join('') : '<div class="mc-empty">Press Record and work in the project, or add a command.</div>';
+    $('mcStepCount').textContent = 'Steps: ' + steps.length;
+    $('mcUp').disabled = selStep <= 0 || !steps.length || recording;
+    $('mcDown').disabled = selStep >= steps.length - 1 || !steps.length || recording;
+    $('mcDel').disabled = selStep < 0 || !steps.length || recording;
+    setValid();
+  }
+  function setValid(){
+    var v = validation(), a = advice();
+    $('mcValid').textContent = v || a || 'Ready for batch run';
+    $('mcValid').className = 'mc-foot-note ' + (v || a ? 'warn' : 'ok');
+  }
+  $('mcCmds').addEventListener('click', function(e){
+    var s = e.target.closest('[data-step]'); if(!s) return;
+    selStep = +s.dataset.step === selStep ? -1 : +s.dataset.step; renderSteps();
+  });
+
+  // ——— recording: real actions arrive on the bus; the window collapses to the strip ———
+  function updateRecording(){
+    panel.classList.toggle('compact', recording);
+    panel.classList.toggle('recording', recording && !recPaused);
+    panel.classList.toggle('recpaused', recording && recPaused);
+    $('mcRecBar').hidden = !recording;
+    $('mcRecText').textContent = recPaused ? 'Recording paused' : 'Recording \u00b7 ' + steps.length + (steps.length === 1 ? ' step' : ' steps');
+    var last = steps[steps.length - 1];
+    $('mcRecLast').textContent = last ? last.label + (last.val ? ': ' + last.val : '') : 'Work in the project\u2026';
+    $('mcRecPause').title = recPaused ? 'Resume recording' : 'Pause recording';
+    $('mcRecPause').innerHTML = recPaused
+      ? '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.2v9.6L12.6 8z"/></svg>'
+      : '<svg viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="3.5" width="3" height="9" rx=".8"/><rect x="9" y="3.5" width="3" height="9" rx=".8"/></svg>';
+    renderSteps();
+  }
+  document.addEventListener('ency:action', function(e){
+    if(!recording || recPaused) return;
+    var d = e.detail;
+    // the same parameter changed twice in a row keeps only the last value
+    var last = steps[steps.length - 1];
+    if(last && last.type === 'event' && last.label === d.label && last.op === d.op && d.label !== 'New operation' && d.label !== 'Calculate'){
+      last.val = d.val; last.cmd = d.cmd;
+    } else {
+      steps.push({type:'event', label:d.label, val:d.val, cmd:d.cmd, op:d.op});
+    }
+    selStep = -1; revision++; updateRecording();
+  });
+  $('mcRec').addEventListener('click', function(){ recording = true; recPaused = false; $('mcAddBox').hidden = true; updateRecording(); });
+  $('mcRecPause').addEventListener('click', function(){ recPaused = !recPaused; updateRecording(); });
+  $('mcRecStop').addEventListener('click', function(){
+    recording = false; recPaused = false;
+    $('mcMacroStatus').textContent = steps.length ? 'Recording finished: ' + steps.length + (steps.length === 1 ? ' step.' : ' steps.') + ' Add Import and Save to run it over a folder.'
+      : 'Nothing was recorded.';
+    updateRecording();
+  });
+  // add / reorder / delete
+  var addType = 'import';
+  $('mcAdd').addEventListener('click', function(){ $('mcAddBox').hidden = !$('mcAddBox').hidden; });
+  $('mcAddType').querySelector('.dd-t').textContent = DEFS[addType].label;
+  $('mcAddType').addEventListener('click', function(e){
+    e.stopPropagation();
+    menu($('mcAddType'), SEQ.map(function(t){ return DEFS[t].label; }), DEFS[addType].label, function(o){
+      addType = SEQ.filter(function(t){ return DEFS[t].label === o; })[0]; $('mcAddType').querySelector('.dd-t').textContent = o;
+    });
+  });
+  $('mcAddOk').addEventListener('click', function(){
+    // import / new go to the front, export / save to the end, the rest after the selection
+    var s = base(addType), at = steps.length;
+    if(addType === 'new') at = 0; else if(addType === 'import') at = has('new') ? 1 : 0;
+    else if(addType !== 'export' && addType !== 'save' && selStep >= 0) at = selStep + 1;
+    steps.splice(at, 0, s); selStep = at; revision++; $('mcAddBox').hidden = true; renderSteps();
+  });
+  $('mcDel').addEventListener('click', function(){ steps.splice(selStep, 1); selStep = Math.min(selStep, steps.length - 1); revision++; renderSteps(); });
+  function move(d){
+    var to = selStep + d; if(to < 0 || to >= steps.length) return;
+    var t = steps[to]; steps[to] = steps[selStep]; steps[selStep] = t; selStep = to; revision++; renderSteps();
+  }
+  $('mcUp').addEventListener('click', function(){ move(-1); });
+  $('mcDown').addEventListener('click', function(){ move(1); });
+  // name · new · save · saved list
+  $('mcName').addEventListener('input', function(){ revision++; setValid(); });
+  $('mcNew').addEventListener('click', function(){
+    steps = []; selStep = -1; $('mcName').value = 'New macro';
+    $('mcMacroStatus').textContent = 'Press Record and work in the project: parameters, operations, Calculate \u2014 every action becomes a step.'; revision++; renderSteps();
+  });
+  function renderSaved(){}
+  function loadMacro(name, list){
+    savedName = name; steps = list.map(function(s){ return Object.assign({}, s); }); selStep = -1;
+    $('mcName').value = name; revision++; renderSteps();
+    $('mcMacroStatus').textContent = 'Opened \u201c' + name + '\u201d \u00b7 ' + steps.length + (steps.length === 1 ? ' step.' : ' steps.');
+  }
+  // Open: recorded macros of this session, then a file on the computer (the pick is simulated)
+  $('mcOpen').addEventListener('click', function(e){
+    e.stopPropagation(); if(recording) return;
+    var items = Object.keys(saved).map(function(n){
+      return {label:n, pre:String(saved[n].length), cur:n === savedName, onPick:function(){ loadMacro(n, saved[n]); }};
+    });
+    if(items.length) items.unshift({head:'Recorded macros'});
+    items.push({sep:true});
+    items.push({label:'Open from file\u2026', onPick:function(){
+      var name = 'Bracket_v3';
+      saved[name] = [base('new'), base('import'), {type:'event', label:'New operation', val:'Pocket', cmd:'OP.CREATE "Pocket"', op:''}, base('calculate'), base('export')];
+      loadMacro(name, saved[name]);
+      $('mcMacroStatus').textContent = 'Opened D:\\Macros\\Bracket_v3.encymacro \u00b7 ' + steps.length + ' steps.';
+    }});
+    window.ENCY_MENU.show($('mcOpen').getBoundingClientRect(), items, $('mcOpen'), 240);
+  });
+  $('mcSave').addEventListener('click', function(){
+    var name = $('mcName').value.trim();
+    if(!name){ $('mcMacroStatus').textContent = 'Give the macro a name.'; $('mcName').focus(); return; }
+    saved[name] = steps.map(function(s){ return Object.assign({}, s); }); savedName = name; renderSaved();
+    $('mcMacroStatus').textContent = 'Macro \u201c' + name + '\u201d saved in this prototype session.';
+  });
+  $('mcToBatch').addEventListener('click', function(){ view('batch'); });
+
+  // ——— Batch run ———
+  function refreshBatch(){
+    $('mcBatchMacro').textContent = $('mcName').value || 'Untitled';
+    var files = visibleFiles(), chosen = chosenFiles();
+    $('mcFiles').innerHTML = files.length ? files.map(function(f){
+      return '<div class="mc-file' + (excluded[f.id] ? ' off' : '') + '" data-file="' + f.id + '">' +
+        '<span class="mc-check' + (excluded[f.id] ? '' : ' on') + '"><span class="mc-checkbox"></span></span>' +
+        '<span class="mc-file-name">' + esc(f.name) + '</span><span class="mc-file-size">' + f.size + '</span></div>';
+    }).join('') : '<div class="mc-empty">No models of the chosen format.</div>';
+    $('mcFileCount').textContent = 'Selected ' + chosen.length + ' of ' + files.length;
+    updatePreview();
+  }
+  function updatePreview(){
+    var chosen = chosenFiles(), name = chosen.length ? stem(chosen[0]) : 'Model_name', dest = outDir();
+    $('mcPrevPath').textContent = (dest || 'Results folder') + '\\' + (perModel ? name + '\\' : '');
+    $('mcPrevProj').textContent = name + ' \u00b7 CAM project';
+    $('mcPrevNc').textContent = name + '.nc';
+    $('mcBatchSum').textContent = 'Models: ' + chosen.length + ' \u00b7 project + NC for each';
+    $('mcStartLabel').textContent = 'Run (' + chosen.length + ')';
+    var err = validation() || (!$('mcSrc').value.trim() ? 'Specify the folder with models.' : '') ||
+      (!dest ? 'Specify the results folder.' : '') || (!chosen.length ? 'Select at least one model.' : '') ||
+      (!has('import') ? 'The macro has no \u201cImport 3D model\u201d step \u2014 add it on the Macro tab to run over a folder.' : '');
+    $('mcBatchErr').textContent = err; $('mcBatchErr').hidden = !err;
+    $('mcStart').disabled = !!err; $('mcTest').disabled = !!err;
+  }
+  $('mcSrcChoose').addEventListener('click', function(){ $('mcSrcPicker').hidden = !$('mcSrcPicker').hidden; });
+  $('mcSrcPicker').addEventListener('click', function(e){
+    var c = e.target.closest('.mc-folder-choice'); if(!c) return;
+    var r = c.querySelector('.mc-radio');
+    $('mcSrcPicker').querySelectorAll('.mc-radio').forEach(function(x){ x.classList.toggle('on', x === r); });
+  });
+  $('mcApplySrc').addEventListener('click', function(){
+    group = $('mcSrcPicker').querySelector('.mc-radio.on').dataset.folder; excluded = {};
+    $('mcSrc').value = FOLDERS[group]; $('mcSrcPicker').hidden = true; refreshBatch();
+  });
+  $('mcDstChoose').addEventListener('click', function(){ $('mcDstPath').value = $('mcDst').value; $('mcDstPicker').hidden = !$('mcDstPicker').hidden; });
+  $('mcApplyDst').addEventListener('click', function(){ $('mcDst').value = $('mcDstPath').value; $('mcDstPicker').hidden = true; updatePreview(); });
+  $('mcDst').addEventListener('input', updatePreview);
+  $('mcRecursive').addEventListener('click', function(){ recursive = !recursive; $('mcRecursive').classList.toggle('on', recursive); refreshBatch(); });
+  $('mcPerModel').addEventListener('click', function(){ perModel = !perModel; $('mcPerModel').classList.toggle('on', perModel); updatePreview(); });
+  $('mcFormat').addEventListener('click', function(e){ e.stopPropagation(); menu($('mcFormat'), $('mcFormat').dataset.opts.split('|'), format, function(o){ format = o; $('mcFormat').querySelector('.dd-t').textContent = o; refreshBatch(); }); });
+  $('mcCollision').addEventListener('click', function(e){ e.stopPropagation(); menu($('mcCollision'), $('mcCollision').dataset.opts.split('|'), collision, function(o){ collision = o; $('mcCollision').querySelector('.dd-t').textContent = o; updatePreview(); }); });
+  $('mcErrPolicy').addEventListener('click', function(e){ e.stopPropagation(); menu($('mcErrPolicy'), $('mcErrPolicy').dataset.opts.split('|'), errPolicy, function(o){ errPolicy = o; $('mcErrPolicy').querySelector('.dd-t').textContent = o; updatePreview(); }); });
+  $('mcFiles').addEventListener('click', function(e){
+    var f = e.target.closest('.mc-file'); if(!f) return;
+    var id = f.dataset.file; if(excluded[id]) delete excluded[id]; else excluded[id] = true; refreshBatch();
+  });
+  $('mcEditMacro').addEventListener('click', function(){ view('macro'); });
+
+  // ——— Execution ———
+  function snapshot(){
+    return {src:$('mcSrc').value.trim(), out:outDir(), perModel:perModel, collision:collision, errPolicy:errPolicy,
+      steps:steps.map(function(s){ return Object.assign({}, s); }), macro:$('mcName').value, revision:revision};
+  }
+  function allocate(f, cfg, occupied){
+    var name = stem(f), v = 1;
+    var keyFor = function(n){ return cfg.out + '\\' + (cfg.perModel ? n + '\\' : '') + n; };
+    if(occupied[keyFor(name)] && cfg.collision === 'Skip the model') return {name:name, key:keyFor(name), skip:true};
+    if(cfg.collision === 'Add version number'){ while(occupied[keyFor(name)]) name = stem(f) + '_v' + (++v); }
+    return {name:name, key:keyFor(name), skip:false};
+  }
+  function log(msg){
+    var n = run.logs.length;
+    run.logs.push({time:String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0'), msg:msg});
+  }
+  function stepName(cfg, i){ var s = cfg.steps[Math.min(i, cfg.steps.length - 1)]; return s.label + (s.type === 'event' && s.val ? ' ' + s.val : ''); }
+  function startRun(test, retry){
+    clearTimeout(timer);
+    var prior = run, cfg = retry ? prior.cfg : snapshot();
+    if(test) cfg = Object.assign({}, cfg, {out:cfg.out + '\\Test run'});
+    var files = retry ? prior.items.filter(function(i){ return i.state === 'error'; }).map(function(i){ return i.file; })
+                      : (test ? chosenFiles().slice(0, 1) : chosenFiles());
+    if(!files.length) return;
+    var occupied = Object.assign({}, existing);
+    var items = files.map(function(file){
+      var r = allocate(file, cfg, occupied); occupied[r.key] = true;
+      return {file:file, name:r.name, key:r.key, skip:r.skip, state:r.skip ? 'skipped' : 'queued', step:0, detail:''};
+    });
+    run = {cfg:cfg, items:items, status:'running', index:0, logs:[], test:test || !!(retry && prior.test), pendingError:false};
+    tabBtn('run').disabled = false; lock(true); view('run');
+    log('Started a ' + (run.test ? 'test' : 'batch') + ' run. Models: ' + files.length + '.');
+    renderRun(); timer = setTimeout(tick, 600);
+  }
+  function finish(status){ run.status = status; clearTimeout(timer); lock(false); renderRun(); }
+  var isDone = function(i){ return i.state === 'done' || i.state === 'error' || i.state === 'skipped'; };
+  function tick(){
+    if(!run || ['running', 'pausing', 'stopping'].indexOf(run.status) < 0) return;
+    while(run.index < run.items.length && isDone(run.items[run.index])) run.index++;
+    if(run.index >= run.items.length){ log('Processing finished.'); finish('completed'); return; }
+    var item = run.items[run.index];
+    item.state = 'running';
+    if(run.pendingError){
+      run.pendingError = false; item.state = 'error';
+      item.detail = 'Error in step \u201c' + stepName(run.cfg, item.step) + '\u201d.';
+      log(item.file.name + ': ' + item.detail + ' Result set not saved.');
+      run.index++;
+      if(run.cfg.errPolicy === 'Stop the batch'){ run.items.forEach(function(i){ if(i.state === 'queued') i.state = 'notrun'; }); finish('error'); return; }
+    } else {
+      log(item.file.name + ' \u2014 ' + stepName(run.cfg, item.step));
+      item.step++;
+      if(item.step >= run.cfg.steps.length){ item.state = 'done'; existing[item.key] = true; log(item.file.name + ': results saved.'); run.index++; }
+    }
+    if(run.status === 'stopping'){
+      if(item.state === 'running'){ item.state = 'interrupted'; item.detail = 'Stopped after the current step. Result set not saved.'; }
+      run.items.forEach(function(i){ if(i.state === 'queued') i.state = 'notrun'; });
+      log('Batch stopped by the user.'); finish('stopped'); return;
+    }
+    if(run.index >= run.items.length || run.items.every(isDone)){ log('Processing finished.'); finish('completed'); return; }
+    if(run.status === 'pausing'){ run.status = 'paused'; log('Paused between commands.'); renderRun(); return; }
+    renderRun(); timer = setTimeout(tick, 650);
+  }
+  var STATE_TXT = {queued:'Queued', running:'Running', paused:'Paused', done:'Done', error:'Error', skipped:'Skipped', notrun:'Not run', interrupted:'Stopped'};
+  var STATE_ICN = {queued:'status.svg', running:'status-prog1.svg', paused:'status-prog2.svg', done:'status-done.svg', error:'status-error.svg',
+                   skipped:'status-warn.svg', notrun:'status.svg', interrupted:'st-stop.svg'};
+  var TITLES = {running:'Processing models', pausing:'Pausing after the current step\u2026', paused:'Execution paused', stopping:'Stopping after the current step\u2026',
+                completed:'Processing finished', error:'Stopped because of an error', stopped:'Batch stopped'};
+  function renderRun(){
+    var total = run.items.length, done = 0, errors = 0, skipped = 0, sum = 0;
+    run.items.forEach(function(i){
+      if(i.state === 'done') done++; if(i.state === 'error') errors++; if(i.state === 'skipped') skipped++;
+      sum += isDone(i) ? 1 : i.step / run.cfg.steps.length;
+    });
+    var finished = ['completed', 'error', 'stopped'].indexOf(run.status) >= 0, current = run.items[run.index];
+    $('mcRunTitle').textContent = run.status === 'completed' && errors ? 'Finished with errors' : TITLES[run.status];
+    $('mcRunMode').textContent = run.test ? 'Test on 1 model' : 'Batch';
+    $('mcProgBar').style.width = Math.round(100 * sum / total) + '%';
+    $('mcRunCaption').textContent = finished ? 'Done: ' + done + ' \u00b7 errors: ' + errors + ' \u00b7 skipped: ' + skipped
+      : current ? current.file.name + ' \u00b7 ' + stepName(run.cfg, current.step) : 'Finishing';
+    $('mcRunCounter').textContent = (done + errors + skipped) + ' / ' + total;
+    $('mcQueue').innerHTML = run.items.map(function(i){
+      var st = i.state === 'running' && run.status === 'paused' ? 'paused' : i.state;
+      var path = run.cfg.out + '\\' + (run.cfg.perModel ? i.name + '\\' : '');
+      var detail = i.state === 'done' ? path + ' \u00b7 ' + i.name + ' (CAM project) + ' + i.name + '.nc'
+        : i.detail || (i.state === 'running' ? 'Step ' + Math.min(i.step + 1, run.cfg.steps.length) + ' of ' + run.cfg.steps.length : i.state === 'skipped' ? 'Result already exists.' : '');
+      return '<div class="mc-queue-row ' + i.state + '"><img class="i16" src="assets/' + STATE_ICN[st] + '" alt="">' +
+        '<div class="mc-queue-name">' + esc(i.file.name) + '<div class="mc-queue-detail">' + esc(detail) + '</div></div>' +
+        '<span class="mc-state-text mc-status-' + i.state + '">' + STATE_TXT[st] + '</span></div>';
+    }).join('');
+    $('mcLogB').innerHTML = run.logs.map(function(l){ return '<div class="mc-log-line"><span>' + l.time + '</span><span>' + esc(l.msg) + '</span></div>'; }).join('');
+    $('mcPause').hidden = finished; $('mcStopRun').hidden = finished; $('mcInjectErr').hidden = finished;
+    $('mcPause').disabled = run.status === 'pausing' || run.status === 'stopping';
+    $('mcStopRun').disabled = run.status === 'stopping';
+    $('mcInjectErr').disabled = run.pendingError || run.status === 'stopping';
+    $('mcPauseLabel').textContent = run.status === 'paused' ? 'Continue' : 'Pause';
+    $('mcRetry').hidden = !finished || !errors;
+    $('mcRunErr').hidden = !errors;
+    $('mcRunErr').textContent = 'Models with errors: ' + errors + '. Their NC is not part of the finished results. See the log for causes.';
+  }
+  $('mcStart').addEventListener('click', function(){ startRun(false, false); });
+  $('mcTest').addEventListener('click', function(){ startRun(true, false); });
+  $('mcToSettings').addEventListener('click', function(){ view('batch'); });
+  $('mcPause').addEventListener('click', function(){
+    if(run.status === 'paused'){ run.status = 'running'; log('Resumed.'); renderRun(); timer = setTimeout(tick, 600); }
+    else { run.status = 'pausing'; renderRun(); }
+  });
+  $('mcStopRun').addEventListener('click', function(){
+    if(run.status === 'paused'){
+      var i = run.items[run.index];
+      if(i && i.state === 'running'){ i.state = 'interrupted'; i.detail = 'Stopped between commands.'; }
+      run.items.forEach(function(x){ if(x.state === 'queued') x.state = 'notrun'; });
+      log('Batch stopped by the user.'); finish('stopped');
+    } else { run.status = 'stopping'; renderRun(); }
+  });
+  $('mcInjectErr').addEventListener('click', function(){ run.pendingError = true; renderRun(); });
+  $('mcRetry').addEventListener('click', function(){ startRun(false, true); });
+  $('mcLogH').addEventListener('click', function(){ var o = $('mcLog').classList.toggle('open'); $('mcLogB').hidden = !o; });
+
+  // ——— open / close ———
+  function open(){ panel.classList.add('open'); renderSteps(); refreshBatch(); renderSaved(); }
+  function close(){ if(recording) return; panel.classList.remove('open'); } // the recording strip stays until Stop
+  $('mcClose').addEventListener('click', function(e){ e.stopPropagation(); close(); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') close(); });
+  // clicks inside the panel must not close it, but they do close an open dropdown menu
+  panel.addEventListener('click', function(e){ e.stopPropagation(); window.ENCY_MENU.close(); });
+
+  // the shell's Utilities list calls this; ?utility=macro opens it on load (from the home area)
+  window.ENCY_MACRO = {open:open, close:close, toggle:function(){ if(panel.classList.contains('open')) close(); else open(); }};
+  try { if(new URLSearchParams(location.search).get('utility') === 'macro') open(); } catch(e){}
 })();
