@@ -587,7 +587,13 @@
             <div class="mc-row mc-between"><span class="mc-run-summary" id="mcRunTitle">Execution</span><span class="mc-pill" id="mcRunMode">Batch</span></div>
             <div class="mc-progress"><div class="mc-progress-fill" id="mcProgBar"></div></div>
             <div class="mc-row mc-between mc-small mc-muted"><span id="mcRunCaption"></span><span id="mcRunCounter"></span></div>
-            <div class="mc-queue"><div class="mc-queue-head">MODEL AND RESULT</div><div id="mcQueue"></div></div>
+            <!-- the macro's steps for the current model: done · running / paused · pending, breakpoints marked -->
+            <div class="mc-queue mc-runsteps"><div class="mc-queue-head mc-row mc-between"><span>MACRO STEPS</span><span id="mcRunStepsHead"></span></div><div id="mcRunSteps"></div></div>
+            <!-- the model queue is secondary: collapsed to one line, expands on click -->
+            <div class="mc-queue mc-models" id="mcModels">
+              <div class="mc-queue-head mc-log-summary" id="mcModelsH"><span class="mc-chev"><svg viewBox="0 0 12 12" fill="none"><path d="M4.5 2.5 8 6l-3.5 3.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>MODELS</span><span class="mc-spacer"></span><span id="mcModelsSum"></span></div>
+              <div id="mcQueue" hidden></div>
+            </div>
             <div class="mc-notice mc-notice-warn" id="mcRunErr" hidden></div>
             <div class="mc-log" id="mcLog">
               <div class="mc-log-summary" id="mcLogH"><span class="mc-chev"><svg viewBox="0 0 12 12" fill="none"><path d="M4.5 2.5 8 6l-3.5 3.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Run log</div>

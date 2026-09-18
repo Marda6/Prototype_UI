@@ -2877,6 +2877,22 @@
     $('mcRunCaption').textContent = finished ? 'Done: ' + done + ' \u00b7 errors: ' + errors + ' \u00b7 skipped: ' + skipped
       : current ? current.file.name + ' \u00b7 ' + stepName(run.cfg, current.step) : 'Finishing';
     $('mcRunCounter').textContent = (done + errors + skipped) + ' / ' + total;
+    // macro steps of the current model
+    var item = finished ? (run.items.filter(function(i){ return i.state !== 'skipped'; }).pop() || run.items[0]) : current;
+    var stepAt = item ? (finished && item.state === 'done' ? run.cfg.steps.length : item.step) : 0;
+    $('mcRunStepsHead').textContent = item ? item.file.name + ' \u00b7 ' + Math.min(stepAt, run.cfg.steps.length) + ' / ' + run.cfg.steps.length : '';
+    $('mcRunSteps').innerHTML = run.cfg.steps.map(function(st, i){
+      var state = i < stepAt ? 'done' : i === stepAt && !finished ? (run.status === 'paused' ? 'paused' : 'running') : 'pending';
+      if(item && item.state === 'error' && i === item.step) state = 'error';
+      var icn = state === 'done' ? 'status-done.svg' : state === 'running' ? 'status-prog1.svg' : state === 'paused' ? 'status-prog2.svg' : state === 'error' ? 'status-error.svg' : 'status.svg';
+      return '<div class="mc-runstep ' + state + (st.bp ? ' bp' : '') + '"><img class="i16" src="assets/' + icn + '" alt="">' +
+        '<span class="mc-command-num">' + String(i + 1).padStart(2, '0') + '</span>' +
+        '<span class="mc-runstep__l">' + esc(st.label) + (st.type === 'event' && st.op && st.label !== 'New operation' && st.label !== 'Calculate' ? ' \u00b7 ' + esc(st.op) : '') + '</span>' +
+        '<span class="mc-runstep__v">' + esc(st.val) + '</span>' +
+        (st.bp ? '<span class="mc-runstep__bp" title="Breakpoint"></span>' : '') + '</div>';
+    }).join('');
+    var curRow = $('mcRunSteps').querySelector('.running, .paused'); if(curRow) curRow.scrollIntoView({block:'nearest'});
+    $('mcModelsSum').textContent = (done + errors + skipped) + ' / ' + total + (current && !finished ? ' \u00b7 now: ' + current.file.name : '');
     $('mcQueue').innerHTML = run.items.map(function(i){
       var st = i.state === 'running' && run.status === 'paused' ? 'paused' : i.state;
       var path = run.cfg.out + '\\' + (run.cfg.perModel ? i.name + '\\' : '');
@@ -2914,6 +2930,7 @@
   $('mcInjectErr').addEventListener('click', function(){ run.pendingError = true; renderRun(); });
   $('mcRetry').addEventListener('click', function(){ startRun(false, true); });
   $('mcLogH').addEventListener('click', function(){ var o = $('mcLog').classList.toggle('open'); $('mcLogB').hidden = !o; });
+  $('mcModelsH').addEventListener('click', function(){ var o = $('mcModels').classList.toggle('open'); $('mcQueue').hidden = !o; });
 
   // ——— open / close ———
   function open(){ panel.classList.add('open'); renderSteps(); refreshBatch(); renderSaved(); }

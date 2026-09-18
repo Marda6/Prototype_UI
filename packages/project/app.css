@@ -1046,8 +1046,27 @@
 .mc-run-summary{color:var(--mc-ink);font:600 14px/20px var(--ec-font);}
 .mc-progress{height:4px;background:var(--mc-line);border-radius:2px;overflow:hidden;margin:10px 0 8px;}
 .mc-progress-fill{height:100%;width:0;background:var(--mc-acc);transition:width .2s ease;}
-.mc-queue{border:1px solid var(--mc-line);border-radius:6px;margin-top:14px;overflow:hidden;}
+.mc-queue{border:1px solid var(--mc-line);border-radius:6px;margin-top:10px;overflow:hidden;}
 .mc-queue-head{padding:8px 12px;color:var(--mc-dim);background:var(--mc-panel);font:500 11px/14px var(--ec-font);letter-spacing:.3px;}
+/* macro steps of the current model */
+.mc-runsteps #mcRunSteps{max-height:240px;overflow-y:auto;scrollbar-gutter:stable;}
+.mc-runstep{display:flex;align-items:center;gap:8px;height:28px;padding:0 12px 0 10px;border-top:1px solid var(--mc-line);color:var(--mc-dim);font:400 12px/16px var(--ec-font);}
+.mc-runstep .i16{width:16px;height:16px;flex:0 0 16px;}
+.mc-runstep.pending .i16{opacity:.35;}
+.mc-runstep.done{color:var(--ec-fg-72);}
+.mc-runstep.running,.mc-runstep.paused{color:var(--mc-ink);background:var(--mc-acc-bg);}
+.mc-runstep.paused{background:var(--mc-warn-bg);}
+.mc-runstep.error{color:var(--mc-danger);}
+.mc-runstep__l{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mc-runstep__v{flex:none;max-width:40%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--mc-dim);}
+.mc-runstep.running .mc-runstep__v,.mc-runstep.paused .mc-runstep__v{color:var(--ec-fg-72);}
+.mc-runstep__bp{width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:var(--mc-warn);}
+/* the model queue: one summary line, opens on click */
+.mc-models .mc-queue-head{gap:6px;cursor:pointer;user-select:none;padding:0 12px 0 8px;height:30px;display:flex;align-items:center;}
+.mc-models .mc-chev svg{transform:rotate(0);}
+.mc-models.open .mc-chev svg{transform:rotate(90deg);}
+.mc-models #mcQueue{max-height:180px;overflow-y:auto;scrollbar-gutter:stable;}
+.mc-models #mcQueue[hidden]{display:none;}
 .mc-queue-row{display:grid;grid-template-columns:16px 1fr auto;align-items:start;gap:8px;padding:8px 12px;border-top:1px solid var(--mc-line);}
 .mc-queue-row .i16{width:16px;height:16px;margin-top:1px;}
 .mc-queue-row.queued .i16,.mc-queue-row.notrun .i16{opacity:.4;}
