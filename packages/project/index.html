@@ -532,16 +532,18 @@
           </div>
           <footer class="mc-foot">
             <span class="mc-foot-note" id="mcValid">Ready for batch run</span>
-            <button class="mc-button mc-primary" id="mcToBatch">To batch run<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg></button>
+            <!-- run once on the open project; the batch is on its own tab -->
+            <button class="mc-button mc-primary" id="mcRunOnce" title="Run the macro on the open project"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.2v9.6L12.6 8z"/></svg>Run</button>
           </footer>
         </section>
 
         <!-- ===== Batch run ===== -->
         <section class="mc-page" id="mcPageBatch" hidden>
           <div class="mc-body">
-            <div class="mc-batch-macro">
-              <div><span class="mc-muted mc-small">Macro</span><div id="mcBatchMacro">Housing · 3-axis machining</div></div>
-              <button class="mc-button mc-link" id="mcEditMacro">Edit</button>
+            <div class="mc-form-section">
+              <label class="mc-label">Macro</label>
+              <div class="mc-folder"><span class="mc-select mc-dd" id="mcBatchMacro"><span class="dd-t">Current macro</span><svg viewBox="0 0 8 5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l3 3 3-3"/></svg></span><button class="mc-button mc-link" id="mcEditMacro">Edit</button></div>
+              <div class="mc-status" id="mcBatchMacroInfo"></div>
             </div>
             <div class="mc-form-section">
               <label class="mc-label">Folder with 3D models</label>

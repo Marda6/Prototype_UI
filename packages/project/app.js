@@ -2499,6 +2499,9 @@
   function base(type){ var d = DEFS[type]; return {type:type, label:d.label, val:d.val, cmd:d.cmd}; }
   var steps = [], selStep = -1, recording = false, recPaused = false, revision = 1;
   var recAt = -1; // where recording continues: index of the step new steps go after; -1 = the end
+  var batchMacro = ''; // '' = the macro in the editor, otherwise a name from the library
+  function batchSteps(){ return batchMacro && saved[batchMacro] ? saved[batchMacro] : steps; }
+  function batchName(){ return batchMacro || ($('mcName').value.trim() || 'Untitled'); }
   // library of recorded macros (kept for the session); two samples so Open has something to show
   var saved = {
     'Housing \u00b7 3-axis roughing':[base('new'), base('import'),
@@ -2576,6 +2579,7 @@
     var v = validation(), a = advice();
     $('mcValid').textContent = v || a || 'Ready for batch run';
     $('mcValid').className = 'mc-foot-note ' + (v ? 'warn' : a ? 'hint' : 'ok');
+    $('mcRunOnce').disabled = !!v;
   }
   $('mcCmds').addEventListener('click', function(e){
     var s = e.target.closest('[data-step]'); if(!s) return;
@@ -2738,11 +2742,14 @@
     saved[name] = steps.map(function(s){ return Object.assign({}, s); }); savedName = name; renderSaved();
     $('mcMacroStatus').textContent = 'Macro \u201c' + name + '\u201d saved in this prototype session.';
   });
-  $('mcToBatch').addEventListener('click', function(){ view('batch'); });
 
   // ——— Batch run ———
   function refreshBatch(){
-    $('mcBatchMacro').textContent = $('mcName').value || 'Untitled';
+    if(batchMacro && !saved[batchMacro]) batchMacro = '';
+    $('mcBatchMacro').querySelector('.dd-t').textContent = batchMacro || 'Current macro \u00b7 ' + ($('mcName').value.trim() || 'Untitled');
+    var bs = batchSteps();
+    $('mcBatchMacroInfo').textContent = bs.length ? bs.length + (bs.length === 1 ? ' step' : ' steps') +
+      (bs.some(function(x){ return x.type === 'import'; }) ? '' : ' \u00b7 no \u201cImport 3D model\u201d step') : 'The macro has no steps yet.';
     var files = visibleFiles(), chosen = chosenFiles();
     $('mcFiles').innerHTML = files.length ? files.map(function(f){
       return '<div class="mc-file' + (excluded[f.id] ? ' off' : '') + '" data-file="' + f.id + '">' +
@@ -2759,9 +2766,11 @@
     $('mcPrevNc').textContent = name + '.nc';
     $('mcBatchSum').textContent = 'Models: ' + chosen.length + ' \u00b7 project + NC for each';
     $('mcStartLabel').textContent = 'Run (' + chosen.length + ')';
-    var err = validation() || (!$('mcSrc').value.trim() ? 'Specify the folder with models.' : '') ||
+    var bs = batchSteps();
+    var err = (recording ? 'Finish recording before running.' : '') || (!bs.length ? 'The chosen macro has no steps.' : '') ||
+      (!$('mcSrc').value.trim() ? 'Specify the folder with models.' : '') ||
       (!dest ? 'Specify the results folder.' : '') || (!chosen.length ? 'Select at least one model.' : '') ||
-      (!has('import') ? 'The macro has no \u201cImport 3D model\u201d step \u2014 add it on the Macro tab to run over a folder.' : '');
+      (!bs.some(function(x){ return x.type === 'import'; }) ? 'The macro has no \u201cImport 3D model\u201d step \u2014 add it on the Macro tab to run over a folder.' : '');
     $('mcBatchErr').textContent = err; $('mcBatchErr').hidden = !err;
     $('mcStart').disabled = !!err; $('mcTest').disabled = !!err;
   }
@@ -2787,12 +2796,23 @@
     var f = e.target.closest('.mc-file'); if(!f) return;
     var id = f.dataset.file; if(excluded[id]) delete excluded[id]; else excluded[id] = true; refreshBatch();
   });
-  $('mcEditMacro').addEventListener('click', function(){ view('macro'); });
+  $('mcBatchMacro').addEventListener('click', function(e){
+    e.stopPropagation();
+    var items = [{label:'Current macro \u00b7 ' + ($('mcName').value.trim() || 'Untitled'), pre:String(steps.length), cur:!batchMacro, onPick:function(){ batchMacro = ''; refreshBatch(); }}];
+    var names = Object.keys(saved);
+    if(names.length){ items.push({sep:true}); items.push({head:'Recorded macros'}); }
+    names.forEach(function(n){ items.push({label:n, pre:String(saved[n].length), cur:n === batchMacro, onPick:function(){ batchMacro = n; refreshBatch(); }}); });
+    window.ENCY_MENU.show($('mcBatchMacro').getBoundingClientRect(), items, $('mcBatchMacro'), $('mcBatchMacro').offsetWidth);
+  });
+  $('mcEditMacro').addEventListener('click', function(){
+    if(batchMacro && saved[batchMacro]) loadMacro(batchMacro, saved[batchMacro]);
+    view('macro');
+  });
 
   // ——— Execution ———
   function snapshot(){
     return {src:$('mcSrc').value.trim(), out:outDir(), perModel:perModel, collision:collision, errPolicy:errPolicy,
-      steps:steps.map(function(s){ return Object.assign({}, s); }), macro:$('mcName').value, revision:revision};
+      steps:batchSteps().map(function(s){ return Object.assign({}, s); }), macro:batchName(), revision:revision};
   }
   function allocate(f, cfg, occupied){
     var name = stem(f), v = 1;
@@ -2806,11 +2826,14 @@
     run.logs.push({time:String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0'), msg:msg});
   }
   function stepName(cfg, i){ var s = cfg.steps[Math.min(i, cfg.steps.length - 1)]; return s.label + (s.type === 'event' && s.val ? ' ' + s.val : ''); }
-  function startRun(test, retry){
+  function projectName(){ var t = document.querySelector('.htab.active .htab-t'); return t ? t.textContent : 'Open project'; }
+  function startRun(test, retry, single){
     clearTimeout(timer);
     var prior = run, cfg = retry ? prior.cfg : snapshot();
+    if(single && !retry) cfg = Object.assign({}, cfg, {steps:steps.map(function(x){ return Object.assign({}, x); }), macro:$('mcName').value});
     if(test) cfg = Object.assign({}, cfg, {out:cfg.out + '\\Test run'});
     var files = retry ? prior.items.filter(function(i){ return i.state === 'error'; }).map(function(i){ return i.file; })
+                      : single ? [{id:'cur', name:projectName(), size:'', type:'project', sub:false}]
                       : (test ? chosenFiles().slice(0, 1) : chosenFiles());
     if(!files.length) return;
     var occupied = Object.assign({}, existing);
@@ -2818,9 +2841,11 @@
       var r = allocate(file, cfg, occupied); occupied[r.key] = true;
       return {file:file, name:r.name, key:r.key, skip:r.skip, state:r.skip ? 'skipped' : 'queued', step:0, detail:''};
     });
-    run = {cfg:cfg, items:items, status:'running', index:0, logs:[], test:test || !!(retry && prior.test), pendingError:false};
+    run = {cfg:cfg, items:items, status:'running', index:0, logs:[], test:test || !!(retry && prior.test),
+      single:single || !!(retry && prior.single), pendingError:false};
     tabBtn('run').disabled = false; lock(true); view('run');
-    log('Started a ' + (run.test ? 'test' : 'batch') + ' run. Models: ' + files.length + '.');
+    $('mcModels').hidden = !!run.single; // one project — no model queue
+    log(run.single ? 'Started the macro on \u201c' + files[0].name + '\u201d.' : 'Started a ' + (run.test ? 'test' : 'batch') + ' run. Models: ' + files.length + '.');
     renderRun(); timer = setTimeout(tick, 600);
   }
   function finish(status){ run.status = status; clearTimeout(timer); lock(false); renderRun(); }
@@ -2847,7 +2872,7 @@
     } else {
       log(item.file.name + ' \u2014 ' + stepName(run.cfg, item.step));
       item.step++;
-      if(item.step >= run.cfg.steps.length){ item.state = 'done'; existing[item.key] = true; log(item.file.name + ': results saved.'); run.index++; }
+      if(item.step >= run.cfg.steps.length){ item.state = 'done'; if(!run.single) existing[item.key] = true; log(item.file.name + (run.single ? ': macro applied.' : ': results saved.')); run.index++; }
     }
     if(run.status === 'stopping'){
       if(item.state === 'running'){ item.state = 'interrupted'; item.detail = 'Stopped after the current step. Result set not saved.'; }
@@ -2872,11 +2897,11 @@
     var finished = ['completed', 'error', 'stopped'].indexOf(run.status) >= 0, current = run.items[run.index];
     $('mcRunTitle').textContent = run.status === 'completed' && errors ? 'Finished with errors'
       : run.status === 'paused' && run.atBp ? 'Breakpoint \u00b7 step ' + ((current ? current.step : 0) + 1) : TITLES[run.status];
-    $('mcRunMode').textContent = run.test ? 'Test on 1 model' : 'Batch';
+    $('mcRunMode').textContent = run.single ? 'Open project' : run.test ? 'Test on 1 model' : 'Batch';
     $('mcProgBar').style.width = Math.round(100 * sum / total) + '%';
-    $('mcRunCaption').textContent = finished ? 'Done: ' + done + ' \u00b7 errors: ' + errors + ' \u00b7 skipped: ' + skipped
+    $('mcRunCaption').textContent = finished ? (run.single ? (errors ? 'Finished with an error' : 'Macro applied to ' + run.items[0].file.name) : 'Done: ' + done + ' \u00b7 errors: ' + errors + ' \u00b7 skipped: ' + skipped)
       : current ? current.file.name + ' \u00b7 ' + stepName(run.cfg, current.step) : 'Finishing';
-    $('mcRunCounter').textContent = (done + errors + skipped) + ' / ' + total;
+    $('mcRunCounter').textContent = run.single ? '' : (done + errors + skipped) + ' / ' + total;
     // macro steps of the current model
     var item = finished ? (run.items.filter(function(i){ return i.state !== 'skipped'; }).pop() || run.items[0]) : current;
     var stepAt = item ? (finished && item.state === 'done' ? run.cfg.steps.length : item.step) : 0;
@@ -2913,8 +2938,9 @@
     $('mcRunErr').textContent = 'Models with errors: ' + errors + '. Their NC is not part of the finished results. See the log for causes.';
   }
   $('mcStart').addEventListener('click', function(){ startRun(false, false); });
+  $('mcRunOnce').addEventListener('click', function(){ if(validation()) return; startRun(false, false, true); });
   $('mcTest').addEventListener('click', function(){ startRun(true, false); });
-  $('mcToSettings').addEventListener('click', function(){ view('batch'); });
+  $('mcToSettings').addEventListener('click', function(){ view(run && run.single ? 'macro' : 'batch'); });
   $('mcPause').addEventListener('click', function(){
     if(run.status === 'paused'){ run.status = 'running'; log(run.atBp ? 'Continued from the breakpoint.' : 'Resumed.'); run.atBp = false; renderRun(); timer = setTimeout(tick, 600); }
     else { run.status = 'pausing'; renderRun(); }
