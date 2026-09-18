@@ -495,6 +495,8 @@
           <button class="mc-button mc-icon-button" id="mcRecPause" title="Pause recording"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="3.5" width="3" height="9" rx=".8"/><rect x="9" y="3.5" width="3" height="9" rx=".8"/></svg></button>
           <button class="mc-button" id="mcRecStop"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="4" width="8" height="8" rx="1"/></svg>Stop</button>
         </div>
+        <!-- the tail of the recording: last steps while recording, editable (delete) while paused -->
+        <div class="mc-reclist" id="mcRecList" hidden></div>
         <div class="mc-tabs">
           <button class="mc-tab" data-tab="macro" aria-selected="true">Macro</button>
           <button class="mc-tab" data-tab="batch" aria-selected="false">Batch run</button>

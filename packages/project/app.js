@@ -2593,8 +2593,30 @@
     $('mcRecPause').innerHTML = recPaused
       ? '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.2v9.6L12.6 8z"/></svg>'
       : '<svg viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="3.5" width="3" height="9" rx=".8"/><rect x="9" y="3.5" width="3" height="9" rx=".8"/></svg>';
+    renderRecList();
     renderSteps();
   }
+  // the tail of the recording under the strip: 3 rows while recording, 6 + delete while paused
+  function renderRecList(){
+    var box = $('mcRecList');
+    if(!recording || !steps.length){ box.hidden = true; box.innerHTML = ''; return; }
+    var n = recPaused ? 6 : 3, from = Math.max(0, steps.length - n);
+    box.hidden = false;
+    box.innerHTML = (from > 0 ? '<div class="mc-recmore">\u2026 ' + from + ' earlier ' + (from === 1 ? 'step' : 'steps') + '</div>' : '') +
+      steps.slice(from).map(function(st, k){
+        var i = from + k;
+        return '<div class="mc-recrow' + (i === steps.length - 1 ? ' last' : '') + '" data-i="' + i + '">' +
+          '<span class="mc-recrow__n">' + String(i + 1).padStart(2, '0') + '</span>' +
+          '<span class="mc-recrow__l">' + esc(st.label) + (st.op && st.label !== 'New operation' && st.label !== 'Calculate' ? ' \u00b7 ' + esc(st.op) : '') + '</span>' +
+          '<span class="mc-recrow__v">' + esc(st.val) + '</span>' +
+          '<button class="mc-recrow__x" title="Delete this step"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 2l6 6M8 2l-6 6"/></svg></button></div>';
+      }).join('');
+  }
+  $('mcRecList').addEventListener('click', function(e){
+    var x = e.target.closest('.mc-recrow__x'); if(!x || !recPaused) return;
+    var i = +x.closest('.mc-recrow').dataset.i;
+    steps.splice(i, 1); revision++; updateRecording();
+  });
   document.addEventListener('ency:action', function(e){
     if(!recording || recPaused) return;
     var d = e.detail;
