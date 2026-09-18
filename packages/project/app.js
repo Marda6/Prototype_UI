@@ -2498,6 +2498,7 @@
   var SEQ = Object.keys(DEFS);
   function base(type){ var d = DEFS[type]; return {type:type, label:d.label, val:d.val, cmd:d.cmd}; }
   var steps = [], selStep = -1, recording = false, recPaused = false, revision = 1;
+  var recAt = -1; // where recording continues: index of the step new steps go after; -1 = the end
   // library of recorded macros (kept for the session); two samples so Open has something to show
   var saved = {
     'Housing \u00b7 3-axis roughing':[base('new'), base('import'),
@@ -2573,7 +2574,7 @@
   function setValid(){
     var v = validation(), a = advice();
     $('mcValid').textContent = v || a || 'Ready for batch run';
-    $('mcValid').className = 'mc-foot-note ' + (v || a ? 'warn' : 'ok');
+    $('mcValid').className = 'mc-foot-note ' + (v ? 'warn' : a ? 'hint' : 'ok');
   }
   $('mcCmds').addEventListener('click', function(e){
     var s = e.target.closest('[data-step]'); if(!s) return;
@@ -2587,8 +2588,9 @@
     panel.classList.toggle('recpaused', recording && recPaused);
     $('mcRecBar').hidden = !recording;
     $('mcRecText').textContent = recPaused ? 'Recording paused' : 'Recording \u00b7 ' + steps.length + (steps.length === 1 ? ' step' : ' steps');
-    var last = steps[steps.length - 1];
-    $('mcRecLast').textContent = last ? last.label + (last.val ? ': ' + last.val : '') : 'Work in the project\u2026';
+    var last = steps[recAt >= 0 ? recAt : steps.length - 1];
+    $('mcRecLast').textContent = recAt >= 0 && recPaused ? 'Continue after step ' + (recAt + 1)
+      : last ? last.label + (last.val ? ': ' + last.val : '') : 'Work in the project\u2026';
     $('mcRecPause').title = recPaused ? 'Resume recording' : 'Pause recording';
     $('mcRecPause').innerHTML = recPaused
       ? '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.2v9.6L12.6 8z"/></svg>'
@@ -2600,59 +2602,70 @@
   function renderRecList(){
     var box = $('mcRecList');
     if(!recording || !steps.length){ box.hidden = true; box.innerHTML = ''; return; }
-    var n = recPaused ? 6 : 3, from = Math.max(0, steps.length - n);
+    var n = recPaused ? 6 : 3, cur = recAt >= 0 ? recAt : steps.length - 1;
+    // the window ends at the insertion point while recording, shows the tail while paused
+    var to = recPaused ? steps.length : Math.min(steps.length, cur + 2), from = Math.max(0, to - n);
+    var after = steps.length - to;
     box.hidden = false;
     box.innerHTML = (from > 0 ? '<div class="mc-recmore">\u2026 ' + from + ' earlier ' + (from === 1 ? 'step' : 'steps') + '</div>' : '') +
-      steps.slice(from).map(function(st, k){
+      steps.slice(from, to).map(function(st, k){
         var i = from + k;
-        return '<div class="mc-recrow' + (i === steps.length - 1 ? ' last' : '') + '" data-i="' + i + '">' +
+        return '<div class="mc-recrow' + (i === cur ? ' last' : '') + '" data-i="' + i + '" title="' + (recPaused ? 'Continue recording after this step' : '') + '">' +
           '<span class="mc-recrow__n">' + String(i + 1).padStart(2, '0') + '</span>' +
           '<span class="mc-recrow__l">' + esc(st.label) + (st.op && st.label !== 'New operation' && st.label !== 'Calculate' ? ' \u00b7 ' + esc(st.op) : '') + '</span>' +
           '<span class="mc-recrow__v">' + esc(st.val) + '</span>' +
-          '<button class="mc-recrow__x" title="Delete this step"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 2l6 6M8 2l-6 6"/></svg></button></div>';
-      }).join('');
+          '<button class="mc-recrow__x" title="Delete this step"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 2l6 6M8 2l-6 6"/></svg></button></div>' +
+          (recAt >= 0 && i === recAt ? '<div class="mc-recins"><i></i><span>Recording continues here</span></div>' : '');
+      }).join('') +
+      (after > 0 ? '<div class="mc-recmore">\u2026 ' + after + ' later ' + (after === 1 ? 'step' : 'steps') + '</div>' : '');
   }
   $('mcRecList').addEventListener('click', function(e){
-    var x = e.target.closest('.mc-recrow__x'); if(!x || !recPaused) return;
-    var i = +x.closest('.mc-recrow').dataset.i;
-    steps.splice(i, 1); revision++; updateRecording();
+    if(!recPaused) return;
+    var row = e.target.closest('.mc-recrow'); if(!row) return;
+    var i = +row.dataset.i;
+    if(e.target.closest('.mc-recrow__x')){
+      steps.splice(i, 1);
+      if(recAt >= 0){ if(i < recAt) recAt--; else if(i === recAt) recAt = i - 1 >= 0 ? i - 1 : (steps.length ? -1 : -1); }
+      revision++; updateRecording(); return;
+    }
+    // a click on the row sets the insertion point; the last step means "at the end"
+    recAt = (i === recAt || i === steps.length - 1) ? -1 : i;
+    updateRecording();
   });
   document.addEventListener('ency:action', function(e){
     if(!recording || recPaused) return;
     var d = e.detail;
     // the same parameter changed twice in a row keeps only the last value
-    var last = steps[steps.length - 1];
+    var at = recAt >= 0 ? recAt : steps.length - 1, last = steps[at];
     if(last && last.type === 'event' && last.label === d.label && last.op === d.op && d.label !== 'New operation' && d.label !== 'Calculate'){
       last.val = d.val; last.cmd = d.cmd;
     } else {
-      steps.push({type:'event', label:d.label, val:d.val, cmd:d.cmd, op:d.op});
+      steps.splice(at + 1, 0, {type:'event', label:d.label, val:d.val, cmd:d.cmd, op:d.op});
+      if(recAt >= 0) recAt++;
     }
     selStep = -1; revision++; updateRecording();
   });
-  $('mcRec').addEventListener('click', function(){ recording = true; recPaused = false; $('mcAddBox').hidden = true; updateRecording(); });
+  $('mcRec').addEventListener('click', function(){ recording = true; recPaused = false; recAt = -1; updateRecording(); });
   $('mcRecPause').addEventListener('click', function(){ recPaused = !recPaused; updateRecording(); });
   $('mcRecStop').addEventListener('click', function(){
-    recording = false; recPaused = false;
+    recording = false; recPaused = false; recAt = -1;
     $('mcMacroStatus').textContent = steps.length ? 'Recording finished: ' + steps.length + (steps.length === 1 ? ' step.' : ' steps.') + ' Add Import and Save to run it over a folder.'
       : 'Nothing was recorded.';
     updateRecording();
   });
-  // add / reorder / delete
-  var addType = 'import';
-  $('mcAdd').addEventListener('click', function(){ $('mcAddBox').hidden = !$('mcAddBox').hidden; });
-  $('mcAddType').querySelector('.dd-t').textContent = DEFS[addType].label;
-  $('mcAddType').addEventListener('click', function(e){
-    e.stopPropagation();
-    menu($('mcAddType'), SEQ.map(function(t){ return DEFS[t].label; }), DEFS[addType].label, function(o){
-      addType = SEQ.filter(function(t){ return DEFS[t].label === o; })[0]; $('mcAddType').querySelector('.dd-t').textContent = o;
-    });
-  });
-  $('mcAddOk').addEventListener('click', function(){
+  // add / reorder / delete — "+ Command" is a menu of the six base commands; a pick adds the step at once
+  function addCommand(type){
     // import / new go to the front, export / save to the end, the rest after the selection
-    var s = base(addType), at = steps.length;
-    if(addType === 'new') at = 0; else if(addType === 'import') at = has('new') ? 1 : 0;
-    else if(addType !== 'export' && addType !== 'save' && selStep >= 0) at = selStep + 1;
-    steps.splice(at, 0, s); selStep = at; revision++; $('mcAddBox').hidden = true; renderSteps();
+    var st = base(type), at = steps.length;
+    if(type === 'new') at = 0; else if(type === 'import') at = has('new') ? 1 : 0;
+    else if(type !== 'export' && type !== 'save' && selStep >= 0) at = selStep + 1;
+    steps.splice(at, 0, st); selStep = at; revision++; renderSteps();
+  }
+  $('mcAdd').addEventListener('click', function(e){
+    e.stopPropagation(); if(recording) return;
+    window.ENCY_MENU.show($('mcAdd').getBoundingClientRect(), SEQ.map(function(t){
+      return {label:DEFS[t].label, cur:has(t), onPick:function(){ addCommand(t); }};
+    }), $('mcAdd'), 200);
   });
   $('mcDel').addEventListener('click', function(){ steps.splice(selStep, 1); selStep = Math.min(selStep, steps.length - 1); revision++; renderSteps(); });
   function move(d){
