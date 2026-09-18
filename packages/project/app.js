@@ -2559,7 +2559,8 @@
   // ——— Macro: the step list ———
   function renderSteps(){
     $('mcCmds').innerHTML = steps.length ? steps.map(function(s, i){
-      return '<button type="button" class="mc-command" data-step="' + i + '" aria-pressed="' + (i === selStep) + '">' +
+      return '<button type="button" class="mc-command' + (s.bp ? ' bp' : '') + '" data-step="' + i + '" aria-pressed="' + (i === selStep) + '">' +
+        '<span class="mc-bp" title="' + (s.bp ? 'Breakpoint: playback pauses before this step' : 'Set a breakpoint') + '"></span>' +
         '<span class="mc-command-num">' + String(i + 1).padStart(2, '0') + '</span>' +
         '<span class="mc-command-label">' + esc(s.label) + (s.op && s.type === 'event' && s.label !== 'New operation' ? '<span class="mc-command-sub">' + esc(s.op) + '</span>' : '') +
         (i === selStep ? '<span class="mc-command-cmd">' + esc(s.cmd) + '</span>' : '') + '</span>' +
@@ -2578,6 +2579,7 @@
   }
   $('mcCmds').addEventListener('click', function(e){
     var s = e.target.closest('[data-step]'); if(!s) return;
+    if(e.target.closest('.mc-bp')){ var st = steps[+s.dataset.step]; st.bp = !st.bp; revision++; renderSteps(); return; }
     selStep = +s.dataset.step === selStep ? -1 : +s.dataset.step; renderSteps();
   });
 
@@ -2593,7 +2595,7 @@
       : last ? last.label + (last.val ? ': ' + last.val : '') : 'Work in the project\u2026';
     $('mcRecPause').title = recPaused ? 'Resume recording' : 'Pause recording';
     $('mcRecPause').innerHTML = recPaused
-      ? '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.2v9.6L12.6 8z"/></svg>'
+      ? '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="4.5" fill="#ff7072"/></svg>'
       : '<svg viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="3.5" width="3" height="9" rx=".8"/><rect x="9" y="3.5" width="3" height="9" rx=".8"/></svg>';
     renderRecList();
     renderSteps();
@@ -2602,22 +2604,20 @@
   function renderRecList(){
     var box = $('mcRecList');
     if(!recording || !steps.length){ box.hidden = true; box.innerHTML = ''; return; }
-    var n = recPaused ? 6 : 3, cur = recAt >= 0 ? recAt : steps.length - 1;
-    // the window ends at the insertion point while recording, shows the tail while paused
-    var to = recPaused ? steps.length : Math.min(steps.length, cur + 2), from = Math.max(0, to - n);
-    var after = steps.length - to;
+    var cur = recAt >= 0 ? recAt : steps.length - 1;
+    // every step, scrollable; the list follows the insertion point
     box.hidden = false;
-    box.innerHTML = (from > 0 ? '<div class="mc-recmore">\u2026 ' + from + ' earlier ' + (from === 1 ? 'step' : 'steps') + '</div>' : '') +
-      steps.slice(from, to).map(function(st, k){
-        var i = from + k;
-        return '<div class="mc-recrow' + (i === cur ? ' last' : '') + '" data-i="' + i + '" title="' + (recPaused ? 'Continue recording after this step' : '') + '">' +
+    box.innerHTML = steps.map(function(st, i){
+        return '<div class="mc-recrow' + (i === cur ? ' last' : '') + '" data-i="' + i + '"' + (recPaused ? ' draggable="true"' : '') +
+          ' title="' + (recPaused ? 'Continue recording after this step \u00b7 drag to reorder' : '') + '">' +
           '<span class="mc-recrow__n">' + String(i + 1).padStart(2, '0') + '</span>' +
           '<span class="mc-recrow__l">' + esc(st.label) + (st.op && st.label !== 'New operation' && st.label !== 'Calculate' ? ' \u00b7 ' + esc(st.op) : '') + '</span>' +
           '<span class="mc-recrow__v">' + esc(st.val) + '</span>' +
           '<button class="mc-recrow__x" title="Delete this step"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 2l6 6M8 2l-6 6"/></svg></button></div>' +
           (recAt >= 0 && i === recAt ? '<div class="mc-recins"><i></i><span>Recording continues here</span></div>' : '');
-      }).join('') +
-      (after > 0 ? '<div class="mc-recmore">\u2026 ' + after + ' later ' + (after === 1 ? 'step' : 'steps') + '</div>' : '');
+      }).join('');
+    var row = box.querySelector('.mc-recrow.last');
+    if(row) row.scrollIntoView({block:'nearest'});
   }
   $('mcRecList').addEventListener('click', function(e){
     if(!recPaused) return;
@@ -2632,6 +2632,36 @@
     recAt = (i === recAt || i === steps.length - 1) ? -1 : i;
     updateRecording();
   });
+  // drag & drop while paused: drop above or below a row, the insertion marker follows its step
+  (function(){
+    var list = $('mcRecList'), dragI = -1;
+    function clearMarks(){ list.querySelectorAll('.mc-recrow').forEach(function(r){ r.classList.remove('drop-before', 'drop-after', 'dragging'); }); }
+    list.addEventListener('dragstart', function(e){
+      var r = e.target.closest('.mc-recrow'); if(!r || !recPaused){ e.preventDefault(); return; }
+      dragI = +r.dataset.i; r.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(dragI)); } catch(x){}
+    });
+    list.addEventListener('dragover', function(e){
+      var r = e.target.closest('.mc-recrow'); if(!r || dragI < 0) return;
+      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+      var rect = r.getBoundingClientRect(), below = e.clientY > rect.top + rect.height / 2;
+      list.querySelectorAll('.mc-recrow').forEach(function(x){ x.classList.remove('drop-before', 'drop-after'); });
+      if(+r.dataset.i !== dragI) r.classList.add(below ? 'drop-after' : 'drop-before');
+    });
+    list.addEventListener('dragleave', function(e){ if(!list.contains(e.relatedTarget)) list.querySelectorAll('.mc-recrow').forEach(function(x){ x.classList.remove('drop-before', 'drop-after'); }); });
+    list.addEventListener('drop', function(e){
+      var r = e.target.closest('.mc-recrow'); if(!r || dragI < 0) return;
+      e.preventDefault();
+      var rect = r.getBoundingClientRect(), below = e.clientY > rect.top + rect.height / 2, to = +r.dataset.i + (below ? 1 : 0);
+      var marked = recAt >= 0 ? steps[recAt] : null;
+      var moved = steps.splice(dragI, 1)[0];
+      if(to > dragI) to--;
+      steps.splice(to, 0, moved);
+      if(marked){ recAt = steps.indexOf(marked); if(recAt === steps.length - 1) recAt = -1; }
+      dragI = -1; revision++; clearMarks(); updateRecording();
+    });
+    list.addEventListener('dragend', function(){ dragI = -1; clearMarks(); });
+  })();
   document.addEventListener('ency:action', function(e){
     if(!recording || recPaused) return;
     var d = e.detail;
@@ -2801,6 +2831,13 @@
     if(run.index >= run.items.length){ log('Processing finished.'); finish('completed'); return; }
     var item = run.items[run.index];
     item.state = 'running';
+    var next = run.cfg.steps[item.step];
+    if(next && next.bp && item.bpSeen !== item.step && !run.pendingError){
+      item.bpSeen = item.step; run.status = 'paused'; run.atBp = true;
+      log(item.file.name + ': breakpoint before \u201c' + stepName(run.cfg, item.step) + '\u201d.');
+      renderRun(); return;
+    }
+    run.atBp = false;
     if(run.pendingError){
       run.pendingError = false; item.state = 'error';
       item.detail = 'Error in step \u201c' + stepName(run.cfg, item.step) + '\u201d.';
@@ -2833,7 +2870,8 @@
       sum += isDone(i) ? 1 : i.step / run.cfg.steps.length;
     });
     var finished = ['completed', 'error', 'stopped'].indexOf(run.status) >= 0, current = run.items[run.index];
-    $('mcRunTitle').textContent = run.status === 'completed' && errors ? 'Finished with errors' : TITLES[run.status];
+    $('mcRunTitle').textContent = run.status === 'completed' && errors ? 'Finished with errors'
+      : run.status === 'paused' && run.atBp ? 'Breakpoint \u00b7 step ' + ((current ? current.step : 0) + 1) : TITLES[run.status];
     $('mcRunMode').textContent = run.test ? 'Test on 1 model' : 'Batch';
     $('mcProgBar').style.width = Math.round(100 * sum / total) + '%';
     $('mcRunCaption').textContent = finished ? 'Done: ' + done + ' \u00b7 errors: ' + errors + ' \u00b7 skipped: ' + skipped
@@ -2862,7 +2900,7 @@
   $('mcTest').addEventListener('click', function(){ startRun(true, false); });
   $('mcToSettings').addEventListener('click', function(){ view('batch'); });
   $('mcPause').addEventListener('click', function(){
-    if(run.status === 'paused'){ run.status = 'running'; log('Resumed.'); renderRun(); timer = setTimeout(tick, 600); }
+    if(run.status === 'paused'){ run.status = 'running'; log(run.atBp ? 'Continued from the breakpoint.' : 'Resumed.'); run.atBp = false; renderRun(); timer = setTimeout(tick, 600); }
     else { run.status = 'pausing'; renderRun(); }
   });
   $('mcStopRun').addEventListener('click', function(){

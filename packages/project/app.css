@@ -937,8 +937,10 @@
 .mcpanel.compact > :not(.mc-recbar):not(.mc-reclist){display:none;}
 /* recording tail: last steps under the strip; paused → more rows and a delete button per row */
 .mc-reclist{display:flex;flex-direction:column;border-top:1px solid var(--mc-line);padding:2px 4px 4px;}
+/* the whole list, up to 20 rows, then it scrolls (recording and paused alike) */
+.mc-reclist{max-height:486px;overflow-y:auto;scrollbar-gutter:stable;} /* 20 rows × 24px + padding, then it scrolls */
 .mc-reclist[hidden]{display:none;}
-.mc-recrow{display:flex;align-items:center;gap:8px;height:24px;padding:0 4px 0 8px;border-radius:4px;color:var(--mc-dim);font:400 12px/16px var(--ec-font);}
+.mc-recrow{display:flex;align-items:center;gap:8px;height:24px;flex:0 0 24px;padding:0 4px 0 8px;border-radius:4px;color:var(--mc-dim);font:400 12px/16px var(--ec-font);}
 .mc-recrow.last{color:var(--mc-ink);}
 .mc-recrow__n{width:18px;flex:none;font:400 11px/16px var(--ec-font);font-variant-numeric:tabular-nums;color:var(--mc-dim);}
 .mc-recrow__l{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -948,7 +950,14 @@
 .mc-recrow__x:hover{background:var(--ec-fg-8);color:var(--mc-danger);}
 .mcpanel.recpaused .mc-recrow{color:var(--mc-ink);}
 .mcpanel.recpaused .mc-recrow:hover{background:var(--ec-fg-4);}
-.mcpanel.recpaused .mc-recrow__x{display:flex;}
+.mcpanel.recpaused .mc-recrow__x{display:flex;opacity:0;}
+.mcpanel.recpaused .mc-recrow:hover .mc-recrow__x{opacity:1;}
+/* drag & drop: the dragged row fades, a green line marks the drop slot */
+.mc-recrow{position:relative;}
+.mc-recrow.dragging{opacity:.4;}
+.mc-recrow.drop-before::before,.mc-recrow.drop-after::after{content:'';position:absolute;left:4px;right:4px;height:2px;border-radius:1px;background:var(--mc-acc);}
+.mc-recrow.drop-before::before{top:-1px;}
+.mc-recrow.drop-after::after{bottom:-1px;}
 .mc-recmore{height:20px;padding:0 8px;color:var(--mc-dim);font:400 11px/20px var(--ec-font);}
 .mcpanel.recpaused .mc-recrow{cursor:pointer;}
 .mc-recins{display:flex;align-items:center;gap:8px;height:16px;padding:0 8px;color:var(--mc-acc);font:400 11px/16px var(--ec-font);}
@@ -964,6 +973,12 @@
 .mc-command:hover{background:var(--ec-fg-4);}
 .mc-command[aria-pressed="true"]{background:var(--mc-acc-bg);color:var(--mc-acc);box-shadow:inset 2px 0 0 var(--mc-acc);}
 .mc-command-num{width:18px;flex:none;color:var(--mc-dim);font:400 11px/16px var(--ec-font);font-variant-numeric:tabular-nums;}
+/* breakpoint dot: hollow on hover, red and always visible when set */
+.mc-bp{width:16px;height:16px;flex:0 0 16px;margin-left:-4px;display:flex;align-items:center;justify-content:center;border-radius:4px;cursor:pointer;}
+.mc-bp::before{content:'';width:8px;height:8px;border-radius:50%;box-sizing:border-box;border:1.2px solid var(--ec-fg-24);opacity:0;}
+.mc-command:hover .mc-bp::before{opacity:1;}
+.mc-bp:hover{background:var(--ec-fg-8);}
+.mc-command.bp .mc-bp::before{opacity:1;border-color:var(--mc-warn);background:var(--mc-warn);}
 .mc-command .opic{flex:0 0 20px;}
 .mc-command-label{flex:1;min-width:0;font:400 12px/16px var(--ec-font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mc-command-sub{display:block;margin-top:2px;color:var(--mc-dim);font:400 11px/14px var(--ec-font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
