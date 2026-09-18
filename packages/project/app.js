@@ -65,10 +65,11 @@
   /* ---------- Action bus: user actions the macro recorder can capture ----------
      label — what was done ("Radial stock", "New operation", "Calculate"),
      val   — the value / object, cmd — the command behind it (shown in the macro's inspector). */
-  function emitAction(label, val, cmd){
+  function emitAction(label, val, cmd, meta){
     var sel = document.querySelector('#tree .trow.tsel'), opName = '';
     if(sel){ var n = sel.querySelector('.rlabel span'); opName = n ? n.textContent : ''; }
-    document.dispatchEvent(new CustomEvent('ency:action', {detail:{label:label, val:val, cmd:cmd, op:opName}}));
+    meta = meta || {};
+    document.dispatchEvent(new CustomEvent('ency:action', {detail:{label:label, val:val, cmd:cmd, op:opName, ctl:meta.ctl || 'input', opts:meta.opts || null}}));
   }
 
   /* ---------- Filters: open/close + chips + tree type-filter ---------- */
@@ -455,7 +456,7 @@
     if(tgl){
       e.stopPropagation(); var on = tgl.classList.toggle('on'); tgl.src = on ? A['tgl-on'] : A['tgl-off'];
       var tr = tgl.closest('.irow'), tl = tr && tr.querySelector('.rlabel span');
-      if(tl) emitAction(tl.textContent, on ? 'On' : 'Off', 'OP.PARAM "' + tl.textContent + '" ' + (on ? 'TRUE' : 'FALSE'));
+      if(tl) emitAction(tl.textContent, on ? 'On' : 'Off', 'OP.PARAM "' + tl.textContent + '" ' + (on ? 'TRUE' : 'FALSE'), {ctl:'toggle'});
       return;
     }
     /* .selbox is not a menu anymore — it navigates to the full-panel picker (data-act=pickAsm), so let it bubble */
@@ -469,7 +470,7 @@
       var ddRow = dd.closest('.irow'), ddLbl = ddRow && ddRow.querySelector('.rlabel span');
       var ddName = ddLbl ? ddLbl.textContent : 'Parameter';
       var items = opts.map(function(o){ return {label:o, cur:o===v.textContent, onPick:function(){
-        v.textContent=o; emitAction(ddName, o, 'OP.PARAM "' + ddName + '" "' + o + '"');
+        v.textContent=o; emitAction(ddName, o, 'OP.PARAM "' + ddName + '" "' + o + '"', {ctl:'dropdown', opts:opts.slice()});
       }}; });
       // Approach / Return: strategies · machine presets · user templates · Custom…
       if(dd.dataset.custom){
@@ -2500,17 +2501,57 @@
   var steps = [], selStep = -1, recording = false, recPaused = false, revision = 1;
   var recAt = -1; // where recording continues: index of the step new steps go after; -1 = the end
   var batchMacro = ''; // '' = the macro in the editor, otherwise a name from the library
+  // parameter steps: recorded inspector changes — their value is editable; empty = ask when run
+  function isParam(st){ return st.type === 'event' && st.label !== 'New operation' && st.label !== 'Calculate'; }
   function batchSteps(){ return batchMacro && saved[batchMacro] ? saved[batchMacro] : steps; }
   function batchName(){ return batchMacro || ($('mcName').value.trim() || 'Untitled'); }
   // library of recorded macros (kept for the session); two samples so Open has something to show
+  // helpers for the sample library: op(name) · prm(label, value, op, opts) · tgl(label, on, op) · ask(label, op, ctl, opts) · calc(scope)
+  function ev(label, val, cmd, op, extra){ return Object.assign({type:'event', label:label, val:val, cmd:cmd, op:op || ''}, extra || {}); }
+  function op(name){ return ev('New operation', name, 'OP.CREATE "' + name + '"'); }
+  function prm(label, val, opn, opts){ return ev(label, val, 'OP.PARAM "' + label + '" "' + val + '"', opn, opts ? {ctl:'dropdown', opts:opts} : {ctl:'input'}); }
+  function tgl(label, on, opn){ return ev(label, on ? 'On' : 'Off', 'OP.PARAM "' + label + '" ' + (on ? 'TRUE' : 'FALSE'), opn, {ctl:'toggle'}); }
+  function ask(label, opn, ctl, opts){ return ev(label, '', 'OP.PARAM "' + label + '" "{ask}"', opn, {ctl:ctl || 'input', opts:opts || null}); }
+  function calc(scope){ return ev('Calculate', scope || 'All operations', scope && scope !== 'All operations' ? 'OP.CALC SELECTED' : 'OP.CALC ALL', scope && scope !== 'All operations' ? scope : ''); }
+  function bp(st){ st.bp = true; return st; }
+  var COOL = ['Flood', 'Mist', 'Through tool', 'Off'], DIR = ['Climb', 'Conventional', 'Mixed'], PAT = ['Parallel', 'Spiral', 'Radial', 'Zigzag'], TOL = ['Rough', 'Standard', 'Fine'];
   var saved = {
-    'Housing \u00b7 3-axis roughing':[base('new'), base('import'),
-      {type:'event', label:'New operation', val:'Adaptive Clearing', cmd:'OP.CREATE "Adaptive Clearing"', op:''},
-      {type:'event', label:'Radial stock', val:'0.5 mm', cmd:'OP.PARAM "Radial stock" "0.5 mm"', op:'Adaptive Clearing'},
-      {type:'event', label:'Calculate', val:'All operations', cmd:'OP.CALC ALL', op:''}, base('export'), base('save')],
-    'Probing cycle':[base('import'),
-      {type:'event', label:'New operation', val:'Drilling', cmd:'OP.CREATE "Drilling"', op:''},
-      {type:'event', label:'Calculate', val:'Drilling', cmd:'OP.CALC SELECTED', op:'Drilling'}]
+    // short: one operation, one recalculation
+    'Quick facing':[
+      op('Lathe facing'), prm('Feed', '0.25 mm/rev', 'Lathe facing'), calc('Lathe facing')],
+    // short, asks for the drill diameter at run time
+    'Drill \u00b7 ask diameter':[
+      op('Drilling'), ask('Tool diameter', 'Drilling'), prm('Cycle', 'Deep drilling', 'Drilling', ['Simple', 'Deep drilling', 'Peck', 'Boring']),
+      tgl('Chip breaking', true, 'Drilling'), calc('Drilling')],
+    // medium: turning pass with a breakpoint before the finishing cut
+    'OD turning \u00b7 rough + finish':[
+      base('import'),
+      op('OD roughing'), prm('Depth of cut', '2 mm', 'OD roughing'), prm('Feed', '0.3 mm/rev', 'OD roughing'), prm('Coolant', 'Flood', 'OD roughing', COOL),
+      op('OD finishing'), bp(prm('Stock to leave', '0.2 mm', 'OD finishing')), prm('Feed', '0.12 mm/rev', 'OD finishing'), tgl('Spring pass', false, 'OD finishing'),
+      calc(), base('export')],
+    // medium: 3-axis milling with a dropdown pattern and a run-time question
+    'Housing \u00b7 3-axis roughing':[
+      base('new'), base('import'),
+      op('Adaptive Clearing'), prm('Radial stock', '0.5 mm', 'Adaptive Clearing'), prm('Axial stock', '0.3 mm', 'Adaptive Clearing'),
+      prm('Direction', 'Climb', 'Adaptive Clearing', DIR), tgl('Rest machining', true, 'Adaptive Clearing'),
+      op('Parallel'), prm('Pattern', 'Parallel', 'Parallel', PAT), ask('Step over', 'Parallel'), prm('Tolerance', 'Standard', 'Parallel', TOL),
+      bp(calc()), base('export'), base('save')],
+    // long: full lathe part, two breakpoints, several asks and toggles
+    'Full lathe part \u00b7 8 operations':[
+      base('new'), base('import'),
+      ev('Machine setup', 'DMG CTX beta 800', 'MACHINE.SET "DMG CTX beta 800"'),
+      ev('Workpiece', 'Bar \u00d860 \u00d7 120', 'STOCK.SET BAR 60 120'),
+      op('Lathe facing'), prm('Feed', '0.25 mm/rev', 'Lathe facing'),
+      op('OD roughing'), prm('Depth of cut', '2.5 mm', 'OD roughing'), prm('Coolant', 'Flood', 'OD roughing', COOL), tgl('Climb milling', true, 'OD roughing'),
+      op('OD grooving'), prm('Groove width', '4 mm', 'OD grooving'), ask('Groove depth', 'OD grooving'),
+      op('OD finishing'), bp(prm('Stock to leave', '0.1 mm', 'OD finishing')), prm('Tolerance', 'Fine', 'OD finishing', TOL),
+      op('Drilling'), ask('Tool diameter', 'Drilling'), prm('Cycle', 'Peck', 'Drilling', ['Simple', 'Deep drilling', 'Peck', 'Boring']),
+      op('ID boring'), prm('Stock to leave', '0.05 mm', 'ID boring'), tgl('Spring pass', true, 'ID boring'),
+      op('Thread turning'), ask('Thread pitch', 'Thread turning', 'dropdown', ['1.0', '1.25', '1.5', '2.0']), prm('Passes', '6', 'Thread turning'),
+      op('Parting off'), prm('Feed', '0.08 mm/rev', 'Parting off'), tgl('Chamfer edge', false, 'Parting off'),
+      bp(calc()),
+      ev('Simulate', 'Machine collision check', 'SIM.RUN COLLISIONS'),
+      base('export'), base('save')]
   }, savedName = '';
   var group = 'housings', excluded = {}, run = null, timer = null, existing = {};
   var recursive = false, perModel = true, format = 'STEP + IGES', collision = 'Add version number', errPolicy = 'Go to the next model';
@@ -2560,14 +2601,31 @@
   function lock(on){ tabBtn('macro').disabled = on; tabBtn('batch').disabled = on; $('mcToSettings').disabled = on; }
 
   // ——— Macro: the step list ———
+  // the value control of a parameter step: toggle · dropdown (its recorded options) · text input.
+  // Every kind has an "ask when run" state (empty value): the run pauses there and waits.
+  var ASK = '<span class="mc-ask-btn" title="Ask when the macro runs">?</span>';
+  function valCtl(s, i){
+    var ask = !s.val;
+    if(s.ctl === 'toggle'){
+      return '<span class="mc-command-ctl' + (ask ? ' ask' : '') + '" data-i="' + i + '">' +
+        (ask ? '<span class="mc-askval">Ask when run</span>' : '<img class="tgl" data-act="tgl" src="assets/toggle-' + (s.val === 'On' ? 'on' : 'off') + '.svg" alt="">') + ASK + '</span>';
+    }
+    if(s.ctl === 'dropdown'){
+      return '<span class="mc-command-ctl' + (ask ? ' ask' : '') + '" data-i="' + i + '">' +
+        '<span class="mc-select mc-command-dd" data-act="dd"><span class="dd-t' + (ask ? ' mc-askval' : '') + '">' + (ask ? 'Ask when run' : esc(s.val)) + '</span>' +
+        '<svg viewBox="0 0 8 5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l3 3 3-3"/></svg></span></span>';
+    }
+    return '<input class="mc-command-input" data-i="' + i + '" value="' + esc(s.val) + '" placeholder="Ask when run" spellcheck="false" title="Edit the value \u00b7 leave empty to ask when the macro runs">';
+  }
+  function setVal(st, v){ st.val = v; revision++; st.cmd = st.cmd.replace(/("[^"]*"|TRUE|FALSE|\{ask\})\s*$/, st.ctl === 'toggle' ? (v === 'On' ? 'TRUE' : v === 'Off' ? 'FALSE' : '{ask}') : '"' + (v || '{ask}') + '"'); }
   function renderSteps(){
     $('mcCmds').innerHTML = steps.length ? steps.map(function(s, i){
-      return '<button type="button" class="mc-command' + (s.bp ? ' bp' : '') + '" data-step="' + i + '" aria-pressed="' + (i === selStep) + '">' +
+      return '<div role="button" class="mc-command' + (s.bp ? ' bp' : '') + (isParam(s) && !s.val ? ' ask' : '') + '" data-step="' + i + '" aria-pressed="' + (i === selStep) + '">' +
         '<span class="mc-bp" title="' + (s.bp ? 'Breakpoint: playback pauses before this step' : 'Set a breakpoint') + '"></span>' +
         '<span class="mc-command-num">' + String(i + 1).padStart(2, '0') + '</span>' +
         '<span class="mc-command-label">' + esc(s.label) + (s.op && s.type === 'event' && s.label !== 'New operation' ? '<span class="mc-command-sub">' + esc(s.op) + '</span>' : '') +
         (i === selStep ? '<span class="mc-command-cmd">' + esc(s.cmd) + '</span>' : '') + '</span>' +
-        '<span class="mc-command-val">' + esc(s.val) + '</span></button>';
+        (isParam(s) ? valCtl(s, i) : '<span class="mc-command-val">' + esc(s.val) + '</span>') + '</div>';
     }).join('') : '<div class="mc-empty">Press Record and work in the project, or add a command.</div>';
     $('mcStepCount').textContent = 'Steps: ' + steps.length;
     $('mcUp').disabled = selStep <= 0 || !steps.length || recording;
@@ -2581,8 +2639,29 @@
     $('mcValid').className = 'mc-foot-note ' + (v ? 'warn' : a ? 'hint' : 'ok');
     $('mcRunOnce').disabled = !!v;
   }
+  $('mcCmds').addEventListener('input', function(e){
+    var inp = e.target.closest('.mc-command-input'); if(!inp) return;
+    var st = steps[+inp.dataset.i]; setVal(st, inp.value.trim());
+    inp.closest('.mc-command').classList.toggle('ask', !st.val);
+  });
   $('mcCmds').addEventListener('click', function(e){
     var s = e.target.closest('[data-step]'); if(!s) return;
+    if(e.target.closest('.mc-command-input')) return;
+    var ctl = e.target.closest('.mc-command-ctl');
+    if(ctl){
+      e.stopPropagation();
+      var st = steps[+ctl.dataset.i];
+      if(e.target.closest('.mc-ask-btn')){ setVal(st, ''); renderSteps(); return; }
+      if(e.target.closest('[data-act="tgl"]')){ setVal(st, st.val === 'On' ? 'Off' : 'On'); renderSteps(); return; }
+      var dd = e.target.closest('[data-act="dd"]');
+      if(dd){
+        var opts = (st.opts || []).slice(); if(st.val && opts.indexOf(st.val) < 0) opts.unshift(st.val);
+        var items = opts.map(function(o){ return {label:o, cur:o === st.val, onPick:function(){ setVal(st, o); renderSteps(); }}; });
+        items.push({sep:true}); items.push({label:'Ask when run', cur:!st.val, onPick:function(){ setVal(st, ''); renderSteps(); }});
+        window.ENCY_MENU.show(dd.getBoundingClientRect(), items, dd, dd.offsetWidth);
+      }
+      return;
+    }
     if(e.target.closest('.mc-bp')){ var st = steps[+s.dataset.step]; st.bp = !st.bp; revision++; renderSteps(); return; }
     selStep = +s.dataset.step === selStep ? -1 : +s.dataset.step; renderSteps();
   });
@@ -2674,7 +2753,7 @@
     if(last && last.type === 'event' && last.label === d.label && last.op === d.op && d.label !== 'New operation' && d.label !== 'Calculate'){
       last.val = d.val; last.cmd = d.cmd;
     } else {
-      steps.splice(at + 1, 0, {type:'event', label:d.label, val:d.val, cmd:d.cmd, op:d.op});
+      steps.splice(at + 1, 0, {type:'event', label:d.label, val:d.val, cmd:d.cmd, op:d.op, ctl:d.ctl, opts:d.opts});
       if(recAt >= 0) recAt++;
     }
     selStep = -1; revision++; updateRecording();
@@ -2683,8 +2762,6 @@
   $('mcRecPause').addEventListener('click', function(){ recPaused = !recPaused; updateRecording(); });
   $('mcRecStop').addEventListener('click', function(){
     recording = false; recPaused = false; recAt = -1;
-    $('mcMacroStatus').textContent = steps.length ? 'Recording finished: ' + steps.length + (steps.length === 1 ? ' step.' : ' steps.') + ' Add Import and Save to run it over a folder.'
-      : 'Nothing was recorded.';
     updateRecording();
   });
   // add / reorder / delete — "+ Command" is a menu of the six base commands; a pick adds the step at once
@@ -2711,14 +2788,12 @@
   // name · new · save · saved list
   $('mcName').addEventListener('input', function(){ revision++; setValid(); });
   $('mcNew').addEventListener('click', function(){
-    steps = []; selStep = -1; $('mcName').value = 'New macro';
-    $('mcMacroStatus').textContent = 'Press Record and work in the project: parameters, operations, Calculate \u2014 every action becomes a step.'; revision++; renderSteps();
+    steps = []; selStep = -1; $('mcName').value = 'New macro'; revision++; renderSteps();
   });
   function renderSaved(){}
   function loadMacro(name, list){
     savedName = name; steps = list.map(function(s){ return Object.assign({}, s); }); selStep = -1;
     $('mcName').value = name; revision++; renderSteps();
-    $('mcMacroStatus').textContent = 'Opened \u201c' + name + '\u201d \u00b7 ' + steps.length + (steps.length === 1 ? ' step.' : ' steps.');
   }
   // Open: recorded macros of this session, then a file on the computer (the pick is simulated)
   $('mcOpen').addEventListener('click', function(e){
@@ -2732,16 +2807,129 @@
       var name = 'Bracket_v3';
       saved[name] = [base('new'), base('import'), {type:'event', label:'New operation', val:'Pocket', cmd:'OP.CREATE "Pocket"', op:''}, base('calculate'), base('export')];
       loadMacro(name, saved[name]);
-      $('mcMacroStatus').textContent = 'Opened D:\\Macros\\Bracket_v3.encymacro \u00b7 ' + steps.length + ' steps.';
     }});
     window.ENCY_MENU.show($('mcOpen').getBoundingClientRect(), items, $('mcOpen'), 240);
   });
   $('mcSave').addEventListener('click', function(){
     var name = $('mcName').value.trim();
-    if(!name){ $('mcMacroStatus').textContent = 'Give the macro a name.'; $('mcName').focus(); return; }
+    if(!name){ $('mcName').focus(); return; }
     saved[name] = steps.map(function(s){ return Object.assign({}, s); }); savedName = name; renderSaved();
-    $('mcMacroStatus').textContent = 'Macro \u201c' + name + '\u201d saved in this prototype session.';
   });
+
+  // ——— From project: turn the current project state into steps ———
+  // Items follow the CAM menu: Machine setup · Setups & workpiece · Operations parameters ▸ (pick several) ·
+  // Recognize feature · Ask CAM Agent. Steps go to the insertion point while recording, else after the selection.
+  function treeNames(type){
+    return Array.prototype.map.call(document.querySelectorAll('#tree .trow[data-type="' + type + '"] .rlabel span'), function(n){ return n.textContent; });
+  }
+  function insertSteps(list){
+    if(!list.length) return;
+    var at = recording ? (recAt >= 0 ? recAt + 1 : steps.length) : (selStep >= 0 ? selStep + 1 : steps.length);
+    steps.splice.apply(steps, [at, 0].concat(list));
+    if(recording && recAt >= 0) recAt += list.length; else if(!recording) selStep = at + list.length - 1;
+    revision++;
+    if(recording) updateRecording(); else renderSteps();
+  }
+  function fromProject(kind){
+    var st = function(label, val, cmd, op){ return {type:'event', label:label, val:val, cmd:cmd, op:op || ''}; };
+    if(kind === 'machine'){
+      var m = treeNames('machine')[0] || 'Machine';
+      insertSteps([st('Machine setup', m, 'MACHINE.SET "' + m + '"')]);
+    }
+    if(kind === 'setups'){
+      var list = treeNames('setup').map(function(n){ return st('Setup', n, 'SETUP.CREATE "' + n + '"'); });
+      list.push(st('Workpiece', 'From solid', 'STOCK.SET FROM_SOLID'));
+      insertSteps(list);
+    }
+    if(kind === 'feature') insertSteps([st('Recognize features', 'Holes, pockets', 'FEATURE.RECOGNIZE ALL')]);
+    if(kind === 'agent') insertSteps([st('Ask CAM Agent', '', 'AGENT.ASK "{ask}"')]);
+  }
+  // second level: the operations of the tree with check boxes, several at once
+  var opPick = null;
+  function closeOpPick(){ if(opPick){ opPick.remove(); opPick = null; } }
+  function openOpPick(anchor, at){
+    closeOpPick();
+    var ops = treeNames('operation');
+    opPick = document.createElement('div'); opPick.className = 'dd-menu mc-oppick';
+    opPick.innerHTML = '<div class="dd-head">Operations parameters</div>' +
+      (ops.length ? ops.map(function(n, i){
+        return '<label class="mc-opitem"><span class="mc-check on" data-i="' + i + '"><span class="mc-checkbox"></span></span><span class="mc-opitem__t">' + esc(n) + '</span></label>';
+      }).join('') : '<div class="mc-empty">No operations in the project.</div>') +
+      '<div class="mc-opfoot"><button class="mc-button mc-link" data-act="all">All</button><button class="mc-button mc-link" data-act="none">None</button>' +
+      '<span class="mc-spacer"></span><button class="mc-button mc-primary" data-act="add">Add ' + ops.length + '</button></div>';
+    document.body.appendChild(opPick);
+    var r = at || anchor.getBoundingClientRect(), m = fpMenu ? fpMenu.getBoundingClientRect() : r;
+    // beside the level-1 item, level 2 overlaps the menu edge by 2px; flips to the left near the screen edge
+    var left = m.right - 2; if(left + opPick.offsetWidth > innerWidth - 8) left = m.left + 2 - opPick.offsetWidth;
+    opPick.style.left = Math.max(8, left) + 'px';
+    opPick.style.top = Math.max(8, Math.min(r.top - 4, innerHeight - opPick.offsetHeight - 8)) + 'px';
+    function count(){ var n = opPick.querySelectorAll('.mc-check.on').length; opPick.querySelector('[data-act="add"]').textContent = 'Add ' + n; opPick.querySelector('[data-act="add"]').disabled = !n; }
+    opPick.addEventListener('click', function(e){
+      e.stopPropagation();
+      var c = e.target.closest('.mc-opitem'); if(c){ c.querySelector('.mc-check').classList.toggle('on'); count(); return; }
+      var a = e.target.closest('[data-act]'); if(!a) return;
+      if(a.dataset.act === 'all' || a.dataset.act === 'none'){ opPick.querySelectorAll('.mc-check').forEach(function(x){ x.classList.toggle('on', a.dataset.act === 'all'); }); count(); return; }
+      var picked = Array.prototype.map.call(opPick.querySelectorAll('.mc-check.on'), function(x){ return ops[+x.dataset.i]; });
+      closeFpMenu();
+      var list = [];
+      picked.forEach(function(n){
+        // the operation with its current parameter set, as the project has it now
+        list.push({type:'event', label:'New operation', val:n, cmd:'OP.CREATE "' + n + '"', op:''});
+        list.push({type:'event', label:'Operation parameters', val:'Current values', cmd:'OP.PARAMS FROM_PROJECT "' + n + '"', op:n});
+      });
+      insertSteps(list);
+    });
+  }
+  document.addEventListener('click', closeOpPick);
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeOpPick(); });
+  // cascading menu: level 1 stays open while level 2 (the operations picker) is out to the right
+  var fpMenu = null;
+  function closeFpMenu(){ if(fpMenu){ fpMenu.remove(); fpMenu = null; } closeOpPick(); }
+  function fromProjectMenu(anchor){
+    if(fpMenu){ closeFpMenu(); return; }
+    window.ENCY_MENU.close();
+    var ITEMS = [
+      {id:'machine', label:'Machine setup'},
+      {id:'setups',  label:'Setups & workpiece'},
+      {id:'ops',     label:'Operations parameters', sub:true},
+      {sep:true},
+      {id:'feature', label:'Recognize feature'},
+      {id:'agent',   label:'Ask CAM Agent'}
+    ];
+    fpMenu = document.createElement('div'); fpMenu.className = 'dd-menu mc-fpmenu';
+    fpMenu.innerHTML = ITEMS.map(function(it){
+      if(it.sep) return '<div class="dd-sep"></div>';
+      return '<div class="dd-opt' + (it.sub ? ' has-sub' : '') + '" data-id="' + it.id + '">' + it.label +
+        (it.sub ? '<svg class="dd-sub" viewBox="0 0 8 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 2.5 6 6l-3.5 3.5"/></svg>' : '') + '</div>';
+    }).join('');
+    document.body.appendChild(fpMenu);
+    fpMenu.style.minWidth = '200px';
+    var r = anchor.getBoundingClientRect();
+    fpMenu.style.left = Math.max(8, Math.min(r.left, innerWidth - fpMenu.offsetWidth - 8)) + 'px';
+    fpMenu.style.top = (r.bottom + 2 + fpMenu.offsetHeight > innerHeight - 8 ? r.top - 2 - fpMenu.offsetHeight : r.bottom + 2) + 'px';
+    var subItem = fpMenu.querySelector('.has-sub');
+    function openSub(){
+      if(opPick) return;
+      fpMenu.querySelectorAll('.dd-opt').forEach(function(o){ o.classList.remove('cur'); });
+      subItem.classList.add('cur');
+      openOpPick(anchor, subItem.getBoundingClientRect());
+    }
+    subItem.addEventListener('mouseenter', openSub);
+    fpMenu.addEventListener('mouseenter', function(e){
+      // hovering another level-1 item closes level 2
+      var o = e.target.closest && e.target.closest('.dd-opt'); if(o && o !== subItem) closeOpPick();
+    }, true);
+    fpMenu.addEventListener('click', function(e){
+      e.stopPropagation();
+      var o = e.target.closest('.dd-opt'); if(!o) return;
+      if(o === subItem){ openSub(); return; }
+      var id = o.dataset.id; closeFpMenu(); fromProject(id);
+    });
+  }
+  document.addEventListener('click', closeFpMenu);
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeFpMenu(); });
+  $('mcFromProj').addEventListener('click', function(e){ e.stopPropagation(); fromProjectMenu($('mcFromProj')); });
+  $('mcFromProjRec').addEventListener('click', function(e){ e.stopPropagation(); fromProjectMenu($('mcFromProjRec')); });
 
   // ——— Batch run ———
   function refreshBatch(){
@@ -2857,6 +3045,11 @@
     var item = run.items[run.index];
     item.state = 'running';
     var next = run.cfg.steps[item.step];
+    if(next && isParam(next) && !next.val && !run.pendingError){
+      run.status = 'paused'; run.needInput = item.step; run.atBp = false;
+      log(item.file.name + ': \u201c' + next.label + '\u201d has no value \u2014 waiting for input.');
+      renderRun(); return;
+    }
     if(next && next.bp && item.bpSeen !== item.step && !run.pendingError){
       item.bpSeen = item.step; run.status = 'paused'; run.atBp = true;
       log(item.file.name + ': breakpoint before \u201c' + stepName(run.cfg, item.step) + '\u201d.');
@@ -2895,7 +3088,9 @@
       sum += isDone(i) ? 1 : i.step / run.cfg.steps.length;
     });
     var finished = ['completed', 'error', 'stopped'].indexOf(run.status) >= 0, current = run.items[run.index];
+    var asking = run.status === 'paused' && run.needInput != null;
     $('mcRunTitle').textContent = run.status === 'completed' && errors ? 'Finished with errors'
+      : asking ? 'Input required \u00b7 step ' + (run.needInput + 1)
       : run.status === 'paused' && run.atBp ? 'Breakpoint \u00b7 step ' + ((current ? current.step : 0) + 1) : TITLES[run.status];
     $('mcRunMode').textContent = run.single ? 'Open project' : run.test ? 'Test on 1 model' : 'Batch';
     $('mcProgBar').style.width = Math.round(100 * sum / total) + '%';
@@ -2909,14 +3104,22 @@
     $('mcRunSteps').innerHTML = run.cfg.steps.map(function(st, i){
       var state = i < stepAt ? 'done' : i === stepAt && !finished ? (run.status === 'paused' ? 'paused' : 'running') : 'pending';
       if(item && item.state === 'error' && i === item.step) state = 'error';
-      var icn = state === 'done' ? 'status-done.svg' : state === 'running' ? 'status-prog1.svg' : state === 'paused' ? 'status-prog2.svg' : state === 'error' ? 'status-error.svg' : 'status.svg';
+      var ask = asking && i === run.needInput;
+      if(ask) state = 'ask';
+      var icn = state === 'done' ? 'status-done.svg' : state === 'running' ? 'status-prog1.svg' : state === 'paused' || state === 'ask' ? 'status-prog2.svg' : state === 'error' ? 'status-error.svg' : 'status.svg';
       return '<div class="mc-runstep ' + state + (st.bp ? ' bp' : '') + '"><img class="i16" src="assets/' + icn + '" alt="">' +
         '<span class="mc-command-num">' + String(i + 1).padStart(2, '0') + '</span>' +
         '<span class="mc-runstep__l">' + esc(st.label) + (st.type === 'event' && st.op && st.label !== 'New operation' && st.label !== 'Calculate' ? ' \u00b7 ' + esc(st.op) : '') + '</span>' +
-        '<span class="mc-runstep__v">' + esc(st.val) + '</span>' +
+        (ask ? (st.ctl === 'toggle'
+                 ? '<span class="mc-runstep__pick" id="mcRunPick"><button class="mc-button" data-v="On">On</button><button class="mc-button" data-v="Off">Off</button></span>'
+               : st.ctl === 'dropdown'
+                 ? '<span class="mc-select mc-command-dd mc-runstep__dd" id="mcRunPick"><span class="dd-t mc-askval">Choose\u2026</span><svg viewBox="0 0 8 5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l3 3 3-3"/></svg></span>'
+                 : '<input class="mc-command-input mc-runstep__in" id="mcRunInput" placeholder="Enter a value" spellcheck="false">')
+             : '<span class="mc-runstep__v">' + (isParam(st) && !st.val ? 'Ask when run' : esc(st.val)) + '</span>') +
         (st.bp ? '<span class="mc-runstep__bp" title="Breakpoint"></span>' : '') + '</div>';
     }).join('');
-    var curRow = $('mcRunSteps').querySelector('.running, .paused'); if(curRow) curRow.scrollIntoView({block:'nearest'});
+    var curRow = $('mcRunSteps').querySelector('.running, .paused, .ask'); if(curRow) curRow.scrollIntoView({block:'nearest'});
+    var runIn = $('mcRunInput'); if(runIn && document.activeElement !== runIn) setTimeout(function(){ runIn.focus(); }, 0);
     $('mcModelsSum').textContent = (done + errors + skipped) + ' / ' + total + (current && !finished ? ' \u00b7 now: ' + current.file.name : '');
     $('mcQueue').innerHTML = run.items.map(function(i){
       var st = i.state === 'running' && run.status === 'paused' ? 'paused' : i.state;
@@ -2929,10 +3132,10 @@
     }).join('');
     $('mcLogB').innerHTML = run.logs.map(function(l){ return '<div class="mc-log-line"><span>' + l.time + '</span><span>' + esc(l.msg) + '</span></div>'; }).join('');
     $('mcPause').hidden = finished; $('mcStopRun').hidden = finished; $('mcInjectErr').hidden = finished;
-    $('mcPause').disabled = run.status === 'pausing' || run.status === 'stopping';
+    $('mcPause').disabled = run.status === 'pausing' || run.status === 'stopping' || (asking && !run.pendingVal && !(($('mcRunInput') || {}).value || '').trim());
     $('mcStopRun').disabled = run.status === 'stopping';
     $('mcInjectErr').disabled = run.pendingError || run.status === 'stopping';
-    $('mcPauseLabel').textContent = run.status === 'paused' ? 'Continue' : 'Pause';
+    $('mcPauseLabel').textContent = asking ? 'Apply and continue' : run.status === 'paused' ? 'Continue' : 'Pause';
     $('mcRetry').hidden = !finished || !errors;
     $('mcRunErr').hidden = !errors;
     $('mcRunErr').textContent = 'Models with errors: ' + errors + '. Their NC is not part of the finished results. See the log for causes.';
@@ -2942,7 +3145,14 @@
   $('mcTest').addEventListener('click', function(){ startRun(true, false); });
   $('mcToSettings').addEventListener('click', function(){ view(run && run.single ? 'macro' : 'batch'); });
   $('mcPause').addEventListener('click', function(){
-    if(run.status === 'paused'){ run.status = 'running'; log(run.atBp ? 'Continued from the breakpoint.' : 'Resumed.'); run.atBp = false; renderRun(); timer = setTimeout(tick, 600); }
+    if(run.status === 'paused'){
+      if(run.needInput != null){
+        var v = run.pendingVal || (($('mcRunInput') || {}).value || '').trim(); run.pendingVal = null; if(!v) return;
+        var st = run.cfg.steps[run.needInput]; st.val = v; // for this run only — the macro keeps asking next time
+        log('\u201c' + st.label + '\u201d = ' + v); run.needInput = null;
+      }
+      run.status = 'running'; log(run.atBp ? 'Continued from the breakpoint.' : 'Resumed.'); run.atBp = false; renderRun(); timer = setTimeout(tick, 600);
+    }
     else { run.status = 'pausing'; renderRun(); }
   });
   $('mcStopRun').addEventListener('click', function(){
@@ -2952,6 +3162,22 @@
       run.items.forEach(function(x){ if(x.state === 'queued') x.state = 'notrun'; });
       log('Batch stopped by the user.'); finish('stopped');
     } else { run.status = 'stopping'; renderRun(); }
+  });
+  $('mcRunSteps').addEventListener('click', function(e){
+    var pick = e.target.closest('#mcRunPick'); if(!pick || !run || run.needInput == null) return;
+    e.stopPropagation();
+    var st = run.cfg.steps[run.needInput];
+    var apply = function(v){ run.pendingVal = v; $('mcPause').click(); };
+    var b = e.target.closest('[data-v]'); if(b){ apply(b.dataset.v); return; }
+    if(pick.classList.contains('mc-runstep__dd')){
+      window.ENCY_MENU.show(pick.getBoundingClientRect(), (st.opts || []).map(function(o){ return {label:o, onPick:function(){ apply(o); }}; }), pick, pick.offsetWidth);
+    }
+  });
+  $('mcRunSteps').addEventListener('input', function(e){
+    if(e.target.id === 'mcRunInput') $('mcPause').disabled = !e.target.value.trim();
+  });
+  $('mcRunSteps').addEventListener('keydown', function(e){
+    if(e.target.id === 'mcRunInput' && e.key === 'Enter' && e.target.value.trim()) $('mcPause').click();
   });
   $('mcInjectErr').addEventListener('click', function(){ run.pendingError = true; renderRun(); });
   $('mcRetry').addEventListener('click', function(){ startRun(false, true); });
@@ -2964,7 +3190,7 @@
   $('mcClose').addEventListener('click', function(e){ e.stopPropagation(); close(); });
   document.addEventListener('keydown', function(e){ if(e.key === 'Escape') close(); });
   // clicks inside the panel must not close it, but they do close an open dropdown menu
-  panel.addEventListener('click', function(e){ e.stopPropagation(); window.ENCY_MENU.close(); });
+  panel.addEventListener('click', function(e){ e.stopPropagation(); window.ENCY_MENU.close(); closeFpMenu(); });
 
   // the shell's Utilities list calls this; ?utility=macro opens it on load (from the home area)
   window.ENCY_MACRO = {open:open, close:close, toggle:function(){ if(panel.classList.contains('open')) close(); else open(); }};

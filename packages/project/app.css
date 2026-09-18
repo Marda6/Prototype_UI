@@ -867,12 +867,13 @@
 /* ===== Macro panel — the Automation window (see index.html #macroPanel) =====
    Mirrors the layout of packages/macro/cam-automation.html rule for rule; only colours,
    radii, borders and type come from ENCY Core tokens. */
-.mcpanel{width:480px;padding:0;gap:0;overflow:hidden;
-  --mc-panel:var(--ec-fg-4);--mc-field:var(--ec-bg);--mc-line:var(--ec-fg-12);
+.mcpanel,.mc-oppick{
+  --mc-panel:var(--ec-fg-4);--mc-field:var(--ec-fg-6);--mc-line:var(--ec-fg-12);
   --mc-ink:var(--ec-fg-96);--mc-dim:var(--ec-fg-56);--mc-acc:var(--st-green);
   --mc-acc-bg:color-mix(in srgb, var(--st-green) 12%, transparent);
   --mc-ok:var(--st-green);--mc-danger:#ff8384;--mc-danger-bg:rgba(255,112,114,.12);
   --mc-warn:#ebc14a;--mc-warn-bg:rgba(235,193,74,.12);}
+.mcpanel{width:480px;padding:0;gap:0;overflow:hidden;}
 .mcpanel button{font:inherit;color:inherit;}
 .mcpanel button:disabled{opacity:.45;cursor:default;}
 .mc-titlebar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;
@@ -895,20 +896,20 @@
 .mc-label{display:block;color:var(--mc-ink);font:600 12px/16px var(--ec-font);margin-bottom:6px;}
 /* fields: 28px, dark inset with a 1px line, radius 4 */
 .mc-input,.mc-select{display:flex;align-items:center;width:100%;min-width:0;height:28px;box-sizing:border-box;padding:0 8px;
-  color:var(--mc-ink);background:var(--mc-field);border:1px solid var(--mc-line);border-radius:4px;font:400 12px/16px var(--ec-font);outline:0;}
-.mc-input:focus{border-color:var(--ec-fg-24);}
+  color:var(--mc-ink);background:var(--mc-field);border:1px solid transparent;border-radius:4px;font:400 12px/16px var(--ec-font);outline:0;}
+.mc-input:focus{background:var(--ec-fg-8);border-color:var(--ec-fg-16);}
 .mc-input[readonly]{color:var(--ec-fg-72);}
 .mc-select{gap:6px;cursor:pointer;justify-content:space-between;}
-.mc-select:hover{background:var(--ec-fg-6);}
+.mc-select:hover{background:var(--ec-fg-8);}
 .mc-select .dd-t{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mc-select svg{width:8px;height:5px;flex:0 0 8px;color:var(--ec-fg-72);}
 .mc-select-auto{width:auto;max-width:100%;}
 /* buttons: 28px, bordered pill-less button; primary = green */
 .mc-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;padding:0 10px;
-  border:1px solid var(--mc-line);border-radius:4px;background:transparent;color:var(--mc-ink);
+  border:1px solid transparent;border-radius:4px;background:var(--ec-fg-8);color:var(--mc-ink);
   font:400 12px/16px var(--ec-font);white-space:nowrap;cursor:pointer;}
 .mc-button svg{width:14px;height:14px;flex:0 0 14px;}
-.mc-button:hover:enabled{background:var(--ec-fg-8);}
+.mc-button:hover:enabled{background:var(--ec-fg-12);}
 .mcpanel .mc-primary{background:var(--mc-acc);border-color:var(--mc-acc);color:#0b1210;font-weight:500;}
 .mc-primary:hover:enabled{background:var(--mc-acc);filter:brightness(1.08);}
 .mc-link{border:0;background:transparent;color:var(--mc-acc);padding:0 4px;}
@@ -937,22 +938,33 @@
 /* recording tail: last steps under the strip; paused → more rows and a delete button per row */
 .mc-reclist{display:flex;flex-direction:column;border-top:1px solid var(--mc-line);padding:2px 4px 4px;}
 /* the whole list, up to 20 rows, then it scrolls (recording and paused alike) */
-.mc-reclist{max-height:486px;overflow-y:auto;scrollbar-gutter:stable;} /* 20 rows × 24px + padding, then it scrolls */
+.mc-reclist{max-height:486px;overflow-y:auto;} /* 20 rows × 24px + padding, then it scrolls */
 .mc-reclist[hidden]{display:none;}
 .mc-recrow{display:flex;align-items:center;gap:8px;height:24px;flex:0 0 24px;padding:0 4px 0 8px;border-radius:4px;color:var(--mc-dim);font:400 12px/16px var(--ec-font);}
 .mc-recrow.last{color:var(--mc-ink);}
 .mc-recrow__n{width:18px;flex:none;font:400 11px/16px var(--ec-font);font-variant-numeric:tabular-nums;color:var(--mc-dim);}
 .mc-recrow__l{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mc-recrow__v{flex:none;max-width:45%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--mc-dim);}
-.mc-recrow__x{width:20px;height:20px;flex:0 0 20px;display:none;align-items:center;justify-content:center;border:0;border-radius:4px;background:transparent;color:var(--mc-dim);cursor:pointer;padding:0;}
+.mc-recrow__x{width:20px;height:20px;flex:0 0 20px;display:flex;visibility:hidden;align-items:center;justify-content:center;border:0;border-radius:4px;background:transparent;color:var(--mc-dim);cursor:pointer;padding:0;}
 .mc-recrow__x svg{width:10px;height:10px;}
 .mc-recrow__x:hover{background:var(--ec-fg-8);color:var(--mc-danger);}
 .mcpanel.recpaused .mc-recrow{color:var(--mc-ink);}
 .mcpanel.recpaused .mc-recrow:hover{background:var(--ec-fg-4);}
-.mcpanel.recpaused .mc-recrow__x{display:flex;opacity:0;}
+.mcpanel.recpaused .mc-recrow__x{visibility:visible;opacity:0;}
 .mcpanel.recpaused .mc-recrow:hover .mc-recrow__x{opacity:1;}
 /* drag & drop: the dragged row fades, a green line marks the drop slot */
 .mc-recrow{position:relative;}
+/* second-level picker: the operations of the tree with check boxes */
+.mc-oppick{width:260px;padding:4px;}
+/* cascading menu: a level-1 item with a submenu shows a chevron and stays highlighted while level 2 is open */
+.mc-fpmenu .dd-opt{display:flex;align-items:center;gap:12px;}
+.mc-fpmenu .dd-opt.cur{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+.mc-fpmenu .dd-sub{width:8px;height:12px;margin-left:auto;color:var(--ec-fg-56);flex:0 0 8px;}
+.mc-opitem{display:flex;align-items:center;gap:8px;height:26px;padding:0 6px;border-radius:3px;cursor:pointer;color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);}
+.mc-opitem:hover{background:var(--ec-fg-8);}
+.mc-opitem__t{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mc-opfoot{display:flex;align-items:center;gap:2px;padding:4px 2px 0;border-top:1px solid var(--ec-fg-12);margin-top:4px;}
+.mc-opfoot .mc-button{height:24px;}
 .mc-recrow.dragging{opacity:.4;}
 .mc-recrow.drop-before::before,.mc-recrow.drop-after::after{content:'';position:absolute;left:4px;right:4px;height:2px;border-radius:1px;background:var(--mc-acc);}
 .mc-recrow.drop-before::before{top:-1px;}
@@ -966,7 +978,7 @@
 .mc-command-pane{min-width:0;}
 .mc-section-head{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;
   border-bottom:1px solid var(--mc-line);color:var(--mc-dim);font:500 11px/14px var(--ec-font);letter-spacing:.3px;}
-.mc-command{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:6px 12px;box-sizing:border-box;
+.mc-command{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:6px 12px;box-sizing:border-box;user-select:none;
   background:transparent;text-align:left;border:0;border-bottom:1px solid var(--mc-line);cursor:pointer;color:var(--mc-ink);}
 .mc-command:last-child{border-bottom:0;}
 .mc-command:hover{background:var(--ec-fg-4);}
@@ -983,6 +995,31 @@
 .mc-command-sub{display:block;margin-top:2px;color:var(--mc-dim);font:400 11px/14px var(--ec-font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mc-command[aria-pressed="true"] .mc-command-sub{color:color-mix(in srgb, var(--mc-acc) 70%, var(--mc-dim));}
 .mc-command.bad .mc-command-sub{color:var(--mc-warn);}
+/* editable parameter value; empty = "ask when run" (yellow frame, like a required field) */
+.mc-command-input{flex:none;width:120px;height:22px;box-sizing:border-box;padding:0 6px;text-align:left;
+  background:var(--ec-fg-6);border:1px solid transparent;border-radius:4px;color:var(--mc-ink);font:400 12px/16px var(--ec-font);outline:0;}
+.mc-command-input:hover{background:var(--ec-fg-8);}
+.mc-command-input:focus{background:var(--ec-fg-8);border-color:var(--ec-fg-16);}
+.mc-command-input::placeholder{color:var(--mc-warn);opacity:.8;}
+.mc-command.ask .mc-command-input{border-color:var(--mc-warn);}
+.mc-command[aria-pressed="true"] .mc-command-input{color:var(--mc-ink);}
+.mc-runstep.ask{color:var(--mc-ink);background:var(--mc-warn-bg);}
+.mc-runstep__in{border-color:var(--mc-warn);}
+/* typed value controls in the step row */
+.mc-command-ctl{flex:none;display:flex;align-items:center;gap:4px;}
+.mc-command-ctl .tgl{width:24px;height:14px;cursor:pointer;}
+.mc-command-dd{width:120px;height:22px;}
+.mc-command-ctl.ask .mc-command-dd{border-color:var(--mc-warn);}
+.mc-askval{color:var(--mc-warn);font:400 12px/16px var(--ec-font);}
+.mc-ask-btn{width:18px;height:18px;flex:0 0 18px;display:flex;align-items:center;justify-content:center;border-radius:4px;
+  color:var(--mc-dim);font:500 11px/16px var(--ec-font);cursor:pointer;opacity:0;}
+.mc-command:hover .mc-ask-btn{opacity:1;}
+.mc-ask-btn:hover{background:var(--ec-fg-8);color:var(--mc-warn);}
+.mc-command-ctl.ask .mc-ask-btn{opacity:1;color:var(--mc-warn);}
+.mc-runstep__pick{display:flex;gap:2px;}
+.mc-runstep__pick .mc-button{height:22px;padding:0 8px;}
+.mc-runstep__dd{border-color:var(--mc-warn);}
+.mc-runstep__in::placeholder{color:var(--mc-dim);}
 .mc-inspector{min-width:0;padding:12px;border-left:1px solid var(--mc-line);background:var(--mc-panel);}
 .mc-inspector h3{margin:0 0 14px;color:var(--mc-ink);font:600 12px/16px var(--ec-font);}
 .mc-inspector .mc-field{margin-bottom:12px;}
@@ -1019,7 +1056,7 @@
 /* ——— Batch tab ——— */
 .mc-form-section + .mc-form-section{margin-top:16px;padding-top:14px;border-top:1px solid var(--mc-line);}
 .mc-check{display:inline-flex;align-items:center;gap:7px;min-height:24px;color:var(--mc-ink);font:400 12px/16px var(--ec-font);cursor:pointer;user-select:none;}
-.mc-checkbox,.mc-radio{width:14px;height:14px;flex:none;box-sizing:border-box;border:1px solid var(--ec-fg-32);border-radius:3px;background:var(--mc-field);position:relative;}
+.mc-checkbox,.mc-radio{width:14px;height:14px;flex:none;box-sizing:border-box;border:1px solid var(--ec-fg-24);border-radius:3px;background:var(--ec-fg-8);position:relative;}
 .mc-radio{border-radius:50%;}
 .mc-check.on .mc-checkbox,.mc-radio.on{border-color:var(--mc-acc);background:var(--mc-acc);}
 .mc-check.on .mc-checkbox::after{content:'';position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #0b1210;border-width:0 1.5px 1.5px 0;transform:rotate(45deg);}
