@@ -78,6 +78,11 @@
           (AREA === 'project' ? '' : ' data-app="../project/"') + '>' +
           '<span class="htab-t">Turn part probing 2</span>' +
           '<img class="htab-x" src="' + BASE + 'hdr-tabclose.svg" alt=""></div>' +
+        // big-project stress case (391 operations, CAM-724): the project app builds its tree
+        '<div class="htab" data-proj="ency393"' +
+          (AREA === 'project' ? '' : ' data-app="../project/?project=ency393"') + '>' +
+          '<span class="htab-t">ENCY393</span>' +
+          '<img class="htab-x" src="' + BASE + 'hdr-tabclose.svg" alt=""></div>' +
         '<div class="htab"><span class="htab-t">New project 2</span>' +
           '<img class="htab-x" src="' + BASE + 'hdr-tabclose.svg" alt=""></div>' +
         '<div class="htab"><span class="htab-t">New project 3</span>' +

@@ -80,9 +80,9 @@
 
 /* ===== Sort row (second toolbar row, toggled by the left toolbar button) ===== */
 /* quiet when off — the plate (fill + border) marks only the pressed state */
-.b24.arrange{padding:0;background:transparent;border:1px solid transparent;}
-.b24.arrange:hover{background:var(--ec-fg-8);}
-.b24.arrange.on{background:rgba(246,246,246,.09);border-color:rgba(246,246,246,.18);}
+.b24.arrange,.b24.tsearch{padding:0;background:transparent;border:1px solid transparent;}
+.b24.arrange:hover,.b24.tsearch:hover{background:var(--ec-fg-8);}
+.b24.arrange.on,.b24.tsearch.on{background:rgba(246,246,246,.09);border-color:rgba(246,246,246,.18);}
 .i28{width:28px;height:28px;display:block;}
 .i18{width:18px;height:18px;}
 .i12{width:12px;height:14px;}
@@ -115,16 +115,16 @@
 /* the line is invisible until the handle is hovered or dragged — then it
    lights up with the same violet accent as the dock resizer */
 .tsplit-line{position:absolute;top:0;bottom:0;left:var(--tree-split);width:1px;
-  opacity:0;transition:opacity .12s ease;pointer-events:none;z-index:1;
+  opacity:0;transition:opacity .12s ease;pointer-events:none;z-index:5;
   background:var(--ec-fg-32);}
 .treewrap:has(.tsplit-handle:hover) .tsplit-line,
 .treewrap.splitting .tsplit-line{opacity:1;}
 .tsplit-handle{position:absolute;top:0;bottom:0;left:var(--tree-split);width:9px;margin-left:-4px;
-  cursor:col-resize;touch-action:none;z-index:2;}
+  cursor:col-resize;touch-action:none;z-index:6;}
 /* the identity half ends at the split; the facts half starts clear of it */
 .treewrap .tlayer{flex:0 0 calc(var(--tree-split) - 14px);}
 .treewrap .pslot{padding-left:14px;}
-.tree{display:flex;flex-direction:column;gap:2px;overflow:auto;}
+.tree{display:flex;flex-direction:column;gap:2px;overflow:auto;position:relative;}
 /* scroll containers reserve the scrollbar lane up front — no layout jump
    when the bar appears or goes away */
 .tree,.simtree,.irows,#collList{scrollbar-gutter:stable;}
@@ -667,7 +667,7 @@
 .trow.drop-before{box-shadow:inset 0 2px 0 var(--ec-green);}
 .trow.drop-after{box-shadow:inset 0 -2px 0 var(--ec-green);}
 .tlayer{display:flex;align-items:center;flex:1 1 0;min-width:0;}
-.tlayer.i1{padding-left:8px}.tlayer.i2{padding-left:16px}
+.tlayer.i1{padding-left:8px}.tlayer.i2{padding-left:16px}.tlayer.i3{padding-left:24px}
 .shev{width:12px;height:20px;flex:0 0 12px;transition:transform .12s ease;}
 .trow.collapsed .shev{transform:rotate(-90deg);}
 .shev.exp{cursor:pointer;}
@@ -692,6 +692,58 @@
 .tlink{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:2px;padding:2px 4px;border-radius:4px;}
 .tlink span{flex:1;min-width:0;color:var(--ec-fg-64);font:400 12px/16px var(--ec-font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .grip{cursor:grab;}
+
+/* ===== Tree navigation (big projects, CAM-724) ===== */
+/* a folded Setup / Part / Group: how many operations it hides (its status icon already
+   carries an error / warning from inside — statuses roll up the chain) */
+.tsum{flex:0 0 auto;padding:2px 4px;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);
+  font-variant-numeric:tabular-nums;}
+.tsum[hidden]{display:none;}
+
+/* sticky branch heads and the pinned selection: clones of tree rows laid over
+   the tree; solid, so the rows scrolling underneath do not show through */
+.tsticky,.tghost{position:absolute;left:0;z-index:4;background:var(--ec-bg);}
+.tsticky{top:0;border-bottom:1px solid var(--ec-fg-8);}
+.tghost{bottom:0;padding-top:2px;border-top:1px solid var(--ec-fg-8);}
+.tsticky[hidden],.tghost[hidden],.tempty[hidden]{display:none;}
+.tsticky .trow{position:absolute;left:0;right:0;background:var(--ec-bg);}
+.tsticky .trow:hover{background:color-mix(in srgb, #f5f5f5 4%, var(--ec-bg));}
+.tsticky .trow.tsel,.tghost .trow{background:color-mix(in srgb, #f5f5f5 8%, var(--ec-bg));}
+.tghost .trow:hover{background:color-mix(in srgb, #f5f5f5 12%, var(--ec-bg));}
+/* the pin drops the indent: it is a pointer to the row, not a row in place */
+.tghost .tlayer{padding-left:0;}
+.tghost .shev.up{transform:rotate(180deg);}
+.tempty{position:absolute;top:8px;left:0;right:0;padding:0 8px;text-align:center;
+  color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);pointer-events:none;}
+
+/* search: matches marked in place; the branches around them stay as quiet context */
+mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color:var(--ec-fg-100);border-radius:2px;}
+.toolno.tt-hit{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color:var(--ec-fg-100);}
+.trow.tctx .rlabel span{color:var(--ec-fg-56);}
+
+/* search row under the toolbar (search button) — a separator on top like the Sort row */
+.tree-tools{display:flex;align-items:center;gap:2px;flex:0 0 auto;padding:6px 2px 0;
+  border-top:1px solid var(--ec-fg-8);}
+.tree-tools[hidden],.panel-tree.sim .tree-tools,.panel-tree.single .tree-tools{display:none !important;}
+/* input_h20 in the 24px row: fg-4 → hover fg-8 → typing: fg-8 + green inset */
+.tt-search{flex:1 1 0;min-width:0;height:20px;margin:2px 0;display:flex;align-items:center;
+  padding:0 2px 0 0;border-radius:4px;background:var(--ec-fg-4);cursor:text;}
+.tt-search:hover{background:var(--ec-fg-8);}
+.tt-search:focus-within{background:var(--ec-fg-8);box-shadow:inset 0 0 0 1px var(--ec-green);}
+.tt-ic{width:20px;height:20px;flex:0 0 20px;}
+.tt-search input{flex:1 1 0;min-width:0;height:20px;padding:0 2px;border:0;outline:0;background:transparent;
+  color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);}
+.tt-search input::placeholder{color:var(--ec-fg-48);}
+.tt-count{flex:0 0 auto;padding:0 4px;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);
+  white-space:nowrap;font-variant-numeric:tabular-nums;}
+.tt-btn{width:16px;height:16px;flex:0 0 16px;display:flex;align-items:center;justify-content:center;
+  border-radius:2px;color:var(--ec-fg-56);cursor:pointer;}
+.tt-btn:hover{background:var(--ec-fg-12);color:var(--ec-fg-96);}
+.tt-btn svg{width:12px;height:12px;}
+.tt-btn img{width:9px;height:9px;opacity:.7;}
+.tt-btn:hover img{opacity:1;}
+.tt-search:not(.has-q) .tt-count,.tt-search:not(.has-q) .tt-btn,
+.tt-search.no-hits #ttPrev,.tt-search.no-hits #ttNext{display:none;}
 
 /* ===== Inspector ===== */
 .rail{display:flex;flex-direction:column;justify-content:space-between;height:100%;width:28px;flex:0 0 28px;}
@@ -812,18 +864,41 @@
 .filters{position:absolute;top:8px;left:357px;border:1px solid var(--ec-fg-12);
   background:color-mix(in srgb, #f5f5f5 8%, var(--ec-bg));
   border-radius:8px;padding:2px;display:flex;flex-direction:column;gap:2px;width:67px;}
-.f-head{border:0;background:transparent;cursor:pointer;width:100%;padding:6px 4px;border-radius:6px;
+/* same height as the mode tabs of the tree panel (32px), so both dark insets start on one line */
+.f-head{border:0;background:transparent;cursor:pointer;width:100%;padding:8px 4px;border-radius:6px;
   color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);text-align:center;}
 .f-head:hover{background:var(--ec-fg-8);}
-.f-body{display:none;background:var(--ec-bg);border-radius:6px;padding:4px;flex-direction:column;gap:8px;}
+/* nested radii: panel 8 → 2 → inset 6 → 2 → cells 4 (inner radius = outer − padding) */
+.f-body{display:none;background:var(--ec-bg);border-radius:6px;padding:2px;flex-direction:column;gap:8px;}
 .filters.open .f-body{display:flex;}
-.f-cols{display:flex;gap:4px;}
+.f-cols{display:flex;gap:2px;}
 .f-col{flex:1 1 0;display:flex;flex-direction:column;gap:2px;}
 .f-cell{width:100%;height:27.5px;display:flex;align-items:center;justify-content:center;padding:2px;
-  border-radius:6px;background:transparent;cursor:pointer;}
+  border-radius:4px;background:transparent;cursor:pointer;}
 .f-cell:hover{background:var(--ec-fg-8);}
 .f-cell.on{background:var(--ec-fg-16);}
+/* the filter whose settings are open — same "open" ring as an opened dropdown */
+.f-cell.dd-open{box-shadow:inset 0 0 0 1px var(--ec-fg-48);}
 .f20{width:20px;height:20px}
+
+/* filter settings popover (right-click a filter): .simpop surface, label | control rows */
+.fsetpop{width:300px;display:flex;flex-direction:column;gap:8px;}
+.fs-rows{display:flex;flex-direction:column;}
+.fs-row{display:grid;grid-template-columns:96px minmax(0,1fr);align-items:center;gap:8px;min-height:28px;}
+.fs-lbl{font:400 12px/16px var(--ec-font);color:var(--ec-fg-80);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fs-ctl{display:flex;align-items:center;gap:8px;min-width:0;}
+.fs-ctl .dropdown{height:20px;box-sizing:border-box;}
+.fs-ctl .sp-input{margin-left:0;flex:0 0 auto;}
+/* inset by half the knob, so the knob at 0 / max lines up with the column edges */
+.fs-track{flex:1 1 0;margin:0 6px;}
+.fs-track.is-off{opacity:.4;pointer-events:none;}
+/* colour swatch at the row end; dimmed (not pickable) while its toggle is off */
+.fs-sw{margin-left:auto;width:16px;height:16px;flex:0 0 16px;border-radius:4px;cursor:pointer;}
+.fs-sw:hover,.fs-sw.dd-open{box-shadow:0 0 0 2px var(--pop-bg),0 0 0 3px var(--ec-fg-48);}
+.fs-sw.is-off{opacity:.4;cursor:default;box-shadow:none;}
+.fs-num{flex:0 0 20px;text-align:right;font:400 12px/16px var(--ec-font);color:var(--ec-fg-96);
+  font-variant-numeric:tabular-nums;}
 .f-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:2px;}
 .f-grid .f-cell{height:28px;}
 

@@ -32,7 +32,11 @@
         <div class="inner">
           <div class="toolbar">
             <!-- icons exported from the Figma mockup (node 1269-2185) -->
-            <div class="b24 arrange" title="Panel"><img class="i28" src="assets/fig-arrange.svg" alt=""></div>
+            <div class="tb-group">
+              <div class="b24 arrange" title="Panel"><img class="i28" src="assets/fig-arrange.svg" alt=""></div>
+              <!-- toggles the search row under the toolbar (Ctrl+F opens it too) -->
+              <div class="b24 tsearch" id="searchBtn" title="Search (Ctrl+F)"><img class="i28" src="assets/fig-search.svg" alt=""></div>
+            </div>
             <div class="tb-group">
               <div class="tb-ic" title="Parameters"><img class="i28" src="assets/fig-hex.svg" alt=""></div>
               <div class="tb-ic" id="resetBtn" title="Reset statuses"><img class="i18" src="assets/fig-reset.svg" alt=""></div>
@@ -55,11 +59,35 @@
             <div class="sr-btn" title="Return"><img class="i28" src="assets/fig-appr2.svg" alt=""></div>
           </div>
 
+          <!-- search row (toggled by the search button): search + expand / collapse all -->
+          <div class="tree-tools" id="treeTools" hidden>
+            <label class="tt-search" id="ttSearch">
+              <img class="tt-ic" src="../shared-ui/assets/st-search.svg" alt="">
+              <input id="ttQ" type="text" placeholder="Search operations, tools, T#" spellcheck="false" autocomplete="off">
+              <span class="tt-count" id="ttCount"></span>
+              <span class="tt-btn" id="ttPrev" title="Previous match (Shift+Enter)"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.5L6 4l3.5 3.5"/></svg></span>
+              <span class="tt-btn" id="ttNext" title="Next match (Enter)"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg></span>
+              <span class="tt-btn" id="ttClear" title="Clear (Esc)"><img src="../shared-ui/assets/hdr-tabclose.svg" alt=""></span>
+            </label>
+            <div class="st-btn" id="treeExpand" title="Expand all">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.6 5.2L8 1.8l3.4 3.4"/><path d="M4.6 10.8L8 14.2l3.4-3.4"/></svg>
+            </div>
+            <div class="st-btn" id="treeCollapse" title="Collapse all">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.6 2.4L8 5.8l3.4-3.4"/><path d="M4.6 13.6L8 10.2l3.4 3.4"/></svg>
+            </div>
+          </div>
+
           <div class="line"></div>
 
           <div class="treewrap" id="treewrap">
           <div class="tsplit-line"></div>
           <div class="tsplit-handle" id="treeSplit" title="Drag to resize"></div>
+          <!-- sticky Setup / Part / Group of the rows under the top edge, and the
+               selected row pinned to the bottom edge while it is scrolled away
+               (both are clones of the tree rows; filled by "Tree navigation") -->
+          <div class="tsticky" id="treeSticky" hidden></div>
+          <div class="tghost" id="treeGhost" hidden></div>
+          <div class="tempty" id="treeEmpty" hidden></div>
           <div class="tree" id="tree">
             <div class="trow" data-id="machine" data-type="machine">
               <div class="tlayer"><img class="micn" src="assets/tree-machine.svg" alt=""><span class="rlabel"><span>Cutting machine</span></span></div>
@@ -72,8 +100,8 @@
             <!-- Turning demo program: one tool number per physical tool —
                  shared tools keep the same T# across operations and setups -->
             <div class="trow" data-id="part1" data-parent="setup1" data-type="part" data-expandable="1">
-              <div class="tlayer i1"><img class="shev" src="assets/t-shev-open.svg" alt=""><span class="opic"></span><span class="rlabel"><span>Part 1</span></span></div>
-              <div class="pslot"><span class="bicn"><img class="i16" src="assets/opcolor.svg" alt=""></span><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+              <div class="tlayer i1"><img class="shev" src="assets/t-shev-open.svg" alt=""><img class="micn" src="assets/tb-hex.svg" alt=""><span class="rlabel"><span>Part 1</span></span></div>
+              <div class="pslot"><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
             </div>
             <div class="trow" data-id="op1" data-parent="part1" data-type="operation" draggable="true">
               <div class="tlayer i2"><img class="shev" src="assets/t-shev1.svg" alt=""><span class="opic"></span><span class="rlabel"><span>Lathe facing</span></span></div>
@@ -96,8 +124,8 @@
               <div class="pslot"><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
             </div>
             <div class="trow" data-id="part3" data-parent="setup2" data-type="part" data-expandable="1">
-              <div class="tlayer i1"><img class="shev" src="assets/t-shev-open.svg" alt=""><span class="opic"></span><span class="rlabel"><span>Part 1</span></span></div>
-              <div class="pslot"><span class="bicn"><img class="i16" src="assets/opcolor.svg" alt=""></span><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+              <div class="tlayer i1"><img class="shev" src="assets/t-shev-open.svg" alt=""><img class="micn" src="assets/tb-hex.svg" alt=""><span class="rlabel"><span>Part 1</span></span></div>
+              <div class="pslot"><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
             </div>
             <div class="trow" data-id="op5" data-parent="part3" data-type="operation" draggable="true">
               <div class="tlayer i2"><img class="shev" src="assets/t-shev1.svg" alt=""><span class="opic"></span><span class="rlabel"><span>Drilling</span></span></div>
@@ -122,8 +150,8 @@
               <div class="pslot"><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
             </div>
             <div class="trow" data-id="part4" data-parent="setup3" data-type="part" data-expandable="1">
-              <div class="tlayer i1"><img class="shev" src="assets/t-shev-open.svg" alt=""><span class="opic"></span><span class="rlabel"><span>Part 1</span></span></div>
-              <div class="pslot"><span class="bicn"><img class="i16" src="assets/opcolor.svg" alt=""></span><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+              <div class="tlayer i1"><img class="shev" src="assets/t-shev-open.svg" alt=""><img class="micn" src="assets/tb-hex.svg" alt=""><span class="rlabel"><span>Part 1</span></span></div>
+              <div class="pslot"><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
             </div>
             <div class="trow" data-id="op9" data-parent="part4" data-type="operation" data-kind="mill" data-levels="12" data-tool="6" draggable="true">
               <div class="tlayer i2"><img class="shev" src="assets/t-shev1.svg" alt=""><span class="opic"></span><span class="rlabel"><span>Z-level roughing</span></span></div>
@@ -641,6 +669,10 @@
 </div>
 
 <!-- simulation parameters popover (opened from the ! button and the gear) -->
+<!-- filter settings: right-click a filter → its display settings, to the right of the
+     Filters panel; rows are built per filter by "Filter settings" in app.js -->
+<div class="simpop fsetpop" id="fsetPop" hidden></div>
+
 <div class="simpop" id="simPop" hidden>
 <div class="sp-head">Simulation parameters</div>
 <div class="sp-div sp-div--head"></div>

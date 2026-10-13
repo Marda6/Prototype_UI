@@ -78,7 +78,7 @@
   var filters = document.getElementById('filters');
   var fhead = document.getElementById('filtersBtn');
   if(fhead) fhead.addEventListener('click', function(e){ e.stopPropagation(); filters.classList.toggle('open'); });
-  var typeEnabled = { machine:true, setup:true, part:true, operation:true };
+  var typeEnabled = { machine:true, setup:true, part:true, group:true, operation:true };
   document.querySelectorAll('.f-cell').forEach(function(c){
     c.addEventListener('click', function(e){
       e.stopPropagation();
@@ -86,6 +86,128 @@
       var ft = c.dataset.ftype;
       if(ft){ typeEnabled[ft] = on; renderTree(); }
     });
+  });
+
+  /* ---------- Filter settings: right-click a filter → its own display settings,
+     opened to the right of the Filters panel, level with the filter ---------- */
+  var FS_MATERIAL = ['Industrial', 'Plastic', 'Metal', 'Glossy', 'Matte'];
+  var FS_DISPLAY = ['Default', 'Shaded', 'Shaded with edges', 'Wireframe', 'Hidden lines'];
+  var FS_TURN = ['Default', 'Full revolution', 'Half section', 'Quarter section'];
+  // row kinds: color (toggle + swatch) · select · pct (toggle + slider + % field) · slider (+ value) · toggle
+  function fsColor(c, on){ return {k:'color', label:'Color', on:on !== false, color:c}; }
+  function fsSel(label, opts, v){ return {k:'select', label:label, opts:opts, val:v || opts[0]}; }
+  function fsPct(on, v){ return {k:'pct', label:'Transparent', on:on, val:v}; }
+  function fsSlider(label, min, max, v){ return {k:'slider', label:label, min:min, max:max, val:v}; }
+  function fsTgl(label, on){ return {k:'toggle', label:label, on:on}; }
+  function fsSolid(c){ return [fsColor(c, false), fsSel('Material', FS_MATERIAL), fsPct(false, 50), fsSel('Display mode', FS_DISPLAY)]; }
+  // one entry per filter cell, in panel order (left column, right column, geometry grid);
+  // Machining result is the ENCY window 1:1, the rest follow the same row kinds
+  var FS = [
+    {title:'Inspector', rows:fsSolid('#70CFFF')},
+    {title:'Part', rows:fsSolid('#70CFFF')},
+    {title:'Job', rows:fsSolid('#70FFAC')},
+    {title:'Workpiece', rows:fsSolid('#FFDF70').concat([fsSlider('Line width', 1, 5, 1)])},
+    {title:'Machining result', rows:[fsColor('#FF9B70'), fsSel('Material', FS_MATERIAL), fsPct(true, 69),
+      fsSel('Display mode', FS_DISPLAY), fsSel('Turn mode', FS_TURN), fsSlider('Line width', 1, 5, 1), fsTgl('Motionless', false)]},
+    {title:'Tool', rows:[fsColor('#7C70FF', false), fsPct(false, 50), fsSel('Display mode', FS_DISPLAY)]},
+    {title:'Tool', rows:[fsColor('#7C70FF', false), fsPct(false, 50), fsSel('Display mode', FS_DISPLAY)]},
+    {title:'Fixtures', rows:fsSolid('#FFDF70')},
+    {title:'Machine', rows:[fsPct(true, 40), fsSel('Display mode', FS_DISPLAY), fsTgl('Motionless', false)]},
+    {title:'Machine', rows:[fsColor('#70FFAC'), fsSlider('Line width', 1, 5, 1)]},
+    {title:'Dot', rows:[fsColor('#FFDF70'), fsSlider('Point size', 1, 10, 4)]},
+    {title:'Curve', rows:[fsColor('#70CFFF'), fsSlider('Line width', 1, 5, 2)]},
+    {title:'Face', rows:[fsColor('#70FFAC'), fsPct(false, 50), fsSel('Display mode', FS_DISPLAY)]},
+    {title:'Mech', rows:[fsColor('#70FFAC'), fsPct(false, 50), fsSlider('Line width', 1, 5, 1)]}
+  ];
+  var fsetPop = document.getElementById('fsetPop');
+  var fsCells = Array.prototype.slice.call(filters.querySelectorAll('.f-cell'));
+  var fsCell = null;
+  function fsPctOf(r){ return (r.val - (r.min || 0)) / ((r.max || 100) - (r.min || 0)) * 100; }
+  function fsRowHtml(r, i){
+    var tgl = function(on){ return '<img class="tgl" data-tgl src="' + A[on ? 'tgl-on' : 'tgl-off'] + '" alt="">'; };
+    var track = function(off){ var p = fsPctOf(r);
+      return '<span class="sp-tol-track fs-track' + (off ? ' is-off' : '') + '" data-tr><i class="fill" style="width:' + p + '%"></i><i class="knob" style="left:' + p + '%"></i></span>'; };
+    var ctl;
+    if(r.k === 'color') ctl = tgl(r.on) + '<span class="fs-sw' + (r.on ? '' : ' is-off') + '" data-sw style="background:' + r.color + '" title="Pick a color"></span>';
+    else if(r.k === 'select') ctl = '<span class="dropdown" data-dd><span class="v">' + r.val + '</span><img class="i16" src="' + A.ddchev + '" alt=""></span>';
+    else if(r.k === 'pct') ctl = tgl(r.on) + track(!r.on) + '<span class="sp-input' + (r.on ? '' : ' is-off') + '"><input type="text" value="' + r.val + '"' + (r.on ? '' : ' disabled') + '><em>%</em></span>';
+    else if(r.k === 'slider') ctl = track(false) + '<span class="fs-num">' + r.val + '</span>';
+    else ctl = tgl(r.on);
+    return '<div class="fs-row fs-' + r.k + '" data-i="' + i + '"><span class="fs-lbl">' + r.label + '</span><span class="fs-ctl">' + ctl + '</span></div>';
+  }
+  function fsRender(){
+    var cfg = FS[fsCells.indexOf(fsCell)];
+    fsetPop.innerHTML = '<div class="stp-head"><span class="stp-title">' + cfg.title + '</span>' +
+      '<button class="stp-close" data-x title="Close"><svg viewBox="0 0 14 14" fill="none"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg></button></div>' +
+      '<div class="fs-rows">' + cfg.rows.map(fsRowHtml).join('') + '</div>';
+  }
+  function fsOpen(cell){
+    if(fsCell) fsCell.classList.remove('dd-open');
+    fsCell = cell; cell.classList.add('dd-open');
+    fsRender();
+    fsetPop.hidden = false;
+    // right of the panel, the title level with the filter, kept on screen
+    var pr = filters.getBoundingClientRect(), cr = cell.getBoundingClientRect();
+    fsetPop.style.left = (pr.right + 8) + 'px';
+    fsetPop.style.top = Math.max(8, Math.min(cr.top - 8, innerHeight - fsetPop.offsetHeight - 8)) + 'px';
+  }
+  function fsClose(){
+    if(fsCell) fsCell.classList.remove('dd-open');
+    fsCell = null; fsetPop.hidden = true;
+  }
+  fsCells.forEach(function(c){
+    c.addEventListener('contextmenu', function(e){
+      e.preventDefault(); e.stopPropagation(); closeMenu();
+      if(fsCell === c) fsClose(); else fsOpen(c);
+    });
+  });
+  if(fhead) fhead.addEventListener('click', fsClose);   // folding the panel takes its settings along
+  document.addEventListener('click', fsClose);
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') fsClose(); });
+  function fsRowOf(el){ var row = el.closest('.fs-row'); return row ? FS[fsCells.indexOf(fsCell)].rows[+row.dataset.i] : null; }
+  fsetPop.addEventListener('click', function(e){
+    e.stopPropagation(); closeMenu();
+    if(e.target.closest('[data-x]')){ fsClose(); return; }
+    var r = fsRowOf(e.target); if(!r) return;
+    if(e.target.closest('[data-tgl]')){ r.on = !r.on; fsRender(); return; }
+    var sw = e.target.closest('[data-sw]');
+    if(sw && r.on){
+      showMenu(sw.getBoundingClientRect(), OP_COLORS.map(function(c){
+        return {label:c.label, color:c.color, cur:c.color === r.color, onPick:function(){ r.color = c.color; fsRender(); }};
+      }), sw, 120);
+      return;
+    }
+    var dd = e.target.closest('[data-dd]');
+    if(dd){
+      showMenu(dd.getBoundingClientRect(), r.opts.map(function(o){
+        return {label:o, cur:o === r.val, onPick:function(){ r.val = o; fsRender(); }};
+      }), dd, dd.offsetWidth);
+    }
+  });
+  // sliders: drag along the track; Transparent snaps to whole percent, the rest to whole steps
+  fsetPop.addEventListener('pointerdown', function(e){
+    var tr = e.target.closest('[data-tr]'); if(!tr || tr.classList.contains('is-off')) return;
+    var r = fsRowOf(tr), row = tr.closest('.fs-row'); if(!r) return;
+    e.preventDefault(); tr.setPointerCapture(e.pointerId);
+    var min = r.min || 0, max = r.max || 100;
+    var set = function(ev){
+      var b = tr.getBoundingClientRect(), f = Math.max(0, Math.min(1, (ev.clientX - b.left) / b.width));
+      r.val = Math.round(min + f * (max - min));
+      var p = fsPctOf(r);
+      tr.querySelector('.fill').style.width = p + '%'; tr.querySelector('.knob').style.left = p + '%';
+      var inp = row.querySelector('input'), num = row.querySelector('.fs-num');
+      if(inp) inp.value = r.val; if(num) num.textContent = r.val;
+    };
+    set(e);
+    var up = function(){ tr.removeEventListener('pointermove', set); tr.removeEventListener('pointerup', up); };
+    tr.addEventListener('pointermove', set); tr.addEventListener('pointerup', up);
+  });
+  // the % field: typed value, kept within 0…100, moves the slider
+  fsetPop.addEventListener('change', function(e){
+    var r = fsRowOf(e.target); if(!r || r.k !== 'pct') return;
+    var v = parseInt(e.target.value, 10);
+    r.val = isNaN(v) ? r.val : Math.max(0, Math.min(100, v));
+    fsRender();
   });
 
   /* ---------- Inspector rail: switch active + content ---------- */
@@ -649,20 +771,47 @@
   var tree = document.getElementById('tree');
   var rows = Array.prototype.slice.call(tree.querySelectorAll('.trow'));
   var collapsed = {};
-  function rowById(id){ return rows.find(function(r){return r.dataset.id===id;}); }
+  var byId = {};
+  function reindex(){ byId = {}; rows.forEach(function(r){ byId[r.dataset.id] = r; }); }
+  reindex();
+  function rowById(id){ return byId[id]; }
+  // tree search ("Tree navigation" below): null, or the hits of the query, the rows
+  // kept for context and a fold state of its own (the normal one comes back on clear)
+  var tSearch = null;
+  function foldMap(){ return tSearch ? tSearch.fold : collapsed; }
   function isVisible(r){
     if(!typeEnabled[r.dataset.type]) return false;
-    var p = r.dataset.parent;
+    if(tSearch && !tSearch.keep[r.dataset.id]) return false;
+    var fold = foldMap(), p = r.dataset.parent;
     while(p){
       var pr = rowById(p);
       if(!pr) break;
-      if(collapsed[p] || !typeEnabled[pr.dataset.type]) return false;
+      if(fold[p] || !typeEnabled[pr.dataset.type]) return false;
       p = pr.dataset.parent;
     }
     return true;
   }
   function renderTree(){
-    rows.forEach(function(r){ r.style.display = isVisible(r) ? 'flex' : 'none'; });
+    var fold = foldMap();
+    rows.forEach(function(r){
+      r.style.display = isVisible(r) ? 'flex' : 'none';
+      if(r.dataset.expandable === '1') r.classList.toggle('collapsed', !!fold[r.dataset.id]);
+    });
+    treeSummaries();
+    treeNavSync(true);
+  }
+  // fold / unfold a branch; Alt+click takes the whole branch below it along
+  function treeToggle(r, deep){
+    var fold = foldMap(), id = r.dataset.id, close = !fold[id];
+    var ids = [id];
+    if(deep) rows.forEach(function(x){ if(x.dataset.expandable === '1' && isUnder(x, r)) ids.push(x.dataset.id); });
+    ids.forEach(function(x){ if(close) fold[x] = true; else delete fold[x]; });
+    renderTree();
+  }
+  function isUnder(r, anc){
+    var p = r.dataset.parent;
+    while(p){ if(p === anc.dataset.id) return true; var pr = byId[p]; p = pr ? pr.dataset.parent : null; }
+    return false;
   }
   var dragEl = null;
   function bindDrag(r){
@@ -685,6 +834,7 @@
       var after = r.classList.contains('drop-after');
       r.classList.remove('drop-before','drop-after');
       tree.insertBefore(dragEl, after ? r.nextSibling : r);
+      treeNavSync(true);
     });
   }
   function bindRow(r){
@@ -693,10 +843,7 @@
       chev.classList.add('exp');
       chev.addEventListener('click', function(e){
         e.stopPropagation();
-        var id = r.dataset.id;
-        if(collapsed[id]){ delete collapsed[id]; r.classList.remove('collapsed'); }
-        else { collapsed[id] = true; r.classList.add('collapsed'); }
-        renderTree();
+        treeToggle(r, e.altKey);
       });
     }
     r.addEventListener('click', function(){
@@ -707,6 +854,283 @@
     });
     bindDrag(r);
   }
+
+  /* ---------- Tree navigation: folded-branch summaries, sticky Setup / Part / Group,
+     the selection pinned to the bottom edge, search (big projects, CAM-724) ---------- */
+  var tSticky = document.getElementById('treeSticky');
+  var tGhost = document.getElementById('treeGhost');
+  var tEmpty = document.getElementById('treeEmpty');
+  var BRANCH = {setup:1, part:1, group:1};
+  function opProblem(r){
+    var st = r.querySelector('.st'); if(!st) return '';
+    if(st.src === A['status-error']) return 'error';
+    return st.src === A['status-warn'] || st.src === A['status-warn2'] ? 'warn' : '';
+  }
+  // a branch status follows its operations up the chain: an error (else a warning) of any
+  // operation inside shows on its Group, Part and Setup; without one the branch keeps its own
+  function treeRollup(){
+    var worst = {};
+    rows.forEach(function(r){
+      if(r.dataset.type !== 'operation') return;
+      var pb = opProblem(r), p = r.dataset.parent;
+      while(pb && p){
+        if(worst[p] !== 'error') worst[p] = pb;
+        var pr = byId[p]; p = pr ? pr.dataset.parent : null;
+      }
+    });
+    rows.forEach(function(r){
+      if(!BRANCH[r.dataset.type]) return;
+      var st = r.querySelector('.st'); if(!st) return;
+      // whatever the rest of the app put there last (Calculate, Reset…) is the branch's own status
+      if(st.src !== st.dataset.prop) st.dataset.own = st.src;
+      var w = worst[r.dataset.id];
+      var want = w === 'error' ? A['status-error'] : w === 'warn' ? A['status-warn'] : st.dataset.own;
+      st.dataset.prop = w ? want : '';
+      if(st.src !== want) st.src = want;
+    });
+  }
+  // a folded Setup / Part / Group tells how many operations it hides (matches while searching)
+  function treeSummaries(){
+    treeRollup();
+    var fold = foldMap(), kids = {};
+    rows.forEach(function(r){ var p = r.dataset.parent; if(p) (kids[p] = kids[p] || []).push(r); });
+    function count(id){
+      var n = 0;
+      (kids[id] || []).forEach(function(k){
+        if(k.dataset.type !== 'operation') n += count(k.dataset.id);
+        else if(!tSearch || tSearch.hit[k.dataset.id]) n++;
+      });
+      return n;
+    }
+    rows.forEach(function(r){
+      if(!BRANCH[r.dataset.type]) return;
+      var sum = r.querySelector('.tsum');
+      if(!fold[r.dataset.id]){ if(sum) sum.hidden = true; return; }
+      if(!sum){
+        sum = document.createElement('span'); sum.className = 'tsum';
+        var ps = r.querySelector('.pslot'); ps.insertBefore(sum, ps.firstChild);
+      }
+      var n = count(r.dataset.id);
+      sum.hidden = false;
+      sum.textContent = n;
+      sum.title = n + (tSearch ? (n === 1 ? ' match' : ' matches') : (n === 1 ? ' operation' : ' operations')) + ' inside';
+    });
+  }
+
+  // sticky heads + the bottom pin are redrawn once per frame
+  var navRaf = 0, navForce = false, navSum = false, navKey = '', navGKey = '';
+  function treeNavSync(force){ if(force) navForce = true; if(!navRaf) navRaf = requestAnimationFrame(treeNavDraw); }
+  function navRows(){
+    return Array.prototype.filter.call(tree.children, function(r){ return r.classList.contains('trow') && r.offsetHeight > 0; });
+  }
+  function rowPitch(vis){ return vis.length > 1 ? vis[1].offsetTop - vis[0].offsetTop : 26; }
+  // Setup / Part / Group above a row, outermost first
+  function chainOf(r){
+    var c = [], p = r.dataset.parent;
+    while(p){ var pr = byId[p]; if(!pr) break; if(BRANCH[pr.dataset.type]) c.unshift(pr); p = pr.dataset.parent; }
+    return c;
+  }
+  function navClone(r){
+    var c = r.cloneNode(true);
+    c.classList.add('tclone');
+    c.classList.remove('dragging', 'drop-before', 'drop-after');
+    c.removeAttribute('draggable'); c.removeAttribute('data-id');
+    c.dataset.for = r.dataset.id;
+    c.style.display = '';
+    return c;
+  }
+  function treeNavDraw(){
+    navRaf = 0;
+    var force = navForce; navForce = false;
+    if(navSum){ navSum = false; treeSummaries(); }
+    var vis = navRows(), top = tree.scrollTop, P = rowPitch(vis), H = vis.length ? vis[0].offsetHeight : 24;
+    // slot k holds the k-th branch head of the row under it; a head rides up
+    // with the end of its own branch, so the next one pushes it out
+    var stack = [], pos = [];
+    for(var k = 0; k < 3 && top > 0; k++){
+      var y = top + k * P, lo = 0, hi = vis.length;
+      while(lo < hi){ var mid = (lo + hi) >> 1; if(vis[mid].offsetTop + H > y) hi = mid; else lo = mid + 1; }
+      if(lo >= vis.length) break;
+      var r = vis[lo], chain = chainOf(r), cand = null;
+      if(chain.length > k) cand = chain[k];
+      else if(chain.length === k && BRANCH[r.dataset.type] && r.offsetTop < y) cand = r;
+      if(!cand || (k && cand.dataset.parent !== stack[k - 1].dataset.id)) break;
+      var end = Infinity;
+      for(var j = lo + 1; j < vis.length; j++) if(!isUnder(vis[j], cand)){ end = vis[j].offsetTop; break; }
+      stack.push(cand);
+      pos.push(Math.min(k * P, end - (P - H) - H - top));
+    }
+    var key = stack.map(function(s){ return s.dataset.id; }).join('|');
+    if(force || key !== navKey){
+      navKey = key;
+      tSticky.innerHTML = '';
+      stack.forEach(function(s){ tSticky.appendChild(navClone(s)); });
+    }
+    var bottom = 0;
+    Array.prototype.forEach.call(tSticky.children, function(c, i){
+      c.style.top = pos[i] + 'px'; c.style.zIndex = 3 - i;
+      bottom = Math.max(bottom, pos[i] + H);
+    });
+    tSticky.hidden = !stack.length || bottom <= 0;
+    tSticky.style.width = tree.clientWidth + 'px';
+    tSticky.style.height = (bottom + (P - H)) + 'px';
+
+    // the selected row scrolled out of view (or folded away) stays reachable at the bottom edge
+    var sel = tree.querySelector('.trow.tsel'), dir = 0;
+    if(sel && sel.dataset.type !== 'machine' && !tSearch && stack.indexOf(sel) < 0 && typeEnabled[sel.dataset.type]){
+      if(!sel.offsetHeight) dir = 2;
+      else {
+        var c = sel.offsetTop - top + H / 2, stickH = tSticky.hidden ? 0 : bottom;
+        if(c < stickH) dir = -1;
+        else if(c > tree.clientHeight - (P + 1)) dir = 1;
+      }
+    }
+    var gkey = dir ? sel.dataset.id + ':' + dir : '';
+    if(force || gkey !== navGKey){
+      navGKey = gkey;
+      tGhost.innerHTML = '';
+      if(dir){
+        var g = navClone(sel), sh = g.querySelector('.shev');
+        g.classList.remove('collapsed');
+        if(sh){ sh.src = 'assets/t-shev-open.svg'; sh.classList.remove('exp'); sh.classList.toggle('up', dir === -1); }
+        g.title = dir === 2 ? 'Selected · inside a folded branch — click to show it' : 'Selected · click to scroll to it';
+        tGhost.appendChild(g);
+      }
+    }
+    tGhost.hidden = !dir;
+    tGhost.style.width = tree.clientWidth + 'px';
+    tree.style.paddingBottom = dir ? (P + 1) + 'px' : '';
+    tEmpty.hidden = !(tSearch && !tSearch.hits.length);
+  }
+  tree.addEventListener('scroll', function(){ treeNavSync(); }, {passive:true});
+  new ResizeObserver(function(){ treeNavSync(true); }).observe(tree);
+  // statuses, selection and fold marks change in many places — the clones follow them
+  new MutationObserver(function(){ navSum = true; treeNavSync(true); })
+    .observe(tree, {subtree:true, attributes:true, attributeFilter:['src', 'class']});
+
+  // open every branch above the row and bring it into view (centred when it was out)
+  function treeReveal(r){
+    var fold = foldMap(), p = r.dataset.parent;
+    while(p){ delete fold[p]; var pr = byId[p]; p = pr ? pr.dataset.parent : null; }
+    renderTree();
+    if(!r.offsetHeight) return;
+    var P = rowPitch(navRows()), t = r.offsetTop - tree.scrollTop;
+    if(t < chainOf(r).length * P || t + r.offsetHeight > tree.clientHeight - P)
+      tree.scrollTop = r.offsetTop - (tree.clientHeight - r.offsetHeight) / 2;
+  }
+  // a sticky head: click selects the branch and lands on it, its chevron folds it
+  tSticky.addEventListener('click', function(e){
+    var c = e.target.closest('.tclone'), r = c && byId[c.dataset.for]; if(!r) return;
+    if(e.target.closest('.shev')) treeToggle(r, e.altKey); else r.click();
+    tree.scrollTop = r.offsetTop - chainOf(r).length * rowPitch(navRows());
+  });
+  tGhost.addEventListener('click', function(){
+    var sel = tree.querySelector('.trow.tsel'); if(sel) treeReveal(sel);
+  });
+
+  /* search: name, tool name or T#; the tree narrows to the matches and their branches */
+  var ttSearch = document.getElementById('ttSearch'), ttQ = document.getElementById('ttQ');
+  var ttCount = document.getElementById('ttCount');
+  function escHtml(s){ return s.replace(/[&<>"]/g, function(ch){ return {'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'}[ch]; }); }
+  function hlText(el, ql){
+    if(!el) return false;
+    var t = el.textContent, i = t.toLowerCase().indexOf(ql);
+    if(i < 0) return false;
+    el.dataset.txt = t;
+    el.innerHTML = escHtml(t.slice(0, i)) + '<mark class="tt-hl">' + escHtml(t.slice(i, i + ql.length)) + '</mark>' + escHtml(t.slice(i + ql.length));
+    return true;
+  }
+  function unmarkAll(){
+    tree.querySelectorAll('[data-txt]').forEach(function(el){ el.textContent = el.dataset.txt; delete el.dataset.txt; });
+    tree.querySelectorAll('.tt-hit').forEach(function(el){ el.classList.remove('tt-hit'); });
+    tree.querySelectorAll('.tctx').forEach(function(el){ el.classList.remove('tctx'); });
+  }
+  function ttCountSync(){
+    var n = tSearch ? tSearch.hits.length : 0;
+    ttCount.textContent = !n ? 'No matches' : tSearch.cur < 0 ? n + (n === 1 ? ' match' : ' matches') : (tSearch.cur + 1) + ' / ' + n;
+  }
+  function treeSearchRun(q){
+    var ql = q.trim().toLowerCase();
+    unmarkAll();
+    ttSearch.classList.toggle('has-q', !!ql);
+    if(!ql){ tSearch = null; ttSearch.classList.remove('no-hits'); renderTree(); return; }
+    // "T12" / "t#12" is a tool number: exact, so T#1 does not find T#10…T#19
+    var tn = /^t#?(\d+)$/.exec(ql), hits = [], hit = {}, keep = {};
+    Array.prototype.forEach.call(tree.querySelectorAll('.trow'), function(r){
+      if(r.dataset.type === 'machine') return;
+      var ok, tno = r.querySelector('.toolno');
+      if(tn){ ok = !!tno && tno.textContent.trim().toLowerCase() === 't#' + tn[1]; if(ok) tno.classList.add('tt-hit'); }
+      else {
+        var a = hlText(r.querySelector('.rlabel span'), ql), b = hlText(r.querySelector('.tlink span'), ql);
+        ok = a || b || (!!tno && tno.textContent.trim().toLowerCase() === ql);
+      }
+      if(!ok) return;
+      hits.push(r); hit[r.dataset.id] = keep[r.dataset.id] = true;
+      var p = r.dataset.parent;
+      while(p){ keep[p] = true; var pr = byId[p]; p = pr ? pr.dataset.parent : null; }
+    });
+    // the branches around the matches stay as quiet context
+    rows.forEach(function(r){ if(keep[r.dataset.id] && !hit[r.dataset.id]) r.classList.add('tctx'); });
+    tSearch = {hits:hits, hit:hit, keep:keep, fold:{}, cur:-1};
+    ttSearch.classList.toggle('no-hits', !hits.length);
+    tEmpty.textContent = 'No operations match “' + q.trim() + '”';
+    ttCountSync();
+    renderTree();
+    tree.scrollTop = 0;
+  }
+  function treeSearchStep(d){
+    if(!tSearch || !tSearch.hits.length) return;
+    var n = tSearch.hits.length;
+    tSearch.cur = tSearch.cur < 0 ? (d > 0 ? 0 : n - 1) : (tSearch.cur + d + n) % n;
+    var r = tSearch.hits[tSearch.cur];
+    r.click(); treeReveal(r); ttCountSync();
+  }
+  // clearing goes back to the full tree with the selection where the search left it
+  function treeSearchClear(){
+    if(!tSearch && !ttQ.value) return;
+    ttQ.value = '';
+    treeSearchRun('');
+    var sel = tree.querySelector('.trow.tsel');
+    if(sel && sel.dataset.type !== 'machine') treeReveal(sel);
+  }
+  ttQ.addEventListener('input', function(){ treeSearchRun(ttQ.value); });
+  ttQ.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); treeSearchStep(e.shiftKey ? -1 : 1); }
+    else if(e.key === 'ArrowDown'){ e.preventDefault(); treeSearchStep(1); }
+    else if(e.key === 'ArrowUp'){ e.preventDefault(); treeSearchStep(-1); }
+    else if(e.key === 'Escape'){ e.stopPropagation(); if(ttQ.value) treeSearchClear(); else setSearchRow(false); }
+  });
+  // the search row opens from its toolbar button (or Ctrl+F); closing it drops the filter
+  var searchBtn = document.getElementById('searchBtn'), treeTools = document.getElementById('treeTools');
+  function setSearchRow(on){
+    treeTools.hidden = !on;
+    searchBtn.classList.toggle('on', on);
+    if(on){ ttQ.focus(); ttQ.select(); }
+    else { treeSearchClear(); ttQ.blur(); }
+  }
+  searchBtn.addEventListener('click', function(e){ e.stopPropagation(); setSearchRow(treeTools.hidden); });
+  document.getElementById('ttPrev').addEventListener('click', function(e){ e.preventDefault(); treeSearchStep(-1); });
+  document.getElementById('ttNext').addEventListener('click', function(e){ e.preventDefault(); treeSearchStep(1); });
+  document.getElementById('ttClear').addEventListener('click', function(e){ e.preventDefault(); treeSearchClear(); ttQ.focus(); });
+  // a match picked with the mouse becomes the current one for Enter / arrows
+  document.addEventListener('ency:treesel', function(e){
+    if(!tSearch) return;
+    var i = tSearch.hits.indexOf(byId[e.detail.id]);
+    if(i >= 0){ tSearch.cur = i; ttCountSync(); }
+  });
+  document.addEventListener('keydown', function(e){
+    if(!(e.ctrlKey || e.metaKey) || e.altKey || e.key.toLowerCase() !== 'f') return;
+    var pt = document.querySelector('.panel-tree');
+    if(pt.classList.contains('sim') || pt.classList.contains('single')) return; // no tree search there
+    e.preventDefault(); setSearchRow(true);
+  });
+  document.getElementById('treeExpand').addEventListener('click', function(){
+    var f = foldMap(); Object.keys(f).forEach(function(k){ delete f[k]; }); renderTree();
+  });
+  document.getElementById('treeCollapse').addEventListener('click', function(){
+    var f = foldMap(); rows.forEach(function(r){ if(r.dataset.expandable === '1') f[r.dataset.id] = true; }); renderTree();
+  });
+
   rows.forEach(bindRow);
 
   renderTree();
@@ -723,35 +1147,157 @@
     if(machineRow) machineRow.classList.add('tsel');
   }
 
-  /* ---------- Header tabs: "New project N" shows a pristine empty project ---------- */
+  /* ---------- ENCY393: a generated 391-operation project (deterministic, no RNG) —
+     the stress case of CAM-724 for navigating big trees: 4 setups → parts → groups ---------- */
+  // [name, tool, tool radius for milling (Edits tab) or none for turning / probing]
+  var BIG_RECIPES = {
+    face:   [['Face milling', 'FM D50 R390-050/HSK63 SF22', 25]],
+    probe:  [['Part probing', 'OMP60 probe/HSK63']],
+    turn:   [['Lathe facing', 'CNMG 12 04 08-WF/DCLNR 2020K-12'], ['OD roughing', 'CNMG 12 04 08-WF/DCLNR 2020K-12'],
+             ['OD finishing', 'DNMX 15 04 04-WF/DDJNR 2020K-15'], ['OD grooving', 'N123G2-0300-0002-CM/RF123G079'],
+             ['ID drilling', 'SCD 080-044-080 AP5'], ['ID boring', 'CCMT 09 T3 04-PF/A20S-SCLCR 09'],
+             ['Thread turning', '266RG-16MM01A150M/266RFA-2525-16'], ['Parting off', 'N123G2-0300-0002-CM/RF123G079']],
+    rough:  [['Adaptive roughing', 'EM D16 R0.8 L48/HSK63 SF16', 8], ['Z-level roughing', 'EM D12 R1 L36/HSK63 SF12', 6],
+             ['Pocket roughing', 'EM D10 L30/HSK63 SF10', 5], ['Rest roughing', 'EM D8 R0.5 L24/HSK63 SF8', 4]],
+    semi:   [['Z-level semi-finishing', 'EM D10 R1 L40/HSK63 SF10', 5], ['Rest machining', 'EM D6 R0.5 L20/HSK63 SF6', 3],
+             ['Constant scallop', 'BM D10 L40/HSK63 SF10', 5]],
+    finish: [['Z-level finishing', 'EM D8 R1 L32/HSK63 SF8', 4], ['Waterline finishing', 'BM D6 L30/HSK63 SF6', 3],
+             ['Contour finishing', 'EM D10 L30/HSK63 SF10', 5], ['Pencil finishing', 'BM D4 L24/HSK63 SF4', 2],
+             ['Floor finishing', 'EM D12 L36/HSK63 SF12', 6], ['Scallop finishing', 'BM D6 L30/HSK63 SF6', 3]],
+    threads:[['Thread milling M8', 'TM M8-M12 L30/HSK63 SF10'], ['Thread milling M10', 'TM M8-M12 L30/HSK63 SF10'],
+             ['Thread milling M12', 'TM M8-M12 L30/HSK63 SF10']],
+    chamf:  [['Chamfering', 'CM D10 90°/HSK63 SF10'], ['Deburring', 'CM D6 90°/HSK63 SF6']],
+    holes:  []
+  };
+  // holes come in spot → drill → tap / ream sets, one set per size
+  [['6.8', 'Tapping M8', 'TAP M8x1.25/HSK63 SYN'], ['8.5', 'Tapping M10', 'TAP M10x1.5/HSK63 SYN'],
+   ['10.2', 'Tapping M12', 'TAP M12x1.75/HSK63 SYN'], ['5', 'Tapping M6', 'TAP M6x1/HSK63 SYN'],
+   ['9.8', 'Reaming Ø10H7', 'RM D10 H7/HSK63 HC10'], ['4.2', 'Tapping M5', 'TAP M5x0.8/HSK63 SYN']].forEach(function(s){
+    BIG_RECIPES.holes.push(['Spot drilling Ø' + s[0], 'SD 90° D10/HSK63 HC10'],
+      ['Drilling Ø' + s[0], 'DR D' + s[0] + ' 5xD/HSK63 HC' + Math.ceil(+s[0])], [s[1], s[2]]);
+  });
+  // setups → parts → [group (null: right in the part), recipe, operations]; 391 in total
+  var BIG_PROJECT = [
+    ['Setup 1', [['Housing', [[null, 'face', 2], ['Turning', 'turn', 16], ['Roughing', 'rough', 14], ['Finishing', 'finish', 18], ['Holes', 'holes', 36], ['Chamfers', 'chamf', 6]]],
+                 ['Cover',   [[null, 'face', 1], ['Roughing', 'rough', 8], ['Finishing', 'finish', 12], ['Holes', 'holes', 18]]]]],
+    ['Setup 2', [['Housing', [[null, 'face', 2], ['Roughing', 'rough', 16], ['Semi-finishing', 'semi', 10], ['Finishing', 'finish', 24], ['Holes', 'holes', 30], ['Threads', 'threads', 6], ['Chamfers', 'chamf', 8]]]]],
+    ['Setup 3', [['Housing', [['Roughing', 'rough', 10], ['Finishing', 'finish', 14], ['Holes', 'holes', 24]]],
+                 ['Cover',   [[null, 'face', 1], ['Roughing', 'rough', 6], ['Finishing', 'finish', 10], ['Holes', 'holes', 12], ['Chamfers', 'chamf', 4]]]]],
+    ['Setup 4', [['Housing', [[null, 'probe', 1], ['Roughing', 'rough', 8], ['Semi-finishing', 'semi', 8], ['Finishing', 'finish', 20], ['Holes', 'holes', 30], ['Threads', 'threads', 8], ['Chamfers', 'chamf', 8]]]]]
+  ];
+  // a few problems spread over the project; the tail of Setup 4 is not calculated yet
+  var BIG_ERR = {47:1, 138:1, 203:1, 341:1}, BIG_WARN = {85:1, 172:1, 266:1}, BIG_CALC_TO = 360;
+  function bigProjectHTML(){
+    var tnum = {}, tn = 0, g = 0, out = [];
+    function tool(name){ return tnum[name] || (tnum[name] = 'T#' + (++tn)); }
+    function stIc(k){ return '<span class="bicn"><img class="i16 st" src="' + A[k] + '" alt=""></span>'; }
+    // a branch is calculated when everything in it is
+    function brSt(from, to){ return to > BIG_CALC_TO ? 'status-empty' : 'status-calc'; }
+    var COLOR = '<span class="bicn"><img class="i16" src="' + A['opcolor'] + '" alt=""></span>';
+    function head(id, parent, type, ind, name, slot){
+      // a part carries the nut (Core icn_inspector), a group of operations a folder;
+      // setups keep the icon placeholder
+      var ic = type === 'part' ? '<img class="micn" src="assets/tb-hex.svg" alt="">'
+        : type === 'group' ? '<img class="micn" src="assets/tree-group.svg" alt="">' : '<span class="opic"></span>';
+      return '<div class="trow" data-id="' + id + '" data-parent="' + parent + '" data-type="' + type + '" data-expandable="1">' +
+        '<div class="tlayer' + (ind ? ' i' + ind : '') + '"><img class="shev" src="assets/t-shev-open.svg" alt="">' + ic +
+        '<span class="rlabel"><span>' + name + '</span></span></div><div class="pslot">' + slot + '</div></div>';
+    }
+    out.push('');
+    BIG_PROJECT.forEach(function(su, si){
+      var sid = 'b-s' + (si + 1), sAt = out.length, sFrom = g;
+      out.push('');
+      su[1].forEach(function(pt, pi){
+        var pid = sid + '-p' + (pi + 1), pAt = out.length, pFrom = g;
+        out.push('');
+        pt[1].forEach(function(it, gi){
+          var gid = pid + '-g' + (gi + 1), gAt = -1, gFrom = g, parent = pid, ind = 2;
+          if(it[0]){ gAt = out.length; out.push(''); parent = gid; ind = 3; }
+          var rec = BIG_RECIPES[it[1]];
+          for(var n = 0; n < it[2]; n++, g++){
+            var o = rec[n % rec.length];
+            var st = g >= BIG_CALC_TO ? 'status-empty' : BIG_ERR[g] ? 'status-error' : BIG_WARN[g] ? 'status-warn' : 'status-calc';
+            out.push('<div class="trow" data-id="b-op' + (g + 1) + '" data-parent="' + parent + '" data-type="operation"' +
+              (o[2] ? ' data-kind="mill" data-levels="' + (8 + (g * 7) % 20) + '" data-tool="' + o[2] + '"' : '') + ' draggable="true">' +
+              '<div class="tlayer i' + ind + '"><img class="shev" src="assets/t-shev1.svg" alt=""><span class="opic"></span>' +
+              '<span class="rlabel"><span>' + o[0] + '</span></span></div>' +
+              '<div class="pslot"><span class="toolno">' + tool(o[1]) + '</span><span class="tlink"><span>' + o[1] + '</span></span>' +
+              COLOR + stIc(st) + '</div></div>');
+          }
+          if(gAt >= 0) out[gAt] = head(gid, pid, 'group', 2, it[0], stIc(brSt(gFrom, g)));
+        });
+        out[pAt] = head(pid, sid, 'part', 1, pt[0], stIc(brSt(pFrom, g)));
+      });
+      out[sAt] = head(sid, 'b-m', 'setup', 0, su[0], stIc(brSt(sFrom, g)));
+    });
+    out[0] = '<div class="trow" data-id="b-m" data-type="machine"><div class="tlayer"><img class="micn" src="assets/tree-machine.svg" alt="">' +
+      '<span class="rlabel"><span>Mill-turn machine</span></span></div><div class="pslot">' + stIc(brSt(0, g)) + '</div></div>';
+    return out.join('');
+  }
+
+  /* ---------- Header tabs: the demo project, ENCY393, "New project N" (a pristine empty project) ---------- */
+  // each project keeps its own rows (detached while another one is open) and fold state
+  var projTrees = {}, curProj = 'demo';
+  function swapTree(key){
+    if(key === curProj) return;
+    if(tSearch || ttQ.value){ ttQ.value = ''; treeSearchRun(''); }
+    var cur = Array.prototype.slice.call(tree.querySelectorAll('.trow'));
+    projTrees[curProj] = {rows:cur, collapsed:collapsed, scroll:tree.scrollTop};
+    cur.forEach(function(r){ r.remove(); });
+    var st = projTrees[key];
+    if(st) st.rows.forEach(function(r){ tree.appendChild(r); });
+    else {
+      tree.insertAdjacentHTML('beforeend', bigProjectHTML());
+      var fresh = Array.prototype.slice.call(tree.querySelectorAll('.trow'));
+      fresh.forEach(bindRow);
+      fresh[0].classList.add('tsel');
+      st = {rows:fresh, collapsed:{}, scroll:0};
+    }
+    rows = st.rows; collapsed = st.collapsed; curProj = key;
+    reindex(); renderTree();
+    tree.scrollTop = st.scroll;
+  }
   var savedStatuses = null, savedSel = null;
-  document.querySelectorAll('.htabs .htab').forEach(function(t, ti){
+  var htabs = Array.prototype.slice.call(document.querySelectorAll('.htabs .htab'));
+  htabs.forEach(function(t){
     t.addEventListener('click', function(e){
       if(e.target.classList.contains('htab-x')) return;
       if(t.classList.contains('active')) return;
-      document.querySelectorAll('.htabs .htab').forEach(function(x){ x.classList.remove('active'); });
+      htabs.forEach(function(x){ x.classList.remove('active'); });
       t.classList.add('active');
-      var empty = ti > 0;
-      document.getElementById('app').classList.toggle('proj-empty', empty);
-      var sts = tree.querySelectorAll('.st');
-      if(empty){
+      var app = document.getElementById('app');
+      var empty = t !== htabs[0] && !t.dataset.proj, wasEmpty = app.classList.contains('proj-empty');
+      if(wasEmpty && !empty){
+        // leaving a blank project: the demo tree gets its statuses and selection back
+        var sts = tree.querySelectorAll('.st');
+        if(savedStatuses) sts.forEach(function(img, i){ if(savedStatuses[i]) img.src = savedStatuses[i]; });
+        if(savedSel){ rows.forEach(function(r){ r.classList.remove('tsel'); }); savedSel.classList.add('tsel'); }
+      }
+      swapTree(empty ? 'demo' : (t.dataset.proj || 'demo'));
+      if(empty && !wasEmpty){
         // a fresh project: blank statuses, selection on the machine
-        savedStatuses = Array.prototype.map.call(sts, function(img){ return img.src; });
+        var sts2 = tree.querySelectorAll('.st');
+        savedStatuses = Array.prototype.map.call(sts2, function(img){ return img.src; });
         savedSel = tree.querySelector('.trow.tsel');
-        sts.forEach(function(img){ img.src = A['status-empty']; });
+        sts2.forEach(function(img){ img.src = A['status-empty']; });
         rows.forEach(function(r){ r.classList.remove('tsel'); });
         var m = tree.querySelector('.trow[data-type="machine"]');
         if(m) m.classList.add('tsel');
-      } else {
-        if(savedStatuses) sts.forEach(function(img, i){ if(savedStatuses[i]) img.src = savedStatuses[i]; });
-        if(savedSel){ rows.forEach(function(r){ r.classList.remove('tsel'); }); savedSel.classList.add('tsel'); }
-        renderTree();
       }
+      app.classList.toggle('proj-empty', empty);
+      renderTree();
       var s = tree.querySelector('.trow.tsel');
       document.dispatchEvent(new CustomEvent('ency:treesel', {detail:{id:s ? s.dataset.id : null, type:s ? s.dataset.type : null}}));
       closeStatus();
     });
   });
+  // ?project=ency393 opens that project on load (its header tab links here from other sections);
+  // deferred so every script of the page is listening by then
+  try {
+    var openProj = new URLSearchParams(location.search).get('project');
+    var openTab = openProj && htabs.filter(function(t){ return t.dataset.proj === openProj; })[0];
+    if(openTab) setTimeout(function(){ openTab.click(); }, 0);
+  } catch(e){}
 
   /* ---------- Calculate ---------- */
   var EMPTY = A['status-empty'], P1 = A['status-prog1'], P2 = A['status-prog2'], CALC = A['status-calc'];
@@ -1360,15 +1906,16 @@
     r.className = 'trow';
     r.dataset.id = 'op' + (opSeq++); r.dataset.parent = parentId; r.dataset.type = 'operation';
     r.setAttribute('draggable','true');
+    var inGroup = (rowById(parentId) || {dataset:{}}).dataset.type === 'group';
     r.innerHTML =
-      '<div class="tlayer i2"><img class="shev" src="'+A['t-shev-leaf']+'" alt=""><span class="opic"></span><span class="rlabel"><span>'+name+'</span></span></div>'+
+      '<div class="tlayer '+(inGroup ? 'i3' : 'i2')+'"><img class="shev" src="'+A['t-shev-leaf']+'" alt=""><span class="opic"></span><span class="rlabel"><span>'+name+'</span></span></div>'+
       '<div class="pslot"><span class="toolno">T#7</span><span class="tlink"><span>Tool not assigned</span></span>'+
       '<span class="bicn"><img class="i16" src="'+A['opcolor']+'" alt=""></span>'+
       '<span class="bicn"><img class="i16 st" src="'+A['status-empty']+'" alt=""></span></div>';
     var siblings = rows.filter(function(x){ return x.dataset.parent === parentId; });
     var anchor = siblings.length ? siblings[siblings.length-1] : rowById(parentId);
     if(anchor) tree.insertBefore(r, anchor.nextSibling); else tree.appendChild(r);
-    rows.push(r); bindRow(r); renderTree(); r.click();
+    rows.push(r); byId[r.dataset.id] = r; bindRow(r); renderTree(); r.click();
     emitAction('New operation', name, 'OP.CREATE "' + name + '"');
     return r;
   }
@@ -1378,8 +1925,9 @@
     addBtn.addEventListener('click', function(e){
       e.stopPropagation();
       var sel = tree.querySelector('.trow.tsel');
-      var parent = 'part1';
-      if(sel){ if(sel.dataset.type==='part') parent = sel.dataset.id; else if(sel.dataset.type==='operation') parent = sel.dataset.parent; }
+      var firstPart = tree.querySelector('.trow[data-type="part"]');
+      var parent = firstPart ? firstPart.dataset.id : 'part1';
+      if(sel){ if(sel.dataset.type==='part' || sel.dataset.type==='group') parent = sel.dataset.id; else if(sel.dataset.type==='operation') parent = sel.dataset.parent; }
       showMenu(addBtn.getBoundingClientRect(), OP_TYPES.map(function(t){
         return {label:t, onPick:function(){ createOperation(t, parent); }};
       }), addBtn, 160);
@@ -1517,7 +2065,7 @@
     h += '<div class="simrow"><img class="micn" src="assets/tree-machine.svg" alt="">'+
       '<span class="lbl">Lathe-Milling machine</span>'+
       '<span class="bicn"><img class="i16" src="assets/status.svg" alt=""></span></div>';
-    h += '<div class="simrow sim-ind1"><span class="opic"></span>'+
+    h += '<div class="simrow sim-ind1"><img class="micn" src="assets/tb-hex.svg" alt="">'+
       '<span class="lbl">Part</span>'+
       '<span class="bicn"><img class="i16" src="assets/status.svg" alt=""></span></div>';
     SIM_OPS.forEach(function(op, oi){

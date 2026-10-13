@@ -17,6 +17,8 @@ each marked with the same comment title.
 | Panel / feature | HTML id / class | CSS prefix | JS anchor (comment or function) |
 |---|---|---|---|
 | Operation tree (Machining tab) | `#tree`, rows `.trow` | `.trow`, `.tlayer`, `.pslot`, `.opic` | `tree.addEventListener` |
+| **Tree navigation** (big projects: search row under the toolbar, toggled by `#searchBtn` next to Sort / Ctrl+F; sticky Setup/Part/Group, selection pin, folded-branch op counts; error/warning statuses roll up op → Group → Part → Setup) | `#searchBtn`, `#treeTools`, `#treeSticky`, `#treeGhost` | `.tt-*`, `.tsticky`, `.tghost`, `.tsum` ("Tree navigation") | "Tree navigation", `treeSearchRun`, `treeNavDraw`, `treeRollup`, `treeSummaries`, `treeReveal` |
+| ENCY393 stress project (391 ops, header tab `data-proj="ency393"`, `?project=ency393`) | generated into `#tree` | — | `BIG_PROJECT`, `bigProjectHTML`, `swapTree` |
 | Operation status panel | `#statusPanel` (`.stpanel`) | `.stp-*` | "Status panel", `stpApply` |
 | **NC block panel** (block window on the Simulation tab) | `#ncPanel` (`.stpanel.ncpanel`) | `.ncpanel`, `.ncp-*` | "NC block panel", `ncShow`, `ncSync`, `ncFollow`, `ncSetEdit` |
 | Simulation code tree | `#simTree`, rows `.simrow` | `.simrow`, `.sim-*` | `simRender` |
