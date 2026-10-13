@@ -1492,6 +1492,9 @@
     function csSection(){
       return [{head:'Coordinate system'}].concat(csItems()).concat([{sep:true}, {t:'New coordinate system', fly:csNewItems()}]);
     }
+    // the scene items of the ENCY cube menu: environment on/off, the floor (define, turn by 90°,
+    // reset — available once the floor was defined or turned)
+    var envOn = true, floorSet = false, floorTurn = 0;
     function cubeMenu(){
       return [
         {t:'Go Home', fn:function(){ set(HOME.yaw, HOME.pitch, true); }},
@@ -1499,6 +1502,12 @@
         {sep:true},
         {t:'Set current view as Home', fn:function(){ HOME = {yaw:cam.yaw, pitch:cam.pitch}; }},
         {t:'Reset Home', fn:function(){ HOME = {yaw:0.68, pitch:0.49}; set(HOME.yaw, HOME.pitch, true); }},
+        {sep:true},
+        {t:'Environment', chk:envOn, fn:function(){ envOn = !envOn; return true; }},
+        {sep:true},
+        {t:'Define floor', fn:function(){ floorSet = true; }},
+        {t:'Rotate 90°', title:'Turn the floor by 90°', fn:function(){ floorTurn = (floorTurn + 90) % 360; }},
+        {t:'Reset', title:'Reset the floor', dis:!floorSet && !floorTurn, fn:function(){ floorSet = false; floorTurn = 0; }},
         {sep:true}
       ].concat(csSection());
     }
