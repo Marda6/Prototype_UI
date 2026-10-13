@@ -1484,9 +1484,9 @@
     var cw = btn('vc-cw', 'Turn 90° clockwise', ICON_TURN, function(){ set(cam.yaw + Math.PI/2, cam.pitch, true); });
     cw.firstChild.style.transform = 'scaleX(-1)';
 
-    /* ⋮ menu (Fusion-style cube menu, without the projection switch — the view is
-       always orthographic here). Home management, the coordinate-system list with the
-       "new CS" flyout (shared with the caption under the cube), and the triad toggle.
+    /* ⋮ menu: fit, Home management and the ENCY scene items. No "Go Home" (that is the
+       Home button) and no coordinate systems (they live under the caption below the cube);
+       no projection switch either — the view is always orthographic here.
        Menus are built by vbMenuOpen() from the view-bar section; CS data lives there too. */
     var ICON_MORE = '<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="3.5" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="8" cy="12.5" r="1.3"/></svg>';
     function csSection(){
@@ -1497,7 +1497,6 @@
     var envOn = true, floorSet = false, floorTurn = 0;
     function cubeMenu(){
       return [
-        {t:'Go Home', fn:function(){ set(HOME.yaw, HOME.pitch, true); }},
         {t:'Fit to view', fn:function(){ var v = window.arView && window.arView(); if(v) v.fitToView(); else if(window.tpView) window.tpView.fit(); }},
         {sep:true},
         {t:'Set current view as Home', fn:function(){ HOME = {yaw:cam.yaw, pitch:cam.pitch}; }},
@@ -1507,9 +1506,8 @@
         {sep:true},
         {t:'Define floor', fn:function(){ floorSet = true; }},
         {t:'Rotate 90°', title:'Turn the floor by 90°', fn:function(){ floorTurn = (floorTurn + 90) % 360; }},
-        {t:'Reset', title:'Reset the floor', dis:!floorSet && !floorTurn, fn:function(){ floorSet = false; floorTurn = 0; }},
-        {sep:true}
-      ].concat(csSection());
+        {t:'Reset', title:'Reset the floor', dis:!floorSet && !floorTurn, fn:function(){ floorSet = false; floorTurn = 0; }}
+      ];
     }
     var more = btn('vc-more', 'View options', ICON_MORE, function(){ vbMenuOpen(more, cubeMenu); });
     // active coordinate system as a caption under the cube; click opens the CS list
@@ -1693,7 +1691,7 @@
   });
   document.getElementById('vbSect').addEventListener('click', function(){ this.classList.toggle('on'); });
 
-  // --- coordinate systems: data + menu items, shown in the cube's ⋮ menu and under the cube ---
+  // --- coordinate systems: data + menu items, opened from the caption under the cube ---
   var CS_SYS = ['XY plane', 'YZ plane', 'ZX plane', 'XZ-ZX plane'];
   var csUser = ['Plano XY', 'Plano YZ'], csCur = 'Plano XY';
   function csName(){ var c = document.getElementById('vcCs'); if(c) c.textContent = csCur; }
