@@ -26,6 +26,8 @@ each marked with the same comment title.
 | Simulation popovers (settings, stop conditions, collision list) | `#simPop`, `#stopsPop`, `#collPop` | `.simpop`, `.sp-*`, `.coll-*` | `spOpen`, `collListRender` |
 | Filters panel on the 3D view | `#filters` | `.filters` | — |
 | Inspector (bottom-left) | `.irows`, `.irow` | `.irow`, `.ictl`, `.dropdown` | "Inspector" |
+| **Toolpath edits** (rail tab "Edits": list of Trim / Links / Feeds, 3D toolpath canvas, edit bar) | `.rbtn[data-tab=Edits]`, `.tp-view`, `.tpe-bar` | `.tpe-*` ("Toolpath edits (tpedit.js)") | `tpedit.js`: `evaluate`, `deriveLinks`, `beginEdit` / `commit` / `cancel` / `leave`, `barSync` |
+| Drawing bar (shared: wand · Line · Normal · Polyline · Spline · Free / On Surface) | `.ency-draw` | `shared-ui/drawbar.css` | `shared-ui/drawbar.js`: `ENCY_DRAWBAR.create` |
 
 Icon placeholders: `.opic` is the 20×20 slot with a faint rounded square used for Setup / Part /
 operation icons in both trees and in the NC block panel.

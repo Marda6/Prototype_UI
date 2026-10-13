@@ -1,0 +1,15 @@
+/* ENCY drawing bar (drawbar.js) — tools for drawing on the 3D view.
+   No surface: the buttons float on the scene like the view cube and the view bar.
+   32px tiles, 20px glyphs, radius 6; selected tool / wand on = fg-16 plate (as .f-cell.on). */
+.ency-draw{position:absolute;z-index:30;display:flex;align-items:center;gap:4px;}
+.ency-draw[hidden]{display:none;}
+.ency-draw__b{display:flex;align-items:center;justify-content:center;gap:2px;width:32px;height:32px;padding:0;
+  border:0;border-radius:6px;background:transparent;color:var(--ec-fg-72);cursor:pointer;}
+.ency-draw__b:hover{background:var(--ec-fg-8);}
+.ency-draw__b.on{background:var(--ec-fg-16);}
+.ency-draw__b svg{display:block;flex:0 0 auto;}
+/* the wand stands apart from the drawing tools */
+.ency-draw__wand{margin-right:8px;}
+.ency-draw__dd{width:auto;padding:0 4px 0 6px;}
+.ency-draw__dd.dd-open{background:var(--ec-fg-8);}
+.ency-draw__chev{color:var(--ec-fg-56);}

@@ -9,6 +9,7 @@
 <meta name="ency-target-viewport" content="1536x864">
 <link rel="stylesheet" href="../shared-ui/tokens.css">
 <link rel="stylesheet" href="../shared-ui/chrome.css">
+<link rel="stylesheet" href="../shared-ui/drawbar.css">
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
@@ -114,6 +115,24 @@
               <div class="tlayer i2"><img class="shev" src="assets/t-shev2.svg" alt=""><span class="opic"></span><span class="rlabel"><span>Parting off</span></span></div>
               <div class="pslot"><span class="toolno">T#2</span><span class="tlink"><span>N123G2-0300-0002-CM/RF123G079</span></span><span class="bicn"><img class="i16" src="assets/opcolor.svg" alt=""></span><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
             </div>
+            <!-- milling setup: the operations whose toolpath the Edits tab shows (data-kind="mill";
+                 data-levels / data-tool shape the demo Z-level passes in tpedit.js) -->
+            <div class="trow" data-id="setup3" data-parent="machine" data-type="setup" data-expandable="1">
+              <div class="tlayer"><img class="shev" src="assets/t-shev-open.svg" alt=""><span class="opic"></span><span class="rlabel"><span>Setup 3</span></span></div>
+              <div class="pslot"><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+            </div>
+            <div class="trow" data-id="part4" data-parent="setup3" data-type="part" data-expandable="1">
+              <div class="tlayer i1"><img class="shev" src="assets/t-shev-open.svg" alt=""><span class="opic"></span><span class="rlabel"><span>Part 1</span></span></div>
+              <div class="pslot"><span class="bicn"><img class="i16" src="assets/opcolor.svg" alt=""></span><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+            </div>
+            <div class="trow" data-id="op9" data-parent="part4" data-type="operation" data-kind="mill" data-levels="12" data-tool="6" draggable="true">
+              <div class="tlayer i2"><img class="shev" src="assets/t-shev1.svg" alt=""><span class="opic"></span><span class="rlabel"><span>Z-level roughing</span></span></div>
+              <div class="pslot"><span class="toolno">T#7</span><span class="tlink"><span>EM D12 R1 L36/HSK63 SF12</span></span><span class="bicn"><img class="i16" src="assets/opcolor.svg" alt=""></span><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+            </div>
+            <div class="trow" data-id="op10" data-parent="part4" data-type="operation" data-kind="mill" data-levels="24" data-tool="4" draggable="true">
+              <div class="tlayer i2"><img class="shev" src="assets/t-shev2.svg" alt=""><span class="opic"></span><span class="rlabel"><span>Z-level finishing</span></span></div>
+              <div class="pslot"><span class="toolno">T#8</span><span class="tlink"><span>EM D8 R1 L32/HSK63 SF8</span></span><span class="bicn"><img class="i16" src="assets/opcolor.svg" alt=""></span><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
+            </div>
           </div>
           </div><!-- /treewrap -->
 
@@ -208,6 +227,7 @@
             <div class="rbtn" data-tab="Strategy" title="Strategy"><img class="ricn" src="assets/rail-strategy.svg" alt=""></div>
             <div class="rbtn" data-tab="Fixture" title="Fixture"><img class="ricn" src="assets/rail-fixture.svg" alt=""></div>
             <div class="rbtn" data-tab="Links" title="Links"><img class="ricn" src="assets/rail-links.svg" alt=""></div>
+            <div class="rbtn" data-tab="Edits" title="Toolpath edits"><img class="ricn" src="assets/rail-edits.svg" alt=""></div>
           </div>
           <div class="rail-top">
             <div class="rbtn" data-tab="More" title="More"><img class="ricn" src="assets/rail-more.svg" alt=""></div>
@@ -740,6 +760,10 @@
 
 <script src="../shared-ui/chrome.js"></script>
 <script src="app.js"></script>
+<!-- shared drawing bar (Line · Normal · Polyline · Spline · Free / On Surface) -->
+<script src="../shared-ui/drawbar.js"></script>
+<!-- Toolpath edits: the Edits inspector tab, the toolpath on the 3D view and its edit bar -->
+<script src="tpedit.js"></script>
 <!-- 3D robot preview for the Approach / Return window (Canvas 2D, no deps) -->
 <script src="lib/robot-preview/robot-preview.global.js"></script>
 <script src="rules.js"></script>

@@ -1366,3 +1366,153 @@
 .hint{cursor:pointer;}
 
 #assetbank{display:none}
+
+/* ===== Toolpath edits (tpedit.js): the Edits inspector tab, the toolpath view, the edit bar =====
+   Rows reuse the inspector metrics (.irow 24px, 12px hint slot, 20px controls, 2px gaps). */
+:root{--tpe-danger:#ff8384;--tpe-danger-bg:rgba(255,112,114,.12);}
+/* the toolpath canvas is the 3D scene itself: under every floating panel */
+.tp-view{position:absolute;inset:0;display:block;cursor:grab;touch-action:none;}
+.tp-view[hidden]{display:none;}
+.viewport.tp-on .vp-hint{display:none;}
+.viewport.ar-open .tp-view,.viewport.ar-open .tpe-bar,.viewport.ar-open .tpe-tip{display:none !important;}
+/* tree: pencil mark in front of the operation colour */
+.tpe-mark{color:var(--ec-fg-56);}
+.tpe-mark[hidden]{display:none;}
+.tpe-mark svg{width:16px;height:16px;}
+/* menu extras (shared .dd-menu): icon, disabled, destructive, trailing hint */
+.dd-opt.has-ic{display:flex;align-items:center;gap:8px;}
+.dd-ic{display:flex;width:16px;height:16px;flex:0 0 16px;color:var(--ec-fg-72);}
+.dd-opt.cur .dd-ic{color:var(--ec-fg-96);}
+.dd-opt.danger,.dd-opt.danger .dd-ic{color:var(--tpe-danger);}
+.dd-opt.danger:hover{background:var(--tpe-danger-bg);color:var(--tpe-danger);}
+.dd-kbd{margin-left:auto;padding-left:16px;color:var(--ec-fg-48);}
+
+/* --- list --- */
+.tpe-list{display:flex;flex-direction:column;gap:2px;}
+.tpe-item .tpe-num{flex:0 0 12px;width:12px;color:var(--ec-fg-48);font:400 12px/20px var(--ec-font);
+  text-align:right;font-variant-numeric:tabular-nums;}
+.tpe-item.collapsed .shev.exp,.tpe-p.collapsed .shev.exp{transform:rotate(-90deg);}
+.tpe-tic{display:flex;width:16px;height:16px;flex:0 0 16px;margin:0 2px;color:var(--ec-fg-72);}
+.tpe-tic .i16{width:16px;height:16px;}
+.tpe-nic{display:flex;color:var(--ec-fg-48);margin-left:2px;}
+.tpe-sum{min-width:0;padding:0 4px;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tpe-warn{color:var(--ec-amber,#ebc14a) !important;}
+/* edit row controls: toggle · summary (takes the free space) · pencil · ⋮ */
+.tpe-ictl{justify-content:flex-start;}
+.tpe-ictl .tpe-sum{flex:1 1 auto;}
+.tpe-item.off .rlabel span,.tpe-item.off .tpe-tic,.tpe-item.off .tpe-sum{color:var(--ec-fg-48);}
+/* the edit open in 3D: the "active" recipe (as .asm-item.active) */
+.tpe-item.editing{background:var(--ec-fg-12);box-shadow:inset 0 0 0 1px var(--ec-fg-16);}
+/* pencil on: a white translucent plate only (no border), one step lighter than the editing row so it reads on it */
+.rowbtn.tpe-pen.on{background:var(--ec-fg-16);color:var(--ec-fg-100);}
+.rowbtn.tpe-pen.on:hover{background:var(--ec-fg-24);}
+/* done / move: a short flash on the row that changed */
+@keyframes tpe-flash{from{background:rgba(0,163,109,.16);}to{background:transparent;}}
+.tpe-item.flash{animation:tpe-flash .9s ease-out;}
+.tpe-gap{flex:0 0 12px;width:12px;}
+.tpe-p{cursor:default;}
+.tpe-g{cursor:pointer;}
+.tpe-p .ictl .roval{padding:2px 4px;}
+.tpe-cap{padding:0 4px 4px 38px;}
+.tpe-notecap{color:var(--ec-fg-72);}
+.tpe-empty{padding:6px 8px 4px;}
+/* editable value: a real input sized to its value, the unit right after it (as .arp-in) */
+.tpe-in{justify-content:flex-start;gap:4px;padding:2px 4px;min-width:0;cursor:text;}
+.tpe-in input{flex:0 1 auto;min-width:0;width:auto;background:transparent;border:0;outline:none;padding:0;
+  color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);font-variant-numeric:tabular-nums;}
+.tpe-in em{flex:0 1 auto;min-width:0;font-style:normal;color:var(--ec-fg-48);font:400 12px/16px var(--ec-font);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tpe-in:focus-within{box-shadow:inset 0 0 0 1px var(--ec-green);}
+.tpe-in-wide input{flex:1 1 auto;width:100%;}
+/* one value field with its unit picker at the end (Feed: % / mm/min) */
+.tpe-uin{flex:1 1 0;padding-right:2px;}
+.tpe-uin input{flex:1 1 auto;}
+.tpe-unit{display:inline-flex;align-items:center;gap:4px;margin-left:auto;padding:0 4px;border-radius:2px;
+  color:var(--ec-fg-48);font:400 12px/16px var(--ec-font);white-space:nowrap;cursor:pointer;}
+.tpe-unit:hover,.tpe-unit.dd-open{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+.tpe-note{display:flex;padding:0 4px 4px 38px;}
+.tpe-note .tpe-in{flex:1 1 0;}
+/* empty state: "Go to <milling operation>" */
+.tpe-add{display:flex;gap:4px;padding:0 2px 0 24px;}
+.tpe-add .tact{display:inline-flex;align-items:center;gap:2px;padding:2px 8px 2px 4px;background:var(--ec-fg-4);}
+.tpe-goto{padding-left:6px;}
+.tpe-goto .tact{padding-left:8px;}
+/* title: "+ Trim ▾" split button — the tree toolbar's .b24.more (fg-16 plate, parts lit on hover, hairline) at 24px */
+.tpe-split{display:inline-flex;align-items:stretch;height:24px;border-radius:4px;background:var(--ec-fg-16);overflow:hidden;}
+.tpe-split button{display:inline-flex;align-items:center;border:0;padding:0;background:transparent;cursor:pointer;
+  color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);}
+.tpe-sp-main{gap:2px;padding:0 8px 0 4px !important;}
+.tpe-sp-chev{width:20px;justify-content:center;border-left:1px solid var(--ec-fg-12) !important;}
+.tpe-split button:hover,.tpe-split button.dd-open{background:var(--ec-fg-12);}
+
+/* --- the edit bar on the 3D view: the panel finish of the view bars, centred over the free view --- */
+/* the panel pattern: controls on the light frame, the content in the dark inset (radius 6 = 8 − 2px padding) */
+.tpe-bar{position:absolute;top:8px;z-index:30;transform:translateX(-50%);display:flex;flex-direction:column;gap:2px;
+  min-width:360px;padding:2px;border-radius:8px;white-space:nowrap;
+  background:color-mix(in srgb, #f5f5f5 8%, var(--ec-bg));border:1px solid var(--ec-fg-12);}
+.tpe-row{display:flex;align-items:center;gap:2px;height:32px;padding:0 2px;cursor:grab;user-select:none;touch-action:none;}
+.tpe-row button{cursor:pointer;}
+.tpe-bar.dragging,.tpe-bar.dragging .tpe-row{cursor:grabbing;}
+.tpe-bar{user-select:none;}
+.tpe-bar [contenteditable]{user-select:text;}
+.tpe-push{flex:1 1 auto;min-width:8px;}
+/* radii nest, each inner = outer − padding: bar 8 → 2 → inset 6 → 2 → rows 4 → 2 → dropdowns / inputs 2.
+   Text lines carry their own 6px inner padding (8px from the inset edge). */
+.tpe-inset{display:flex;flex-direction:column;gap:2px;padding:2px;border-radius:6px;background:var(--ec-bg);}
+.tpe-inset .irow{border-radius:4px;}
+.tpe-inset .dropdown,.tpe-inset .input{border-radius:2px;}
+/* information only (nothing to click): the quiet line at the bottom of the inset */
+.tpe-meta{padding:4px 6px;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);font-variant-numeric:tabular-nums;}
+.tpe-meta.none{color:var(--ec-fg-48);}
+.tpe-meta.warn{color:var(--ec-amber,#ebc14a);}
+.tpe-msg{margin-top:-6px;padding:0 6px 4px;color:var(--ec-fg-56);font:400 11px/16px var(--ec-font);white-space:normal;max-width:420px;}
+.tpe-msg.warn{color:var(--ec-amber,#ebc14a);}
+.tpe-line{height:1px;background:var(--ec-fg-8);margin:0 6px;}
+/* a trim's Links rules: the inspector's parameter rows (buildRow) — in the bar and in the list */
+.tpe-ch{color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);padding:0 2px;}
+.tpe-rules{display:flex;flex-direction:column;gap:2px;}
+.tpe-inset .tpe-rules{width:372px;}
+.tpe-rules .irow{cursor:default;}
+.tpe-rules .irow[data-rg]:not([data-rk]){cursor:pointer;}
+.tpe-bar .tpe-rules .hint{display:none !important;}     /* the smart hint lives in the inspector only: no slot for it here */
+.tpe-n{font-style:normal;color:var(--ec-fg-48);font-variant-numeric:tabular-nums;margin-left:4px;}
+.itl.i3{padding-left:24px}.itl.i4{padding-left:32px}
+.tpe-rules .input{cursor:text;}
+.tpe-rules .input.editing{background:var(--ec-fg-8);box-shadow:inset 0 0 0 1px var(--ec-green);}
+.tpe-rules .input .v[contenteditable]{outline:none;color:var(--ec-fg-100);text-overflow:clip;}
+.tpe-rules .irow.collapsed .shev.exp{transform:rotate(-90deg);}
+.tpe-rules .irow.tpe-rhead{cursor:pointer;}
+.tpe-bar[hidden]{display:none;}
+/* after drawing: the bar sits next to the point where the drawing ended (then the last click) */
+.tpe-bar.at,.tpe-tip.at{transform:none;}
+/* the shared drawing bar (shared-ui/drawbar.js) while a region is drawn: centred at the top of the view */
+.viewport > .ency-draw{top:8px;transform:translateX(-50%);}
+.tpe-op{display:inline-flex;align-items:center;gap:4px;padding:0 4px;color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);}
+.tpe-ic{display:flex;width:16px;height:16px;flex:0 0 16px;color:var(--ec-fg-72);}
+.tpe-ic .i16{width:16px;height:16px;}
+.tpe-sep{width:1px;height:20px;background:var(--ec-fg-24);flex:0 0 1px;margin:0 6px;}
+.tpe-b{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 8px;border:0;border-radius:4px;
+  background:transparent;color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);cursor:pointer;}
+.tpe-b:hover,.tpe-b.dd-open{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+.tpe-b#tpeMode{min-width:96px;justify-content:space-between;}
+.tpe-b .chev7{flex:0 0 7px;}
+.tpe-i{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:0;border-radius:4px;
+  background:transparent;cursor:pointer;padding:0;}
+.tpe-i:hover{background:var(--ec-fg-8);}
+.tpe-ok{color:var(--st-green);}
+.tpe-ok.dis{color:var(--ec-fg-24);cursor:default;}
+.tpe-ok.dis:hover{background:transparent;}
+.tpe-x{color:#ff7072;}
+/* one-line hint under the bar (the .ph-tip surface) */
+.tpe-tip{position:absolute;top:50px;z-index:30;transform:translateX(-50%);padding:2px 8px;border-radius:4px;
+  background:var(--pop-bg);border:1px solid var(--ec-fg-12);color:var(--ec-fg-72);
+  font:400 11px/16px var(--ec-font);white-space:nowrap;pointer-events:none;}
+.tpe-tip.warn{color:var(--ec-amber,#ebc14a);}
+.tpe-tip[hidden]{display:none;}
+/* "Trim deleted · Undo" above the view bar */
+.tpe-toast{position:absolute;bottom:52px;z-index:30;transform:translateX(-50%);display:flex;align-items:center;gap:8px;
+  height:32px;padding:0 4px 0 12px;border-radius:8px;background:var(--pop-bg);border:1px solid var(--ec-fg-12);
+  color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);white-space:nowrap;}
+.tpe-toast[hidden]{display:none;}
+.tpe-toast .tact{color:var(--st-green);}

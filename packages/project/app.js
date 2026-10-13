@@ -37,11 +37,13 @@
       if(it.sep){ var s=document.createElement('div'); s.className='dd-sep'; menu.appendChild(s); return; }
       if(it.head){ var h=document.createElement('div'); h.className='dd-head'; h.textContent=it.head; menu.appendChild(h); return; }
       var o = document.createElement('div');
-      o.className = 'dd-opt' + (it.cur ? ' cur' : '');
+      o.className = 'dd-opt' + (it.cur ? ' cur' : '') + (it.dis ? ' is-disabled' : '') + (it.danger ? ' danger' : '');
       if(it.pre){ var pr = document.createElement('span'); pr.className = 'dd-pre'; pr.textContent = it.pre; o.appendChild(pr); }
       if(it.color){ var sw = document.createElement('span'); sw.className = 'dd-sw'; sw.style.background = it.color; o.appendChild(sw); }
-      if(it.pre || it.color){ o.appendChild(document.createTextNode(it.label)); }
+      if(it.icon){ var ic = document.createElement('span'); ic.className = 'dd-ic'; ic.innerHTML = it.icon; o.appendChild(ic); o.classList.add('has-ic'); }
+      if(it.pre || it.color || it.icon){ o.appendChild(document.createTextNode(it.label)); }
       else { o.textContent = it.label; }
+      if(it.kbd){ var kb = document.createElement('span'); kb.className = 'dd-kbd'; kb.textContent = it.kbd; o.appendChild(kb); }
       o.addEventListener('click', function(ev){ ev.stopPropagation(); if(it.onPick) it.onPick(); closeMenu(); });
       menu.appendChild(o);
     });
@@ -390,7 +392,10 @@
   }
 
   function renderInspector(tab){
+    // the Toolpath edits tab (tpedit.js) owns the 3D toolpath view: it shows only while the tab is open
+    if(window.tpeTab) window.tpeTab(tab === 'Edits');
     if(tab==='Tool'){ renderToolTab(); return; }
+    if(tab==='Edits' && window.tpeRender){ titleCtl.innerHTML = ''; irows.classList.remove('ro'); window.tpeRender(); return; }
     titleCtl.innerHTML = '';
     irows.classList.remove('ro');
     var cfg = PARAMS[tab] || [];
@@ -399,7 +404,12 @@
     list.forEach(function(p){ irows.appendChild(buildRow(p)); });
   }
   /* the title names the inspector tab; some tabs carry a fuller name */
-  var TAB_TITLES = { Tool: 'Tool Assembly' };
+  var TAB_TITLES = { Tool: 'Tool Assembly', Edits: 'Toolpath edits' };
+  // the Toolpath edits tab (tpedit.js) builds its rows with the same pieces
+  window.ENCY_INSP = {irows:irows, titleCtl:titleCtl, inspTitle:inspTitle, A:A, emitAction:emitAction, buildRow:buildRow,
+    SVG:{edit:SVG_EDIT, plus:SVG_PLUS, check:SVG_CHECK},
+    activeTab:function(){ var b = document.querySelector('.rbtn.active[data-tab]'); return b ? b.dataset.tab : ''; },
+    rerender:function(){ var t = this.activeTab(); if(t) renderInspector(t); }};
   document.querySelectorAll('.rbtn[data-tab]').forEach(function(b){
     b.addEventListener('click', function(){
       document.querySelectorAll('.rbtn[data-tab]').forEach(function(x){x.classList.remove('active');});
@@ -693,6 +703,7 @@
       rows.forEach(function(x){x.classList.remove('tsel');});
       r.classList.add('tsel');
       // the inspector title names the inspector tab, not the selected node
+      document.dispatchEvent(new CustomEvent('ency:treesel', {detail:{id:r.dataset.id, type:r.dataset.type}}));
     });
     bindDrag(r);
   }
@@ -736,6 +747,8 @@
         if(savedSel){ rows.forEach(function(r){ r.classList.remove('tsel'); }); savedSel.classList.add('tsel'); }
         renderTree();
       }
+      var s = tree.querySelector('.trow.tsel');
+      document.dispatchEvent(new CustomEvent('ency:treesel', {detail:{id:s ? s.dataset.id : null, type:s ? s.dataset.type : null}}));
       closeStatus();
     });
   });
@@ -861,6 +874,7 @@
     // the preview camera back while it is being dragged in the 3D view
     function clampP(p){ return Math.min(1.2, Math.max(0.08, p)); }
     function push(){
+      if(window.tpView) window.tpView.setCamera({yaw:cam.yaw, pitch:cam.pitch});   // toolpath view (tpedit.js)
       var v = window.arView && window.arView(); if(!v) return;
       try{ v.setCamera({yaw:cam.yaw, pitch:clampP(cam.pitch)}); }catch(e){}
     }
@@ -935,7 +949,7 @@
     function cubeMenu(){
       return [
         {t:'Go Home', fn:function(){ set(HOME.yaw, HOME.pitch, true); }},
-        {t:'Fit to view', fn:function(){ var v = window.arView && window.arView(); if(v) v.fitToView(); }},
+        {t:'Fit to view', fn:function(){ var v = window.arView && window.arView(); if(v) v.fitToView(); else if(window.tpView) window.tpView.fit(); }},
         {sep:true},
         {t:'Set current view as Home', fn:function(){ HOME = {yaw:cam.yaw, pitch:cam.pitch}; }},
         {t:'Reset Home', fn:function(){ HOME = {yaw:0.68, pitch:0.49}; set(HOME.yaw, HOME.pitch, true); }},
@@ -1095,6 +1109,7 @@
   // --- left tools ---
   document.getElementById('vbZoom').addEventListener('click', function(){
     var v = window.arView && window.arView(); if(v) v.fitToView();
+    else if(window.tpView) window.tpView.fit();
   });
   var vbRotMode = 1, vbAxis = 2;                       // Orbit · fixed axis Z
   document.getElementById('vbRot').addEventListener('click', function(){
@@ -2298,6 +2313,7 @@
   var simDock = document.getElementById('simDock');
   var vcube = document.getElementById('vcube');
   function setSimMode(on){
+    document.dispatchEvent(new CustomEvent('ency:mode', {detail:{sim:on}}));
     document.querySelector('.dock').classList.toggle('sim', on);
     document.querySelector('.panel-tree').classList.toggle('sim', on);
     simWrap.hidden = !on;
@@ -2434,6 +2450,15 @@
   /* ---------- Dock resizer: drag to resize tree vs inspector ---------- */
   var dockResizer = document.getElementById('dockResizer');
   var panelTree = document.querySelector('.panel-tree');
+  // the inspector never gets shorter than its rail (all tabs + More), so no tab is cut off —
+  // the tree gives way instead
+  var panelInsp = document.querySelector('.panel-insp');
+  function inspMin(){
+    if(!panelInsp) return 0;
+    var h = 0; panelInsp.querySelectorAll('.rail-top').forEach(function(t){ h += t.offsetHeight; });
+    return h + 8 + 6;                                     // gap between the two rail groups + panel padding and border
+  }
+  if(panelInsp) panelInsp.style.minHeight = inspMin() + 'px';
   if(dockResizer && panelTree && dockEl){
     var MIN_PANEL = 140; // min height for either panel
     // double-click toggles the single-operation mode
@@ -2450,7 +2475,7 @@
         var r = dockEl.getBoundingClientRect();
         var rezH = dockResizer.offsetHeight;
         var h = (ev.clientY - r.top) - rezH / 2; // tree height, resizer centered on cursor
-        var maxH = r.height - rezH - MIN_PANEL;
+        var maxH = r.height - rezH - Math.max(MIN_PANEL, inspMin());
         h = Math.max(MIN_PANEL, Math.min(maxH, h));
         panelTree.style.flex = '0 0 ' + h + 'px';
       }
