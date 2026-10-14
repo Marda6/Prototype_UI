@@ -1095,21 +1095,36 @@
     var force = navForce; navForce = false;
     if(navSum){ navSum = false; treeSummaries(); }
     var vis = navRows(), top = tree.scrollTop, P = rowPitch(vis), H = vis.length ? vis[0].offsetHeight : 24;
-    // slot k holds the k-th branch head of the row under it; a head rides up
-    // with the end of its own branch, so the next one pushes it out
-    var stack = [], pos = [];
+    // slot k holds the k-th branch head of the row under it
+    var stack = [], ends = [], pos = [];
     for(var k = 0; k < 3 && top > 0; k++){
       var y = top + k * P, lo = 0, hi = vis.length;
       while(lo < hi){ var mid = (lo + hi) >> 1; if(vis[mid].offsetTop + H > y) hi = mid; else lo = mid + 1; }
       if(lo >= vis.length) break;
+      // the line is past the end of the head above (the next row is pushing its block out): the
+      // slot keeps the head of that branch's last row, so the block leaves whole, without a jump
+      if(k && !isUnder(vis[lo], stack[k - 1])){
+        do lo--; while(lo >= 0 && vis[lo] !== stack[k - 1] && !isUnder(vis[lo], stack[k - 1]));
+        if(lo < 0 || vis[lo] === stack[k - 1]) break;
+      }
       var r = vis[lo], chain = chainOf(r), cand = null;
       if(chain.length > k) cand = chain[k];
       else if(chain.length === k && BRANCH[r.dataset.type] && r.offsetTop < y) cand = r;
       if(!cand || (k && cand.dataset.parent !== stack[k - 1].dataset.id)) break;
       var end = Infinity;
       for(var j = lo + 1; j < vis.length; j++) if(!isUnder(vis[j], cand)){ end = vis[j].offsetTop; break; }
-      stack.push(cand);
-      pos.push(Math.min(k * P, end - (P - H) - H - top));
+      stack.push(cand); ends.push(end);
+    }
+    // the row after a head's branch pushes it up, but never under the head above it (that left a
+    // half-hidden row between two heads): heads whose branches end at the same row go up as one
+    // block, out at the top edge; a deeper head whose branch ends first steps aside, and the next
+    // one scrolls in whole and sticks in its place
+    for(k = 0; k < stack.length; k++){
+      var below = 0;                       // deeper heads that end at the same row stay under it
+      for(j = k + 1; j < stack.length; j++) if(ends[j] === ends[k]) below++;
+      var p = Math.min(k * P, ends[k] - P - top - below * P);
+      if(k && p < pos[k - 1] + P - 0.5){ stack.length = k; break; }
+      pos.push(p);
     }
     var key = stack.map(function(s){ return s.dataset.id; }).join('|');
     if(force || key !== navKey){
