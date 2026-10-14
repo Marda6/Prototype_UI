@@ -38,8 +38,9 @@
               <div class="b24 tsearch" id="searchBtn" title="Search (Ctrl+F)"><img class="i28" src="assets/fig-search.svg" alt=""></div>
             </div>
             <div class="tb-group">
-              <div class="tb-ic" title="Parameters"><img class="i28" src="assets/fig-hex.svg" alt=""></div>
-              <div class="tb-ic" id="resetBtn" title="Reset statuses"><img class="i18" src="assets/fig-reset.svg" alt=""></div>
+              <!-- Core icn_parameters (204:632) and icn/reset (203:613), 20px in the 28px button -->
+              <div class="tb-ic" title="Parameters"><img class="i20" src="assets/tb-params.svg" alt=""></div>
+              <div class="tb-ic" id="resetBtn" title="Reset statuses"><img class="i20" src="assets/tb-reset.svg" alt=""></div>
               <div class="b24 calc" title="Calculate"><img class="i12" src="assets/fig-calc.svg" alt=""><span class="calc-txt">Calculate</span></div>
               <div class="b24 more" title="Add"><span class="more-plus"><img class="i16" src="assets/fig-plus.svg" alt=""></span><span class="more-chev"><img class="chev7" src="assets/tb-chev.svg" alt=""></span></div>
             </div>
@@ -100,7 +101,7 @@
             <!-- Turning demo program: one tool number per physical tool —
                  shared tools keep the same T# across operations and setups -->
             <div class="trow" data-id="part1" data-parent="setup1" data-type="part" data-expandable="1">
-              <div class="tlayer i1"><img class="shev" src="assets/t-shev-open.svg" alt=""><img class="micn" src="assets/tb-hex.svg" alt=""><span class="rlabel"><span>Part 1</span></span></div>
+              <div class="tlayer i1"><img class="shev" src="assets/t-shev-open.svg" alt=""><img class="micn" src="assets/f-part.svg" alt=""><span class="rlabel"><span>Part 1</span></span></div>
               <div class="pslot"><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
             </div>
             <div class="trow" data-id="op1" data-parent="part1" data-type="operation" draggable="true">
@@ -124,7 +125,7 @@
               <div class="pslot"><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
             </div>
             <div class="trow" data-id="part3" data-parent="setup2" data-type="part" data-expandable="1">
-              <div class="tlayer i1"><img class="shev" src="assets/t-shev-open.svg" alt=""><img class="micn" src="assets/tb-hex.svg" alt=""><span class="rlabel"><span>Part 1</span></span></div>
+              <div class="tlayer i1"><img class="shev" src="assets/t-shev-open.svg" alt=""><img class="micn" src="assets/f-part.svg" alt=""><span class="rlabel"><span>Part 1</span></span></div>
               <div class="pslot"><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
             </div>
             <div class="trow" data-id="op5" data-parent="part3" data-type="operation" draggable="true">
@@ -150,7 +151,7 @@
               <div class="pslot"><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
             </div>
             <div class="trow" data-id="part4" data-parent="setup3" data-type="part" data-expandable="1">
-              <div class="tlayer i1"><img class="shev" src="assets/t-shev-open.svg" alt=""><img class="micn" src="assets/tb-hex.svg" alt=""><span class="rlabel"><span>Part 1</span></span></div>
+              <div class="tlayer i1"><img class="shev" src="assets/t-shev-open.svg" alt=""><img class="micn" src="assets/f-part.svg" alt=""><span class="rlabel"><span>Part 1</span></span></div>
               <div class="pslot"><span class="bicn"><img class="i16 st" src="assets/status.svg" alt=""></span></div>
             </div>
             <div class="trow" data-id="op9" data-parent="part4" data-type="operation" data-kind="mill" data-levels="12" data-tool="6" draggable="true">
@@ -247,18 +248,12 @@
 
       <!-- ===== Inspector panel ===== -->
       <section class="panel16 panel-insp">
+        <!-- the tabs depend on the node selected in the tree (filled by "Inspector tabs" in app.js);
+             More opens the overlay with the optional tabs and the ones the rail has no room for -->
         <div class="rail">
+          <div class="rail-top" id="railTabs"></div>
           <div class="rail-top">
-            <div class="rbtn" data-tab="Setup" title="Setup"><img class="ricn" src="assets/rail-setup.svg" alt=""></div>
-            <div class="rbtn active" data-tab="Tool" title="Tool"><img class="ricn" src="assets/rail-tool.svg" alt=""></div>
-            <div class="rbtn" data-tab="Speeds" title="Speeds"><img class="ricn" src="assets/rail-speeds.svg" alt=""></div>
-            <div class="rbtn" data-tab="Strategy" title="Strategy"><img class="ricn" src="assets/rail-strategy.svg" alt=""></div>
-            <div class="rbtn" data-tab="Fixture" title="Fixture"><img class="ricn" src="assets/rail-fixture.svg" alt=""></div>
-            <div class="rbtn" data-tab="Links" title="Links"><img class="ricn" src="assets/rail-links.svg" alt=""></div>
-            <div class="rbtn" data-tab="Edits" title="Toolpath edits"><img class="ricn" src="assets/rail-edits.svg" alt=""></div>
-          </div>
-          <div class="rail-top">
-            <div class="rbtn" data-tab="More" title="More"><img class="ricn" src="assets/rail-more.svg" alt=""></div>
+            <div class="rbtn" id="railMore" title="More tabs"><img class="ricn" src="assets/rail-more.svg" alt=""></div>
           </div>
         </div>
 
@@ -475,16 +470,38 @@
             <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
           </button>
         </div>
-        <div class="stp-sec">Status:</div>
-        <div class="stp-list stp-list--status">
+        <!-- what it is and where: "Group · Setup 1 › Housing", "Setup · 2 parts · 7 groups" -->
+        <div class="stp-path" id="stpPath"></div>
+        <!-- a calculated operation whose parameters were changed afterwards: Revert brings
+             the parameters back to the calculated values -->
+        <div class="stp-mod" id="stpMod" hidden>
+          <img class="i16" src="assets/status-warn2.svg" alt="">
+          <span class="stp-mod-t">The parameters do not match the calculated toolpath</span>
+          <button class="stp-revert" id="stpRevert" title="Return the parameters to the calculated values">Revert</button>
+        </div>
+        <!-- Machine / Setup / Part / Group: its operations counted by status (instead of the
+             calculation steps, which belong to an operation) -->
+        <div class="stp-sec stp-sec--n stp-br-only">Operations:<span id="stpOpsN"></span></div>
+        <div class="stp-list stp-br-only" id="stpOps"></div>
+        <div class="stp-sec stp-op-only">Status:</div>
+        <div class="stp-list stp-list--status stp-op-only">
           <div class="stp-row"><img class="i16" src="assets/status-calc.svg" alt=""><span class="stp-lbl">Toolpath</span><span class="stp-meta">Calculated: 00h 00m 10s</span></div>
           <div class="stp-row"><img class="i16" src="assets/status-complete.svg" alt=""><span class="stp-lbl">Machining result</span><span class="stp-meta">Done</span></div>
           <div class="stp-row"><img class="i16" src="assets/status-prog1.svg" alt=""><span class="stp-lbl">Tool holder collision detection</span><span class="stp-meta">Done</span></div>
           <div class="stp-row"><img class="i16" src="assets/status-done.svg" alt=""><span class="stp-lbl">Machine collision detection</span><span class="stp-meta">Done</span></div>
           <div class="stp-row"><img class="i16" src="assets/status-done.svg" alt=""><span class="stp-lbl">Hidden nodes collision detection</span><span class="stp-meta">Not required</span></div>
         </div>
-        <div class="stp-sec">Statistics:</div>
-        <div class="stp-list">
+        <!-- what the checks found: an operation — one card per error / warning (the .ncp-err
+             card of the NC block panel); a branch — a list by type that unfolds into operations -->
+        <!-- in a branch this block alone scrolls when the panel reaches the height of the 3D view -->
+        <div class="stp-probs" id="stpProbs" hidden>
+          <div class="stp-sec" id="stpErrSec" hidden>Errors:</div>
+          <div class="stp-errs" id="stpErrs" hidden></div>
+          <div class="stp-sec" id="stpWarnSec" hidden>Warnings:</div>
+          <div class="stp-errs" id="stpWarns" hidden></div>
+        </div>
+        <div class="stp-sec stp-op-only">Statistics:</div>
+        <div class="stp-list stp-op-only">
           <div class="stp-grp">
             <div class="stp-row stp-parent"><span class="stp-chev"><svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></span><img class="i16" src="assets/stat-time.svg" alt=""><span class="stp-lbl">Machining time</span><span class="stp-val">02h 12m 16s</span></div>
             <div class="stp-kids">

@@ -321,9 +321,50 @@
       {label:'Check workpiece', ctl:'toggle', on:false, indent:1, gchild:'safe', nomore:true},
       {label:'Safe distance', ctl:'input', val:'20 mm', indent:1, gchild:'safe', nomore:true}
     ],
-    More: [
-      {label:'Notes', ctl:'dropdown', val:'Text for example'},
-      {label:'Visible', ctl:'toggle', on:true}
+    /* the tabs added with the context rail — filler content until the real panels are drawn */
+    Machine: [
+      {label:'Machine', ctl:'dropdown', val:'HAAS VF-4', opts:['HAAS VF-4', 'DMG MORI NLX 2500', 'Mill-turn machine']},
+      {label:'Machine limits', ctl:'toggle', on:true},
+      {type:'divider'},
+      {label:'Tool coordinates in WCS', shev:'open', ghead:'tcw', headonly:true, bold:true},
+      {label:'X', ctl:'readonly', val:'-2.727', indent:1, gchild:'tcw', nomore:true},
+      {label:'Y', ctl:'readonly', val:'42.019', indent:1, gchild:'tcw', nomore:true},
+      {label:'Z', ctl:'readonly', val:'740.566', indent:1, gchild:'tcw', nomore:true}
+    ],
+    Job: [
+      {label:'Job', ctl:'dropdown', val:'Main program', opts:['Main program', 'Subprogram 1']},
+      {label:'Program number', ctl:'input', val:'O1001'},
+      {label:'Comment', ctl:'input', val:'Housing, side A'}
+    ],
+    Parameters: [
+      {label:'Tolerance', ctl:'input', val:'0.01 mm'},
+      {label:'Stock to leave', ctl:'input', val:'0.2 mm'},
+      {label:'Step down', ctl:'input', val:'1.5 mm'},
+      {label:'Rest machining', ctl:'toggle', on:false}
+    ],
+    Transformation: [
+      {label:'Transformation', ctl:'dropdown', val:'None', opts:['None', 'Move', 'Rotate', 'Mirror', 'Pattern']},
+      {label:'Keep original', ctl:'toggle', on:true}
+    ],
+    Macro: [
+      {label:'Macro template', ctl:'dropdown', val:'Not set', opts:['Not set', 'Deburr edges', 'Probe part', 'Clean chips']},
+      {label:'Run before the operation', ctl:'toggle', on:false},
+      {label:'Run after the operation', ctl:'toggle', on:false}
+    ],
+    Part: [
+      {label:'Part', ctl:'dropdown', val:'Auto – part of the previous operation', opts:['Auto – part of the previous operation', 'Housing', 'Cover']},
+      {label:'Faces', ctl:'readonly', val:'139'},
+      {label:'Curves', ctl:'readonly', val:'6'},
+      {label:'Points', ctl:'readonly', val:'211'}
+    ],
+    Workpiece: [
+      {label:'Workpiece', ctl:'dropdown', val:'Auto – result of the previous operation', opts:['Auto – result of the previous operation', 'Box', 'Cylinder', 'From solid']},
+      {label:'Offset', ctl:'input', val:'1 mm', indent:1}
+    ],
+    Restriction: [
+      {label:'Restriction', ctl:'dropdown', val:'None', opts:['None', 'Box', 'Curves', 'Faces']},
+      {label:'Tool position', ctl:'dropdown', val:'Center', opts:['Center', 'Inside', 'Outside'], indent:1},
+      {label:'Offset', ctl:'input', val:'0 mm', indent:1}
     ]
   };
   var DD_OPTS = ['Text for example','Linear','Radial','Spiral','None'];
@@ -530,16 +571,126 @@
   // the Toolpath edits tab (tpedit.js) builds its rows with the same pieces
   window.ENCY_INSP = {irows:irows, titleCtl:titleCtl, inspTitle:inspTitle, A:A, emitAction:emitAction, buildRow:buildRow,
     SVG:{edit:SVG_EDIT, plus:SVG_PLUS, check:SVG_CHECK},
-    activeTab:function(){ var b = document.querySelector('.rbtn.active[data-tab]'); return b ? b.dataset.tab : ''; },
+    activeTab:function(){ return railCur; },
     rerender:function(){ var t = this.activeTab(); if(t) renderInspector(t); }};
-  document.querySelectorAll('.rbtn[data-tab]').forEach(function(b){
-    b.addEventListener('click', function(){
-      document.querySelectorAll('.rbtn[data-tab]').forEach(function(x){x.classList.remove('active');});
-      b.classList.add('active');
-      var tab = b.dataset.tab;
-      if(tab){ toolState = 'view'; inspTitle.textContent = TAB_TITLES[tab] || tab; renderInspector(tab); }
+
+  /* ---------- Inspector tabs (the rail): the set follows the node selected in the tree;
+     an operation has optional tabs, switched on in the More overlay; Hole only for
+     drilling. Tabs the rail has no room for move into the More overlay ---------- */
+  var RAIL = {   // icons: Core icn_inspector (Restriction = inc_section); none yet → placeholder square
+    Setup:{icon:'rail-setup'}, Machine:{icon:'rail-machine'}, Job:{icon:'rail-job'}, Hole:{icon:'rail-hole'},
+    Strategy:{icon:'rail-strategy'}, Parameters:{icon:'rail-parameters'}, Links:{icon:'rail-links'}, Tool:{icon:'rail-tool'},
+    Speeds:{icon:'rail-speeds'}, Transformation:{icon:'rail-transformation'}, Macro:{t:'Macro template', icon:'rail-macro'}, Part:{icon:'rail-part'},
+    Workpiece:{icon:'rail-workpiece'}, Fixture:{icon:'rail-fixture'}, Restriction:{icon:'rail-restriction'},
+    Edits:{t:'Toolpath edits', icon:'rail-edits'}
+  };
+  // machine and setup as in ENCY; Part and Group are nodes of the prototype only — a guess
+  var RAIL_CTX = {
+    machine:   ['Setup', 'Machine', 'Links', 'Fixture'],
+    setup:     ['Setup', 'Links', 'Part', 'Workpiece', 'Fixture', 'Restriction'],
+    part:      ['Part', 'Workpiece', 'Fixture', 'Restriction'],
+    group:     ['Setup', 'Links', 'Fixture'],
+    operation: ['Setup', 'Job', 'Hole', 'Strategy', 'Parameters', 'Links', 'Tool', 'Speeds',
+                'Transformation', 'Macro', 'Part', 'Workpiece', 'Fixture', 'Edits']
+  };
+  // the only optional tabs (operation): switched in the More overlay, off by default as in ENCY;
+  // everything else follows the context
+  var RAIL_OPT = {Transformation:false, Macro:false, Part:false, Workpiece:false};
+  var DRILL_RE = /drill|tapping|reaming|countersink/i;
+  var railTabs = document.getElementById('railTabs'), railMore = document.getElementById('railMore');
+  var railCur = 'Tool', railCtx = '', railOver = [];
+  function railTitle(id){ return RAIL[id].t || id; }
+  function railIcon(id){
+    return RAIL[id].icon ? '<img class="ricn" src="assets/' + RAIL[id].icon + '.svg" alt="">' : '<span class="ricn opic"></span>';
+  }
+  function railList(){
+    var op = railCtx.indexOf('operation') === 0, drill = railCtx === 'operation:drill';
+    return RAIL_CTX[op ? 'operation' : railCtx].filter(function(id){
+      if(id === 'Hole') return drill;
+      return !op || !(id in RAIL_OPT) || RAIL_OPT[id];
     });
+  }
+  function railOpen(id){
+    railCur = id; toolState = 'view';
+    inspTitle.textContent = TAB_TITLES[id] || railTitle(id);
+    railDraw();
+    renderInspector(id);
+  }
+  // as many tabs as fit above More (28px buttons, 2px gaps, some air above More); the rest
+  // go to the More overlay, and More lights up while one of them is open
+  function railDraw(){
+    if(!railCtx) return;   // before the first railSync (ResizeObserver fires on observe)
+    var list = railList(), rail = railTabs.parentElement;
+    var fit = Math.max(1, Math.floor((rail.clientHeight - railMore.offsetHeight - 8 + 2) / 30));
+    railOver = list.slice(fit);
+    railTabs.innerHTML = list.slice(0, fit).map(function(id){
+      return '<div class="rbtn' + (id === railCur ? ' active' : '') + '" data-tab="' + id + '" title="' + railTitle(id) + '">' + railIcon(id) + '</div>';
+    }).join('');
+    railMore.classList.toggle('active', railOver.indexOf(railCur) >= 0);
+    railMore.classList.toggle('is-off', !railOver.length && railCtx.indexOf('operation') !== 0);
+  }
+  // the selection decides the set; the open tab stays when the new set has it
+  function railSync(force){
+    var sel = tree.querySelector('.trow.tsel'), t = sel ? sel.dataset.type : 'machine';
+    var ctx = !RAIL_CTX[t] ? 'machine' : t !== 'operation' ? t
+      : DRILL_RE.test(rowName(sel)) ? 'operation:drill' : 'operation';
+    if(ctx === railCtx && !force) return;
+    railCtx = ctx;
+    var list = railList();
+    if(list.indexOf(railCur) < 0) railOpen(list[0]); else railDraw();
+  }
+  railTabs.addEventListener('click', function(e){
+    var b = e.target.closest('.rbtn[data-tab]'); if(b) railOpen(b.dataset.tab);
   });
+  // More: the tabs the rail has no room for as a plain list on top, then — after a divider —
+  // the toggles of the optional tabs (operation)
+  function railMenu(){
+    closeMenu();
+    var h = '';
+    if(railOver.length){
+      h += railOver.map(function(id){
+        return '<div class="dd-opt rm-opt' + (id === railCur ? ' cur' : '') + '" data-open="' + id + '">' + railIcon(id) + '<span>' + railTitle(id) + '</span></div>';
+      }).join('');
+    }
+    if(railCtx.indexOf('operation') === 0){
+      if(h) h += '<div class="dd-sep"></div>';
+      h += Object.keys(RAIL_OPT).map(function(id){
+        var on = RAIL_OPT[id];
+        return '<div class="dd-opt rm-opt" data-opt="' + id + '"><img class="tgl' + (on ? ' on' : '') + '" src="' + A[on ? 'tgl-on' : 'tgl-off'] + '" alt="">' +
+          railIcon(id) + '<span>' + railTitle(id) + '</span></div>';
+      }).join('');
+    }
+    if(!h) return;
+    var m = document.createElement('div'); m.className = 'dd-menu rail-menu'; m._owner = railMore; m.innerHTML = h;
+    document.body.appendChild(m);
+    // beside the rail, its bottom level with More (it opens upward)
+    var r = railMore.getBoundingClientRect();
+    m.style.left = (r.right + 8) + 'px';
+    m.style.top = Math.max(8, r.bottom - m.offsetHeight) + 'px';
+    railMore.classList.add('dd-open');
+    openMenu = m;
+    m.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      var o = ev.target.closest('[data-open]');
+      if(o){ closeMenu(); railOpen(o.dataset.open); return; }
+      var t = ev.target.closest('[data-opt]'); if(!t) return;
+      var id = t.dataset.opt; RAIL_OPT[id] = !RAIL_OPT[id];
+      // the open tab switched off: back to the first one
+      if(!RAIL_OPT[id] && railCur === id) railOpen(railList()[0]); else railDraw();
+      railMenu();
+    });
+  }
+  railMore.addEventListener('click', function(e){
+    e.stopPropagation();
+    if(openMenu && openMenu._owner === railMore){ closeMenu(); return; }
+    railMenu();
+  });
+  // a shorter inspector (dock split, window size) moves tabs into More and back
+  // (an open More overlay is rebuilt with them)
+  new ResizeObserver(function(){
+    railDraw();
+    if(openMenu && openMenu._owner === railMore) railMenu();
+  }).observe(railTabs.parentElement);
   /* Tool workflow actions: Edit / Cancel / Apply / edit-tool */
   document.addEventListener('click', function(e){
     var act = e.target.closest('[data-act]');
@@ -976,13 +1127,14 @@
     tSticky.style.height = (bottom + (P - H)) + 'px';
 
     // the selected row scrolled out of view (or folded away) stays reachable at the bottom edge
-    var sel = tree.querySelector('.trow.tsel'), dir = 0;
+    // its strip: 1px divider + 6px air + the row (.tghost in app.css)
+    var sel = tree.querySelector('.trow.tsel'), dir = 0, G = H + 7;
     if(sel && sel.dataset.type !== 'machine' && !tSearch && stack.indexOf(sel) < 0 && typeEnabled[sel.dataset.type]){
       if(!sel.offsetHeight) dir = 2;
       else {
         var c = sel.offsetTop - top + H / 2, stickH = tSticky.hidden ? 0 : bottom;
         if(c < stickH) dir = -1;
-        else if(c > tree.clientHeight - (P + 1)) dir = 1;
+        else if(c > tree.clientHeight - G) dir = 1;
       }
     }
     var gkey = dir ? sel.dataset.id + ':' + dir : '';
@@ -999,7 +1151,7 @@
     }
     tGhost.hidden = !dir;
     tGhost.style.width = tree.clientWidth + 'px';
-    tree.style.paddingBottom = dir ? (P + 1) + 'px' : '';
+    tree.style.paddingBottom = dir ? G + 'px' : '';
     tEmpty.hidden = !(tSearch && !tSearch.hits.length);
   }
   tree.addEventListener('scroll', function(){ treeNavSync(); }, {passive:true});
@@ -1021,11 +1173,15 @@
   // a sticky head: click selects the branch and lands on it, its chevron folds it
   tSticky.addEventListener('click', function(e){
     var c = e.target.closest('.tclone'), r = c && byId[c.dataset.for]; if(!r) return;
+    // its status opens the Status panel of the branch, as in the tree
+    if(e.target.closest('.bicn .st')){ e.stopPropagation(); stpOpen(r, c); return; }
     if(e.target.closest('.shev')) treeToggle(r, e.altKey); else r.click();
     tree.scrollTop = r.offsetTop - chainOf(r).length * rowPitch(navRows());
   });
-  tGhost.addEventListener('click', function(){
-    var sel = tree.querySelector('.trow.tsel'); if(sel) treeReveal(sel);
+  tGhost.addEventListener('click', function(e){
+    var sel = tree.querySelector('.trow.tsel'); if(!sel) return;
+    if(e.target.closest('.bicn .st')){ e.stopPropagation(); stpOpen(sel, tGhost); return; }
+    treeReveal(sel);
   });
 
   /* search: name, tool name or T#; the tree narrows to the matches and their branches */
@@ -1146,6 +1302,10 @@
     var machineRow = tree.querySelector('.trow[data-type="machine"]');
     if(machineRow) machineRow.classList.add('tsel');
   }
+  // the inspector tabs follow the selection (and the project swap, which replaces the rows)
+  railSync(true);
+  new MutationObserver(function(){ railSync(false); })
+    .observe(tree, {childList:true, subtree:true, attributes:true, attributeFilter:['class']});
 
   /* ---------- ENCY393: a generated 391-operation project (deterministic, no RNG) —
      the stress case of CAM-724 for navigating big trees: 4 setups → parts → groups ---------- */
@@ -1195,9 +1355,9 @@
     function brSt(from, to){ return to > BIG_CALC_TO ? 'status-empty' : 'status-calc'; }
     var COLOR = '<span class="bicn"><img class="i16" src="' + A['opcolor'] + '" alt=""></span>';
     function head(id, parent, type, ind, name, slot){
-      // a part carries the nut (Core icn_inspector), a group of operations a folder;
+      // a part carries the Part icon of the Filters (the nut is Parameters), a group of operations a folder;
       // setups keep the icon placeholder
-      var ic = type === 'part' ? '<img class="micn" src="assets/tb-hex.svg" alt="">'
+      var ic = type === 'part' ? '<img class="micn" src="assets/f-part.svg" alt="">'
         : type === 'group' ? '<img class="micn" src="assets/tree-group.svg" alt="">' : '<span class="opic"></span>';
       return '<div class="trow" data-id="' + id + '" data-parent="' + parent + '" data-type="' + type + '" data-expandable="1">' +
         '<div class="tlayer' + (ind ? ' i' + ind : '') + '"><img class="shev" src="assets/t-shev-open.svg" alt="">' + ic +
@@ -1847,13 +2007,102 @@
             ['22745','97'],['597.145 cm³']]
     }
   };
-  function stpApply(state){
-    var s = STP_STATES[state];
+  /* what the checks found in an operation with the error status (step = the status step that
+     found it: 1 machining result, 2 tool holder, 3 machine), and the warnings of a calculated
+     one. ENCY393 carries four errors and three warnings (stpPick covers any other) */
+  var STP_ERRS = {
+    'b-op48':  [{step:1, t:'Gouge of the part', d:'0.12 mm into the part · 3 places'}],
+    'b-op139': [{step:2, t:'Tool holder collision', d:'The holder hits the stock · 1 place'}],
+    'b-op204': [{step:3, t:'Machine collision', d:'The spindle head hits the fixture · 2 places'}],
+    'b-op342': [{step:1, t:'Gouge of the part', d:'0.05 mm into the part · 1 place'},
+                {step:2, t:'Tool holder collision', d:'The holder hits the part · 4 places'}]
+  };
+  var STP_WARNS = {
+    'b-op86':  [{t:'Thread depth reduced', d:'The hole is 2 mm shallower than the thread'}],
+    'b-op173': [{t:'Long tool overhang', d:'92 mm out of the holder, 4.6 × D'}],
+    'b-op267': [{t:'Point angle mismatch', d:'Spot drill 90°, drill point 118°'}]
+  };
+  var STP_KIND = {machine:'Machine', setup:'Setup', part:'Part', group:'Group', operation:'Operation'};
+  // a branch summary counts its operations by status, worst first
+  var STP_CATS = [['error', 'status-error', 'Errors'], ['warn', 'status-warn', 'Warnings'],
+    ['mod', 'status-warn2', 'Parameters changed'], ['run', 'status-prog1', 'Calculating'],
+    ['calc', 'status-calc', 'Calculated'], ['empty', 'status-empty', 'Not calculated']];
+  var stpMod = document.getElementById('stpMod'), stpPath = document.getElementById('stpPath');
+  var stpOps = document.getElementById('stpOps'), stpOpsN = document.getElementById('stpOpsN');
+  var stpErrSec = document.getElementById('stpErrSec'), stpErrs = document.getElementById('stpErrs');
+  var stpWarnSec = document.getElementById('stpWarnSec'), stpWarns = document.getElementById('stpWarns');
+  var stpProbs = document.getElementById('stpProbs');
+  var stpRow = null;   // the tree row the panel describes
+  function rowName(r){ var n = r.querySelector('.rlabel span'); return n ? n.textContent : ''; }
+  function opCat(r){
+    var s = r.querySelector('.st').src;
+    return s === A['status-error'] ? 'error' : s === A['status-warn'] ? 'warn' : s === A['status-warn2'] ? 'mod'
+      : s === A['status-empty'] ? 'empty' : s === A['status-prog1'] || s === A['status-prog2'] ? 'run' : 'calc';
+  }
+  // an operation without its own entry gets one of the known problems, picked by its number
+  function stpPick(map, r){
+    var pool = [], k; for(k in map) pool = pool.concat(map[k]);
+    return [pool[(parseInt(r.dataset.id.replace(/\D/g, ''), 10) || 0) % pool.length]];
+  }
+  function stpErrsOf(r){ return STP_ERRS[r.dataset.id] || stpPick(STP_ERRS, r); }
+  function stpWarnsOf(r){ return STP_WARNS[r.dataset.id] || stpPick(STP_WARNS, r); }
+  // "Setup 1 › Housing": the branches above a row (the machine left out)
+  function stpWhere(r){
+    var out = [];
+    for(var p = r.dataset.parent; p; p = byId[p] ? byId[p].dataset.parent : null)
+      if(byId[p] && byId[p].dataset.type !== 'machine') out.unshift(rowName(byId[p]));
+    return out.join(' › ');
+  }
+  function plural(n, w){ return n + ' ' + w + (n === 1 ? '' : 's'); }
+  // the line under the title: the kind, where it sits (Operation, Group, Part),
+  // what it holds (Machine, Setup, Part)
+  function stpPathOf(r){
+    var t = r.dataset.type, bits = [STP_KIND[t] || ''], w = t === 'machine' || t === 'setup' ? '' : stpWhere(r);
+    if(w) bits.push(w);
+    if(t === 'machine' || t === 'setup' || t === 'part'){
+      var n = {setup:0, part:0, group:0};
+      rows.forEach(function(x){ if(x.dataset.type in n && isUnder(x, r)) n[x.dataset.type]++; });
+      if(n.setup) bits.push(plural(n.setup, 'setup'));
+      if(n.part) bits.push(plural(n.part, 'part'));
+      if(n.group) bits.push(plural(n.group, 'group'));
+    }
+    return bits.join(' · ');
+  }
+  // the errors and warnings of one operation as cards (a branch lists them by type: stpLists)
+  function stpCards(errs, warns){
+    function html(list, warn){
+      return list.map(function(e){
+        return '<div class="ncp-err' + (warn ? ' is-warn' : '') + '">' +
+          '<span class="ncp-err__body"><b>' + e.t + '</b><span>' + e.d + '</span></span></div>';
+      }).join('');
+    }
+    stpProbs.hidden = !errs.length && !warns.length;
+    stpErrSec.hidden = stpErrs.hidden = !errs.length;
+    stpErrs.innerHTML = html(errs, false);
+    stpWarnSec.hidden = stpWarns.hidden = !warns.length;
+    stpWarns.innerHTML = html(warns, true);
+  }
+  // opt.mod: parameters changed after the calculation; opt.errs: what the checks found
+  function stpApply(state, opt){
+    opt = opt || {};
+    var s = STP_STATES[state], mod = !!opt.mod, errs = mod ? [] : (opt.errs || []);
+    var errAt = {}, lastErr = -1;
+    errs.forEach(function(e){ errAt[e.step] = 1; lastErr = Math.max(lastErr, e.step); });
+    stpMod.hidden = !mod;
     statusPanel.querySelectorAll('.stp-list--status .stp-row').forEach(function(row, i){
-      row.querySelector('img').src = A[s.icons[i]];
-      row.querySelector('.stp-meta').textContent = s.metas[i];
-      row.classList.toggle('is-dim', s.dim[i]);
+      var icon = s.icons[i], meta = s.metas[i], dim = s.dim[i];
+      // changed parameters: the toolpath no longer matches, the checks after it are void
+      if(mod){ if(i === 0) icon = 'status-warn2'; else { meta = ''; dim = true; } }
+      // an error stops the chain: the checks after the last failed one did not run
+      else if(lastErr >= 0 && i > lastErr){ meta = ''; dim = true; }
+      row.querySelector('img').src = A[icon];
+      var m = row.querySelector('.stp-meta');
+      if(errAt[i]) m.innerHTML = '<img class="i16" src="' + A['status-error'] + '" alt="" title="Error">';
+      else m.textContent = i === 0 && mod ? '' : meta;
+      row.classList.toggle('is-dim', dim);
     });
+    // text only: the error glyph already marks the step in the status list above
+    stpCards(errs, mod ? [] : (opt.warns || []));
     statusPanel.querySelectorAll('.stp-grp').forEach(function(grp, gi){
       grp.querySelector('.stp-parent .stp-val').textContent = s.stats[gi];
       grp.querySelectorAll('.stp-kids .stp-val').forEach(function(v, ki){
@@ -1861,12 +2110,146 @@
       });
     });
   }
+  /* Machine / Setup / Part / Group — readable with the project folded: its operations counted
+     by status, then the errors and warnings inside (statuses roll up), each card naming its
+     operation and leading to it */
+  function stpBranch(row){
+    var n = {}, total = 0, errs = [], warns = [];
+    rows.forEach(function(r){
+      if(r.dataset.type !== 'operation' || !isUnder(r, row)) return;
+      var c = opCat(r), p = {op:r.dataset.id, name:rowName(r), where:stpWhereIn(r, row)};
+      n[c] = (n[c] || 0) + 1; total++;
+      function add(list, e){ list.push(Object.assign({t:e.t, d:e.d}, p)); }
+      if(c === 'error') stpErrsOf(r).forEach(function(e){ add(errs, e); });
+      if(c === 'warn') stpWarnsOf(r).forEach(function(e){ add(warns, e); });
+      if(c === 'mod') add(warns, {t:'Parameters changed', d:'The toolpath does not match the parameters'});
+    });
+    stpOpsN.textContent = total;
+    stpOps.innerHTML = STP_CATS.filter(function(c){ return n[c[0]]; }).map(function(c){
+      return '<div class="stp-row"><img class="i16" src="' + A[c[1]] + '" alt=""><span class="stp-lbl">' + c[2] + '</span>' +
+        '<span class="stp-ops-n">' + n[c[0]] + '</span></div>';
+    }).join('');
+    stpMod.hidden = true;
+    stpLists(errs, warns);
+  }
+  // "Housing › Finishing": where an operation sits inside the branch the panel shows
+  function stpWhereIn(r, top){
+    var out = [];
+    for(var p = r.dataset.parent; p && p !== top.dataset.id; p = byId[p] ? byId[p].dataset.parent : null)
+      if(byId[p]) out.unshift(rowName(byId[p]));
+    return out.join(' › ');
+  }
+  /* the problems of a branch grow by type, not by operation: one row per error / warning type
+     with its count, unfolding into the operations (name · where; click → go to it). Up to five
+     problems everything is unfolded; a type the user folded or unfolded stays so on refresh */
+  var STP_CHEV = '<svg viewBox="0 0 12 12" fill="none"><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var stpOpenT = {}, stpOpenFor = null;
+  function stpLists(errs, warns){
+    if(stpOpenFor !== stpRow){ stpOpenT = {}; stpOpenFor = stpRow; }
+    function html(list, k){
+      var by = {}, order = [];
+      list.forEach(function(e){ if(!by[e.t]){ by[e.t] = []; order.push(e.t); } by[e.t].push(e); });
+      order.sort(function(a, b){ return by[b].length - by[a].length; });   // the most frequent first
+      return '<div class="stp-plist' + (k === 'w' ? ' is-warn' : '') + '">' + order.map(function(t){
+        var key = k + '|' + t, open = key in stpOpenT ? stpOpenT[key] : list.length <= 5;
+        return '<div class="stp-pgrp' + (open ? ' open' : '') + '" data-key="' + key + '">' +
+          '<div class="stp-prow stp-phead"><span class="stp-chev">' + STP_CHEV + '</span><b>' + t + '</b>' +
+          '<span class="stp-pn">' + by[t].length + '</span></div>' +
+          '<div class="stp-pkids">' + by[t].map(function(e){
+            return '<div class="stp-prow stp-pop" data-op="' + e.op + '" title="' + e.d + ' — go to the operation">' +
+              '<span class="stp-pname">' + e.name + '</span><span class="stp-pwhere">' + e.where + '</span></div>';
+          }).join('') + '</div></div>';
+      }).join('') + '</div>';
+    }
+    // no total next to the titles: the Operations summary above already counts them
+    stpProbs.hidden = !errs.length && !warns.length;
+    stpErrSec.hidden = stpErrs.hidden = !errs.length;
+    stpErrs.innerHTML = errs.length ? html(errs, 'e') : '';
+    stpWarnSec.hidden = stpWarns.hidden = !warns.length;
+    stpWarns.innerHTML = warns.length ? html(warns, 'w') : '';
+  }
+  // fill the panel from the row: a branch gets its summary; an operation its steps by status —
+  // not calculated / calculated / simulated, + changed parameters (status-warn2), errors
+  // (status-error, the checks have run) or warnings (status-warn)
+  function stpShow(row){
+    var src = row.querySelector('.st').src, branch = row.dataset.type !== 'operation';
+    stpTitle.textContent = rowName(row);
+    stpPath.textContent = stpPathOf(row);
+    statusPanel.classList.toggle('is-branch', branch);
+    stpRow = row;
+    if(branch) stpBranch(row);
+    else if(src === A['status-error']) stpApply('simulated', {errs: stpErrsOf(row)});
+    else stpApply(src === A['status-empty'] ? 'empty' : (simRan ? 'simulated' : 'calculated'),
+      {mod: src === A['status-warn2'], warns: src === A['status-warn'] ? stpWarnsOf(row) : []});
+  }
+  // open the panel for a row, level with it (or with its sticky / pinned clone)
+  var stpAt = 8;
+  function stpOpen(row, anchor){
+    stpShow(row);
+    statusPanel.classList.add('open');
+    var vp = statusPanel.parentElement.getBoundingClientRect(), rr = (anchor || row).getBoundingClientRect();
+    stpAt = rr.top - vp.top;
+    stpFit();
+  }
+  // keep the panel inside the 3D view: level with its row while it fits, moved up as it grows
+  // (a type unfolded, a window resized); taller than the view, it stops at the view's height
+  // (max-height in app.css) and only the problem lists scroll
+  function stpFit(){
+    if(!statusPanel.classList.contains('open')) return;
+    var h = statusPanel.parentElement.clientHeight;
+    statusPanel.style.top = Math.max(8, Math.min(stpAt, h - statusPanel.offsetHeight - 8)) + 'px';
+  }
+  window.addEventListener('resize', stpFit);
+  // the panel follows status changes while open (Calculate, Reset, a parameter change, Revert)
+  new MutationObserver(function(){
+    if(statusPanel.classList.contains('open') && stpRow && tree.contains(stpRow)){ stpShow(stpRow); stpFit(); }
+  }).observe(tree, {subtree:true, attributes:true, attributeFilter:['src']});
+  /* changing a parameter of a calculated operation: its toolpath no longer matches —
+     the status turns amber (the calculated one is kept for Revert) */
+  document.addEventListener('ency:action', function(e){
+    if(!/^OP\.PARAM/.test(e.detail.cmd || '')) return;
+    var row = tree.querySelector('.trow.tsel');
+    if(!row || row.dataset.type !== 'operation') return;
+    var st = row.querySelector('.st'); if(!st) return;
+    var calc = st.src === A['status-calc'] || st.src === A['status-error'] || st.src === A['status-warn'];
+    if(!calc) return;
+    st.dataset.calc = st.src;
+    st.src = A['status-warn2'];
+  });
+  // Revert: the parameters go back to the calculated values, the status to the calculated one
+  document.getElementById('stpRevert').addEventListener('click', function(e){
+    e.stopPropagation();
+    var row = stpRow, st = row && row.querySelector('.st'); if(!st) return;
+    st.src = st.dataset.calc || A['status-calc'];
+    delete st.dataset.calc;
+    if(row.classList.contains('tsel')) renderInspector(railCur);
+    var lbl = row.querySelector('.rlabel span');
+    emitAction('Revert', lbl ? lbl.textContent : '', 'OP.REVERT');
+    stpShow(row);
+  });
   function closeStatus(){ if(statusPanel) statusPanel.classList.remove('open'); }
   if(stpClose) stpClose.addEventListener('click', function(e){ e.stopPropagation(); closeStatus(); });
   if(statusPanel) statusPanel.addEventListener('click', function(e){
+    // a problem type in a branch summary folds / unfolds its operations
+    var ph = e.target.closest('.stp-phead');
+    if(ph){
+      var pg = ph.parentElement;
+      stpOpenT[pg.dataset.key] = pg.classList.toggle('open');
+      stpFit();
+      return;
+    }
+    // an operation there: unfold the way to it, select it, show its status
+    var link = e.target.closest('[data-op]'), op = link && byId[link.dataset.op];
+    if(op){
+      treeReveal(op);
+      if(!op.classList.contains('tsel')) op.click();
+      stpOpen(op);
+      return;
+    }
     var parent = e.target.closest('.stp-parent');
     if(!parent) return;
     parent.closest('.stp-grp').classList.toggle('open');
+    stpFit();
   });
   var OP_COLORS = [
     {key:'op-yellow', label:'Yellow', color:'#FFDF70'},
@@ -1881,19 +2264,7 @@
     if(bicn.querySelector('.st')){          // status circle → Status panel
       e.stopPropagation();
       var row = bicn.closest('.trow');
-      var lbl = row ? row.querySelector('.rlabel span') : null;
-      if(stpTitle && lbl) stpTitle.textContent = lbl.textContent;
-      if(statusPanel){
-        var src = bicn.querySelector('.st').src;
-        var state = (src === A['status-empty']) ? 'empty' : (simRan ? 'simulated' : 'calculated');
-        stpApply(state);
-        statusPanel.classList.add('open');
-        // align the panel with the clicked row, clamped to the viewport
-        var vp = statusPanel.parentElement.getBoundingClientRect();
-        var rr = row.getBoundingClientRect();
-        var top = Math.max(8, Math.min(rr.top - vp.top, vp.height - statusPanel.offsetHeight - 8));
-        statusPanel.style.top = top + 'px';
-      }
+      if(statusPanel && row) stpOpen(row);
       return;
     }
     var cimg = bicn.querySelector('img');   // color circle → color picker
@@ -2072,7 +2443,7 @@
     h += '<div class="simrow"><img class="micn" src="assets/tree-machine.svg" alt="">'+
       '<span class="lbl">Lathe-Milling machine</span>'+
       '<span class="bicn"><img class="i16" src="assets/status.svg" alt=""></span></div>';
-    h += '<div class="simrow sim-ind1"><img class="micn" src="assets/tb-hex.svg" alt="">'+
+    h += '<div class="simrow sim-ind1"><img class="micn" src="assets/f-part.svg" alt="">'+
       '<span class="lbl">Part</span>'+
       '<span class="bicn"><img class="i16" src="assets/status.svg" alt=""></span></div>';
     SIM_OPS.forEach(function(op, oi){
@@ -2961,13 +3332,16 @@
     var icons = Array.prototype.map.call(r.querySelectorAll('.pslot .bicn img'), function(img){
       return '<img class="i16" src="'+img.src+'" alt="">';
     }).join('');
+    // line 1: number, name, colour + status; a divider; line 2: tool number + tool (as in the tree)
+    var toolNo = (r.querySelector('.toolno')||{textContent:''}).textContent;
     soMain.innerHTML =
       '<div class="so-card">'+
         '<div class="so-row"><span class="so-num">'+idx+'.</span>'+
         '<span class="so-name">'+name+'</span>'+
-        '<span class="so-tag">'+(r.querySelector('.toolno')||{textContent:''}).textContent+'</span>'+
         '<span class="so-icons">'+icons+'</span></div>'+
-        (toolEl ? '<div class="so-tool">'+toolEl.textContent+'</div>' : '')+
+        (toolNo || toolEl ? '<div class="so-div"></div><div class="so-row">'+
+          (toolNo ? '<span class="so-tno">'+toolNo+'</span>' : '')+
+          (toolEl ? '<span class="so-tool">'+toolEl.textContent+'</span>' : '')+'</div>' : '')+
       '</div>';
   }
   function soStep(dir){

@@ -1,0 +1,23 @@
+<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="icn_inspector">
+<g id="Property 1=inc_section">
+<g id="Vector">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M7 17C6.44772 17 6 16.5523 6 16V15H10V17H7Z" fill="#F5F5F5" fill-opacity="0.96"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M5 14C4.44772 14 4 13.5523 4 13V8C4 7.44772 4.44772 7 5 7H10V9V11V13V14H5Z" fill="#F5F5F5" fill-opacity="0.96"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M10 6H7V4C7 3.44772 7.44772 3 8 3H10V6Z" fill="#F5F5F5" fill-opacity="0.96"/>
+<path d="M13 6V4C13 3.72386 12.8881 3.47386 12.7071 3.29289L10 6H13Z" fill="#F5F5F5" fill-opacity="0.48"/>
+<path d="M10 7V9L12 7H10Z" fill="#F5F5F5" fill-opacity="0.48"/>
+<path d="M12 3H10V6L12.7071 3.29289C12.5261 3.11193 12.2761 3 12 3Z" fill="#F5F5F5" fill-opacity="0.08"/>
+<path d="M15 7H14L10 11V13L15.7071 7.29289C15.5261 7.11193 15.2761 7 15 7Z" fill="#F5F5F5" fill-opacity="0.48"/>
+<path d="M16 9L11 14H13L16 11V9Z" fill="#F5F5F5" fill-opacity="0.48"/>
+<path d="M16 13C16 13.5523 15.5523 14 15 14L16 13Z" fill="#F5F5F5" fill-opacity="0.48"/>
+<path d="M14 16V15L12 17H13C13.5523 17 14 16.5523 14 16Z" fill="#F5F5F5" fill-opacity="0.48"/>
+<path d="M10 15V17L12 15H10Z" fill="#F5F5F5" fill-opacity="0.48"/>
+<path d="M14 15H12L10 17H12L14 15Z" fill="#F5F5F5" fill-opacity="0.08"/>
+<path d="M13 14H15L16 13V11L13 14Z" fill="#F5F5F5" fill-opacity="0.08"/>
+<path d="M10 13V14H11L16 9V8C16 7.72386 15.8881 7.47386 15.7071 7.29289L10 13Z" fill="#F5F5F5" fill-opacity="0.08"/>
+<path d="M12 7L10 9V11L14 7H12Z" fill="#F5F5F5" fill-opacity="0.08"/>
+</g>
+</g>
+</g>
+</svg>

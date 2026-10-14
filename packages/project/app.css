@@ -40,12 +40,14 @@
   gap:6px;flex:1 1 0;min-height:0;overflow:hidden;}
 
 .tabs{display:flex;gap:2px;}
-/* radius 6 = panel 8 minus its 2px padding, the same as the dark inset below */
+/* radius 6 = panel 8 minus its 2px padding, the same as the dark inset below.
+   The selected tab takes the colour of the dark inset (Core Mode tabs 24:326): it reads as a
+   window into the content, and hover (lighter) never looks like selection (darker) */
 .seg{flex:1 0 0;min-width:0;display:flex;align-items:center;justify-content:center;padding:8px 8px;
   border:0;background:transparent;cursor:pointer;border-radius:6px;color:var(--ec-fg-72);
   font:400 12px/16px var(--ec-font);user-select:none;}
-.seg:hover{color:var(--ec-fg-96);}
-.seg.active{background:var(--ec-fg-16);color:var(--ec-fg-100);font-weight:600;}
+.seg:hover{color:var(--ec-fg-96);background:var(--ec-fg-4);}
+.seg.active{background:var(--ec-bg);color:var(--ec-fg-100);font-weight:600;}
 
 /* chrome.css also styles .toolbar (8px 16px) — zero it out here */
 .toolbar{display:flex;align-items:center;justify-content:space-between;padding:0;}
@@ -63,7 +65,8 @@
 .b24.more:hover{background:var(--ec-fg-16);} /* the container itself stays quiet */
 /* Run — flat button; text/icon = panel background color ("cut out" effect) */
 /* Calculate — from the mockup: green 10% tint, green 25% border, radius 4 */
-.b24.calc{justify-content:center;gap:4px;padding:6px 10px;border-radius:4px;
+/* 28px tall with its border, like every button of the row */
+.b24.calc{justify-content:center;gap:4px;height:28px;padding:0 10px;border-radius:4px;
   background:rgba(6,178,137,.1);border:1px solid rgba(6,178,137,.25);}
 .b24.calc:hover{background:rgba(6,178,137,.16);}
 .b24.calc.busy{opacity:.85;pointer-events:none;}
@@ -80,14 +83,17 @@
 .line{height:1px;width:100%;background:var(--ec-fg-8);flex:0 0 1px;}
 
 /* ===== Sort row (second toolbar row, toggled by the left toolbar button) ===== */
-/* quiet when off — the plate (fill + border) marks only the pressed state */
-.b24.arrange,.b24.tsearch{padding:0;background:transparent;border:1px solid transparent;}
+/* quiet when off — the plate (fill + border) marks only the pressed state; the border is an
+   inset shadow, so the button stays 28×28 like every other button of the three rows */
+.b24.arrange,.b24.tsearch{padding:0;background:transparent;}
 .b24.arrange:hover,.b24.tsearch:hover{background:var(--ec-fg-8);}
-.b24.arrange.on,.b24.tsearch.on{background:rgba(246,246,246,.09);border-color:rgba(246,246,246,.18);}
+.b24.arrange.on,.b24.tsearch.on{background:rgba(246,246,246,.09);box-shadow:inset 0 0 0 1px rgba(246,246,246,.18);}
 .i28{width:28px;height:28px;display:block;}
 .i18{width:18px;height:18px;}
 .i12{width:12px;height:14px;}
-.sortrow{display:flex;align-items:center;gap:8px;padding:6px 2px 0;flex:0 0 auto;
+/* no side padding: the rows under the toolbar share its edges (6px from the inset), so the
+   first and the last buttons of all three rows stand in one column */
+.sortrow{display:flex;align-items:center;gap:8px;padding:6px 0 0;flex:0 0 auto;
   border-top:1px solid var(--ec-fg-8);}
 .sortrow[hidden]{display:none;}
 /* the dropdown stretches over the free space; the chevron rides its right edge */
@@ -129,6 +135,18 @@
 /* scroll containers reserve the scrollbar lane up front — no layout jump
    when the bar appears or goes away */
 .tree,.simtree,.irows,#collList{scrollbar-gutter:stable;}
+/* the panel lists put their scrollbar lane into the inset's right padding (6px), so rows keep
+   their full width and end where the toolbar ends: a 2px bar, 2px from the rows and 2px from
+   the inset edge; 4px under the pointer */
+#tree,#simTree,#irows{margin-right:-6px;}
+/* the same thin bar for the problem lists of the Status panel (.stp-probs) */
+:is(#tree,#simTree,#irows,#stpProbs)::-webkit-scrollbar{width:6px;}
+/* background-color, not the shorthand: `background` would reset background-clip and paint
+   under the transparent side borders, i.e. across the whole lane */
+:is(#tree,#simTree,#irows,#stpProbs)::-webkit-scrollbar-thumb{border-width:0 2px;border-radius:3px;
+  background-color:var(--ec-fg-24);background-clip:content-box;}
+:is(#tree,#simTree,#irows,#stpProbs)::-webkit-scrollbar-thumb:hover{border-width:0 1px;
+  background-color:var(--ec-fg-48);background-clip:content-box;}
 
 /* ===== Simulate tab: code tree + the simulation bar on the 3D view ===== */
 /* no inspector in simulation — the code tree takes the full dock height */
@@ -648,18 +666,19 @@
 .so-btn:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
 .so-btn svg{width:12px;height:12px;}
 .so-main{flex:1 1 0;min-width:0;display:flex;}
-/* the operation card: quiet plate, two lines */
-.so-card{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:2px;
+/* the operation card: quiet plate, two lines split by a divider —
+   operation (number, name, colour, status) / tool (T# + name, green T# as in the tree) */
+.so-card{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:4px;
   background:var(--ec-fg-4);border-radius:6px;padding:6px 8px;}
+.so-div{flex:0 0 1px;height:1px;background:var(--ec-fg-8);}
 .so-row{display:flex;align-items:center;gap:6px;min-width:0;}
 .so-num{color:var(--ec-fg-48);font:400 12px/16px var(--ec-font);flex:0 0 auto;
   font-variant-numeric:tabular-nums;}
 .so-name{flex:1 1 0;min-width:0;color:var(--ec-fg-96);font:600 12px/16px var(--ec-font);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.so-tag{flex:0 0 auto;padding:1px 6px;border-radius:4px;background:var(--ec-fg-8);
-  color:var(--ec-fg-72);font:400 11px/16px var(--ec-font);}
 .so-icons{display:flex;align-items:center;gap:2px;flex:0 0 auto;}
-.so-tool{color:var(--ec-fg-56);font:400 11px/14px var(--ec-font);
+.so-tno{flex:0 0 auto;color:var(--st-green);font:400 11px/14px var(--ec-font);}
+.so-tool{flex:1 1 0;min-width:0;color:var(--ec-fg-56);font:400 11px/14px var(--ec-font);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .trow{display:flex;align-items:center;gap:4px;padding:2px;border-radius:6px;width:100%;cursor:pointer;}
 .trow:hover{background:var(--ec-fg-4);}
@@ -705,7 +724,9 @@
    the tree; solid, so the rows scrolling underneath do not show through */
 .tsticky,.tghost{position:absolute;left:0;z-index:4;background:var(--ec-bg);}
 .tsticky{top:0;border-bottom:1px solid var(--ec-fg-8);}
-.tghost{bottom:0;padding-top:2px;border-top:1px solid var(--ec-fg-8);}
+/* the pinned selection stands apart from the tree: 6px of air under the divider
+   (the inset rhythm), not a row that merely continues the list */
+.tghost{bottom:0;padding-top:6px;border-top:1px solid var(--ec-fg-8);}
 .tsticky[hidden],.tghost[hidden],.tempty[hidden]{display:none;}
 .tsticky .trow{position:absolute;left:0;right:0;background:var(--ec-bg);}
 .tsticky .trow:hover{background:color-mix(in srgb, #f5f5f5 4%, var(--ec-bg));}
@@ -722,17 +743,20 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 .toolno.tt-hit{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color:var(--ec-fg-100);}
 .trow.tctx .rlabel span{color:var(--ec-fg-56);}
 
-/* search row under the toolbar (search button) — a separator on top like the Sort row */
-.tree-tools{display:flex;align-items:center;gap:2px;flex:0 0 auto;padding:6px 2px 0;
+/* search row under the toolbar (search button) — a separator on top like the Sort row; the
+   same edges, 4px gaps and 28px buttons as the toolbar and the Sort row above it */
+.tree-tools{display:flex;align-items:center;gap:4px;flex:0 0 auto;padding:6px 0 0;
   border-top:1px solid var(--ec-fg-8);}
 .tree-tools[hidden],.panel-tree.sim .tree-tools,.panel-tree.single .tree-tools{display:none !important;}
-/* input_h20 in the 24px row: fg-4 → hover fg-8 → typing: fg-8 + green inset */
-.tt-search{flex:1 1 0;min-width:0;height:20px;margin:2px 0;display:flex;align-items:center;
-  padding:0 2px 0 0;border-radius:4px;background:var(--ec-fg-4);cursor:text;}
+.tree-tools .st-btn{width:28px;height:28px;flex:0 0 28px;}
+/* 28px field, the same height as the expand / collapse buttons next to it:
+   fg-4 → hover fg-8 → typing: fg-8 + green inset */
+.tt-search{flex:1 1 0;min-width:0;height:28px;display:flex;align-items:center;
+  padding:0 6px 0 4px;border-radius:4px;background:var(--ec-fg-4);cursor:text;}
 .tt-search:hover{background:var(--ec-fg-8);}
 .tt-search:focus-within{background:var(--ec-fg-8);box-shadow:inset 0 0 0 1px var(--ec-green);}
 .tt-ic{width:20px;height:20px;flex:0 0 20px;}
-.tt-search input{flex:1 1 0;min-width:0;height:20px;padding:0 2px;border:0;outline:0;background:transparent;
+.tt-search input{flex:1 1 0;min-width:0;height:28px;padding:0 2px;border:0;outline:0;background:transparent;
   color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);}
 .tt-search input::placeholder{color:var(--ec-fg-48);}
 .tt-count{flex:0 0 auto;padding:0 4px;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);
@@ -751,9 +775,23 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 .rail-top{display:flex;flex-direction:column;gap:2px;width:28px;}
 /* radius 6 = panel 8 minus its 2px padding (the rail sits on the panel frame, like .seg) */
 .rbtn{display:flex;align-items:center;padding:4px;border-radius:6px;cursor:pointer;}
-.rbtn:hover{background:var(--ec-fg-4);}
-.rbtn.active{background:var(--ec-fg-16);}
+/* default · hover lighter · selected = the dark inset (Core inspector button 55:761) */
+.rbtn:hover{background:var(--ec-fg-8);}
+.rbtn.active{background:var(--ec-bg);}
 .ricn{width:20px;height:20px}
+/* a tab whose icon is not drawn yet (none at the moment): the .opic placeholder square,
+   a step brighter so it reads on the panel frame */
+.ricn.opic::before{background:var(--ec-fg-24);}
+/* More with nothing to offer (no optional tabs here, every tab fits) */
+.rbtn.is-off{opacity:.4;pointer-events:none;}
+.rbtn.dd-open{background:var(--ec-fg-8);}
+/* More overlay (.dd-menu): the tabs without room in the rail, then the optional tabs of an
+   operation — toggle · icon 20 · name, 24px rows */
+.rail-menu{min-width:200px;}
+.rail-menu .rm-opt{display:flex;align-items:center;gap:8px;padding:2px 8px 2px 6px;}
+.rail-menu .rm-opt .ricn{flex:0 0 20px;}
+/* the open tab, when it is one of those without room: dark like the active rail button */
+.rail-menu .rm-opt.cur{background:var(--ec-bg);}
 .title-row{display:flex;align-items:center;gap:4px;padding:2px 2px 2px 8px;border-radius:6px;}
 .title-row .t{color:var(--ec-fg-96);font:600 14px/20px var(--ec-font);padding-right:8px;}
 .title-ctl{flex:1 1 0;display:flex;justify-content:flex-end;min-width:0;gap:4px;}
@@ -952,6 +990,68 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 .stp-list--status .stp-row{position:relative;}
 .stp-list--status .stp-row + .stp-row::before{content:'';position:absolute;left:7.5px;top:-16.5px;
   width:1px;height:19px;background:var(--ec-fg-24);}
+/* the step where a check found an error: the error glyph instead of the meta text */
+.stp-meta .i16{display:block;}
+/* parameters changed after the calculation: amber note (the status glyph of the tree) + Revert */
+.stp-mod{display:flex;align-items:center;gap:8px;}
+.stp-mod[hidden]{display:none;}
+.stp-mod > .i16{align-self:flex-start;flex:0 0 16px;}
+.stp-mod-t{flex:1;min-width:0;color:var(--ec-amber,#ebc14a);font:400 12px/16px var(--ec-font);}
+.stp-revert{flex:0 0 auto;height:24px;padding:0 8px;border:0;border-radius:4px;cursor:pointer;
+  background:var(--ec-fg-8);color:var(--ec-fg-96);font:500 12px/16px var(--ec-font);}
+.stp-revert:hover{background:var(--ec-fg-12);}
+.stp-errs{display:flex;flex-direction:column;gap:4px;}
+.stp-errs[hidden]{display:none;}
+/* warnings: the same card in amber */
+.ncp-err.is-warn{background:color-mix(in srgb, var(--ec-amber,#ebc14a) 8%, transparent);
+  border-color:color-mix(in srgb, var(--ec-amber,#ebc14a) 25%, transparent);}
+.ncp-err.is-warn .ncp-err__body b{color:var(--ec-amber,#ebc14a);}
+/* Machine / Setup / Part / Group: problems by type in one tinted card (radius 6, padding 2 →
+   rows 4); a type unfolds into its operations — name, where in the branch; click → go to it */
+.stp-plist{display:flex;flex-direction:column;gap:2px;padding:2px;border-radius:6px;
+  background:rgba(255,112,114,.1);border:1px solid rgba(255,112,114,.25);}
+.stp-plist.is-warn{background:color-mix(in srgb, var(--ec-amber,#ebc14a) 8%, transparent);
+  border-color:color-mix(in srgb, var(--ec-amber,#ebc14a) 25%, transparent);}
+.stp-pgrp{display:flex;flex-direction:column;gap:2px;}
+.stp-prow{display:flex;align-items:center;gap:6px;height:24px;padding:0 6px;border-radius:4px;cursor:pointer;
+  font:400 12px/16px var(--ec-font);}
+.stp-prow:hover{background:var(--ec-fg-8);}
+.stp-phead b{flex:1;min-width:0;font-weight:500;color:#ff8384;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.stp-plist.is-warn .stp-phead b{color:var(--ec-amber,#ebc14a);}
+.stp-phead:hover .stp-chev{color:var(--ec-fg-96);}
+.stp-pn{color:var(--ec-fg-72);font-variant-numeric:tabular-nums;}
+.stp-pkids{display:none;flex-direction:column;gap:2px;}
+.stp-pgrp.open .stp-pkids{display:flex;}
+.stp-pgrp.open .stp-chev svg{transform:rotate(90deg);}
+/* operation names line up with the type name: 6 + chevron 12 + 6 */
+.stp-pop{padding-left:24px;}
+.stp-pname{flex:0 1 auto;min-width:0;color:var(--ec-fg-96);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.stp-pwhere{flex:1 1 0;min-width:0;text-align:right;color:var(--ec-fg-48);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* what it is and where, under the title */
+.stp-path{margin-top:-6px;color:var(--ec-fg-48);font:400 12px/16px var(--ec-font);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.stp-path:empty{display:none;}
+/* a branch has no calculation steps / statistics of its own; an operation has no summary */
+.stpanel.is-branch .stp-op-only,.stpanel:not(.is-branch) .stp-br-only{display:none;}
+.stp-sec--n{display:flex;}
+.stp-sec[hidden]{display:none;}
+/* all the numbers of a branch panel stand in one column — the counts inside the problem
+   cards sit 9px in (border 1 + card padding 2 + row padding 6), so the ones outside do too */
+.stp-sec--n > span{margin-left:auto;padding-right:9px;font-weight:400;color:var(--ec-fg-96);font-variant-numeric:tabular-nums;}
+#stpOps .stp-row{padding-right:9px;}
+.stp-ops-n{color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);font-variant-numeric:tabular-nums;}
+/* the panel never runs off the 3D view (stpFit keeps it inside): an operation panel scrolls as
+   a whole; a branch keeps its head and summary and scrolls only the problem lists, with the
+   thin bar in the panel's right padding (lane 6 of the 12) */
+#statusPanel{max-height:calc(100% - 16px);overflow-y:auto;}
+#statusPanel.is-branch{overflow:hidden;}
+.stp-probs{display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
+.stp-probs[hidden]{display:none;}
+.stpanel.is-branch .stp-probs{flex-shrink:1;min-height:0;overflow-y:auto;margin-right:-6px;scrollbar-gutter:stable;}
+/* only the lists give way — the title, the path line (overflow:hidden would let it shrink)
+   and the summary keep their height */
+.stpanel.is-branch > :not(.stp-probs){flex-shrink:0;}
 
 /* NC block panel — same surface as the status panel, extra blocks for the code frame */
 .ncpanel{width:328px;}

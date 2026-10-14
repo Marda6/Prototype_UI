@@ -17,8 +17,14 @@
     --ec-font:'Inter','Inter var',system-ui,-apple-system,'Segoe UI',sans-serif;
   }
   *{box-sizing:border-box}
-  *{scrollbar-width:thin;scrollbar-color:var(--ec-fg-16) transparent;}
+  /* scrollbars: a thin bar, no arrows. Chrome drops the ::-webkit-scrollbar styling (and
+     falls back to its own 10px bar with arrows) once scrollbar-width / scrollbar-color are
+     set, so those two are for Firefox only */
+  @supports not selector(::-webkit-scrollbar){
+    *{scrollbar-width:thin;scrollbar-color:var(--ec-fg-16) transparent;}
+  }
   ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-button{display:none;}
   ::-webkit-scrollbar-track{background:transparent;}
   ::-webkit-scrollbar-thumb{background:var(--ec-fg-16);border-radius:4px;
     border:2px solid transparent;background-clip:content-box;}
