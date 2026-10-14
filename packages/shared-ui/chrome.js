@@ -59,7 +59,7 @@
   function topbar(){
     return '' +
     '<header class="topbar">' +
-      '<div class="hbtn" title="Menu"><img class="hicn-act hicn-logo" src="' + BASE + 'hdr-logo.svg" alt=""></div>' +
+      '<div class="hbtn" id="logoBtn" title="Menu"><img class="hicn-act hicn-logo" src="' + BASE + 'hdr-logo.svg" alt=""></div>' +
       '<div class="hdiv"></div>' +
       '<div class="hgroup-left">' +
         '<div class="hbtn' + (AREA === 'home' ? ' on' : '') + '" title="Home"' +
@@ -236,6 +236,50 @@
     seg.querySelectorAll('.ci').forEach(function(x){
       x.addEventListener('click', function(){ apply(x.dataset.net); });
     });
+  })();
+
+  // temporary prototype toggle: colour variants of the 3D scene and the panels, picked
+  // from the logo menu; set as data-theme on <html>, kept across sections like online/offline
+  (function(){
+    var THEMES = [
+      {id:'',       t:'Default',        k:'A'},
+      {id:'scene',  t:'Lighter scene',  k:'B'},
+      {id:'gradient', t:'Gradient scene', k:'C'},
+      {id:'panels', t:'Lighter panels', k:'D'}
+    ];
+    var root = document.documentElement, cur = '';
+    function apply(id){
+      cur = id;
+      if (id) root.setAttribute('data-theme', id); else root.removeAttribute('data-theme');
+      try { localStorage.setItem('ency.theme', id); } catch(e){}
+    }
+    try { cur = localStorage.getItem('ency.theme') || ''; } catch(e){}
+    apply(cur);
+    var btn = document.getElementById('logoBtn'), menu = null;
+    if (!btn) return;
+    function close(){ if (menu){ menu.remove(); menu = null; btn.classList.remove('open'); } }
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      if (menu){ close(); return; }
+      menu = document.createElement('div');
+      menu.className = 'hmenu';
+      menu.innerHTML = '<div class="hm-head">Theme</div>' + THEMES.map(function(o){
+        return '<div class="hm-opt' + (o.id === cur ? ' cur' : '') + '" data-theme="' + o.id + '">' +
+          '<span class="hm-ck">' + (o.id === cur ? '✓' : '') + '</span>' + o.t + '<span class="hm-key">' + o.k + '</span></div>';
+      }).join('');
+      menu.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        var opt = ev.target.closest('.hm-opt'); if (!opt) return;
+        apply(opt.dataset.theme); close();
+      });
+      document.body.appendChild(menu);
+      var r = btn.getBoundingClientRect();
+      menu.style.left = r.left + 'px';
+      menu.style.top = (r.bottom + 4) + 'px';
+      btn.classList.add('open');
+    });
+    document.addEventListener('click', close);
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
   })();
 
   // account popover (name · e-mail · Sign out) and the sign-in / sign-out switch

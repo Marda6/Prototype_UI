@@ -27,6 +27,7 @@ each marked with the same comment title.
 | Single-operation mode | `#singleOp` | `.singleop`, `.so-*` | "single-operation mode" |
 | Simulation popovers (settings, stop conditions, collision list) | `#simPop`, `#stopsPop`, `#collPop` | `.simpop`, `.sp-*`, `.coll-*` | `spOpen`, `collListRender` |
 | Filters panel on the 3D view | `#filters` | `.filters` | — |
+| Theme variants (experiment: A default · B lighter scene · C gradient scene (panel hue) · D lighter panels), picked in the logo menu | `#logoBtn` → `.hmenu`; `data-theme` on `<html>` | `--scene`, `[data-theme=…]` ("Theme variants" in `app.css`), `.hm-*` in `shared-ui/chrome.css` | `shared-ui/chrome.js`: `THEMES`, `localStorage['ency.theme']` |
 | Inspector (bottom-left) | `.irows`, `.irow` | `.irow`, `.ictl`, `.dropdown` | "Inspector" |
 | **Toolpath edits** (rail tab "Edits": list of Trim / Links / Feeds, 3D toolpath canvas, edit bar) | `.rbtn[data-tab=Edits]`, `.tp-view`, `.tpe-bar` | `.tpe-*` ("Toolpath edits (tpedit.js)") | `tpedit.js`: `evaluate`, `deriveLinks`, `beginEdit` / `commit` / `cancel` / `leave`, `barSync` |
 | Drawing bar (shared: wand · Line · Normal · Polyline · Spline · Free / On Surface) | `.ency-draw` | `shared-ui/drawbar.css` | `shared-ui/drawbar.js`: `ENCY_DRAWBAR.create` |

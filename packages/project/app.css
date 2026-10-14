@@ -40,8 +40,9 @@
   gap:6px;flex:1 1 0;min-height:0;overflow:hidden;}
 
 .tabs{display:flex;gap:2px;}
+/* radius 6 = panel 8 minus its 2px padding, the same as the dark inset below */
 .seg{flex:1 0 0;min-width:0;display:flex;align-items:center;justify-content:center;padding:8px 8px;
-  border:0;background:transparent;cursor:pointer;border-radius:8px;color:var(--ec-fg-72);
+  border:0;background:transparent;cursor:pointer;border-radius:6px;color:var(--ec-fg-72);
   font:400 12px/16px var(--ec-font);user-select:none;}
 .seg:hover{color:var(--ec-fg-96);}
 .seg.active{background:var(--ec-fg-16);color:var(--ec-fg-100);font-weight:600;}
@@ -856,7 +857,22 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 
 /* ===== Viewport + filters + status panel ===== */
 /* the viewport is the frameless 3D scene itself */
-.viewport{position:absolute;inset:0;background:var(--ec-bg);}
+.viewport{position:absolute;inset:0;background:var(--scene);}
+
+/* Theme variants — prototype experiment, picked in the logo menu (shared-ui/chrome.js
+   sets data-theme on <html>):
+   A default — the scene is --ec-bg, the same as the panels' dark insets;
+   B "scene"  — the scene one 4 % step lighter: inset 0 → scene 4 → frame 8 → popover 12;
+   C "gradient" — a top-to-bottom gradient like the 3D view of ENCY, but in the panels' own hue
+                (fg 6 % → 2 % over --ec-bg): lighter than the insets everywhere, darker than the frames;
+   D "panels" — the panels one 4 % step lighter (insets 4 %, frames ≈12 %), scene as A.
+   D re-bases --ec-bg on the panel roots, so every inset and frame inside follows. */
+:root{--scene:var(--ec-bg);}
+[data-theme="scene"]{--scene:color-mix(in srgb, #f5f5f5 4%, var(--ec-bg));}
+[data-theme="gradient"]{--scene:linear-gradient(180deg, color-mix(in srgb, #f5f5f5 6%, var(--ec-bg)) 0%,
+  color-mix(in srgb, #f5f5f5 2%, var(--ec-bg)) 100%);}
+/* #0e1010 = --ec-bg (a custom property can't refer to itself) */
+[data-theme="panels"] :is(.dock, .filters, .simbar, .tpe-bar){--ec-bg:color-mix(in srgb, #f5f5f5 4%, #0e1010);}
 .vp-hint{position:absolute;inset:0;pointer-events:none;display:grid;place-items:center;color:var(--ec-fg-8);font-size:13px;letter-spacing:.04em;}
 
 /* filters float next to the dock */

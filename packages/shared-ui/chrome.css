@@ -1,8 +1,11 @@
 /* ENCY Core — window shell: title bar, sidebar, content container,
    page header and shared toolbar controls. Sections do not override this. */
   /* ===== Header / Menu bar (shared ENCY window chrome) ===== */
+  /* hairline at the bottom like the panels' border (fg-12); the bottom padding gives
+     up that 1px, so the bar stays 44px and the buttons don't move */
   .topbar{flex:0 0 44px;display:flex;align-items:center;gap:4px;
-    background:var(--ec-fg-8);border-radius:0;padding:6px 12px 6px 6px;}
+    background:var(--ec-fg-8);border-radius:0;padding:6px 12px 5px 6px;
+    border-bottom:1px solid var(--ec-fg-12);}
   .hbtn{width:32px;height:32px;flex:0 0 32px;display:flex;align-items:center;justify-content:center;
     border-radius:4px;cursor:pointer;}
   .hbtn:hover{background:var(--ec-fg-12);}
@@ -20,6 +23,19 @@
   .hicn-plus{width:12px;height:12px;}
   .hdiv{width:1px;align-self:stretch;margin:0 2px;
     background:linear-gradient(180deg, transparent 0%, var(--ec-fg-8) 50%, transparent 100%);}
+  /* logo menu (theme variants): the dropdown look of the project window — popover
+     surface 12 %, 24px rows, check column, quiet key letter on the right */
+  .hmenu{position:fixed;z-index:1000;min-width:180px;padding:2px;border-radius:4px;
+    display:flex;flex-direction:column;gap:1px;
+    background:color-mix(in srgb, #f5f5f5 12%, var(--ec-bg));border:1px solid var(--ec-fg-12);
+    box-shadow:0 6px 20px rgba(0,0,0,.5);}
+  .hm-head{padding:5px 6px 2px;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);}
+  .hm-opt{display:flex;align-items:center;gap:4px;height:24px;padding:0 6px;border-radius:3px;cursor:pointer;
+    color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);white-space:nowrap;}
+  .hm-opt:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+  .hm-opt.cur{color:var(--ec-fg-100);}
+  .hm-ck{width:14px;flex:0 0 14px;text-align:center;color:var(--ec-fg-96);}
+  .hm-key{margin-left:auto;padding-left:16px;color:var(--ec-fg-48);}
   .htabs{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:4px;height:100%;overflow:hidden;}
   /* no overflow:hidden: the ::before divider sits in the gap between tabs,
      i.e. outside the tab box; the text is clipped by .htab-t itself */
