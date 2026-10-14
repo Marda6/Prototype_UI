@@ -24,7 +24,7 @@ each marked with the same comment title.
 | Simulation code tree | `#simTree`, rows `.simrow` | `.simrow`, `.sim-*` | `simRender` |
 | Simulation control bar + timeline | `#simBar`, `#simTl` | `.simbar`, `.sb-*`, `.tl-*` | "the control bar", `simTick`, `simTlSync` |
 | Compact (docked) sim controls | `#simDock` | `.sim-dockbar`, `.sd-*` | `sdUndock` |
-| Single-operation mode | `#singleOp` | `.singleop`, `.so-*` | "single-operation mode" |
+| Single-operation mode (double-click on the dock resizer, or squeeze the tree to about its size; pulling the resizer down leaves it) | `#singleOp` | `.singleop`, `.so-*` | "single-operation mode", `setSingle`, `singleH`, `SINGLE_IN` / `SINGLE_OUT` in "Dock resizer" |
 | Simulation popovers (settings, stop conditions, collision list) | `#simPop`, `#stopsPop`, `#collPop` | `.simpop`, `.sp-*`, `.coll-*` | `spOpen`, `collListRender` |
 | Filters panel on the 3D view | `#filters` | `.filters` | — |
 | Theme variants (experiment: A default · B lighter scene · C gradient scene (panel hue) · D lighter panels), picked in the logo menu | `#logoBtn` → `.hmenu`; `data-theme` on `<html>` | `--scene`, `[data-theme=…]` ("Theme variants" in `app.css`), `.hm-*` in `shared-ui/chrome.css` | `shared-ui/chrome.js`: `THEMES`, `localStorage['ency.theme']` |

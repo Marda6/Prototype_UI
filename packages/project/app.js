@@ -3388,24 +3388,52 @@
     return h + 8 + 6;                                     // gap between the two rail groups + panel padding and border
   }
   if(panelInsp) panelInsp.style.minHeight = inspMin() + 'px';
+  // the height of the tree panel in the single-operation mode (it depends on the card):
+  // switched on and back within one frame, nothing is painted in between
+  function singleH(){
+    if(dockEl.classList.contains('single')) return panelTree.offsetHeight;
+    var flex = panelTree.style.flex;
+    setSingle(true);
+    var h = panelTree.offsetHeight;
+    setSingle(false);
+    panelTree.style.flex = flex;
+    return h;
+  }
   if(dockResizer && panelTree && dockEl){
     var MIN_PANEL = 140; // min height for either panel
+    // squeezing the tree down to about the size of the single-operation panel switches to that
+    // mode (a tree a row high is no tree); pulling it out again leaves it. The gap between the
+    // two thresholds keeps the mode from flickering at the edge
+    var SINGLE_IN = 24, SINGLE_OUT = 48;
     // double-click toggles the single-operation mode
     dockResizer.addEventListener('dblclick', function(){
       setSingle(!dockEl.classList.contains('single'));
     });
     dockResizer.addEventListener('mousedown', function(e){
-      if(dockEl.classList.contains('insp-collapsed') || dockEl.classList.contains('single')) return;
+      if(dockEl.classList.contains('insp-collapsed')) return;
       e.preventDefault();
       dockResizer.classList.add('dragging');
       document.body.style.userSelect = 'none';
       document.body.style.cursor = 'row-resize';
+      // the Simulation tab has no single-operation card: there the tree only stops at MIN_PANEL
+      var auto = !panelTree.classList.contains('sim'), sH = auto ? singleH() : 0;
       function onMove(ev){
         var r = dockEl.getBoundingClientRect();
         var rezH = dockResizer.offsetHeight;
         var h = (ev.clientY - r.top) - rezH / 2; // tree height, resizer centered on cursor
         var maxH = r.height - rezH - Math.max(MIN_PANEL, inspMin());
-        h = Math.max(MIN_PANEL, Math.min(maxH, h));
+        var single = dockEl.classList.contains('single');
+        if(auto){
+          if(!single && h <= sH + SINGLE_IN){ setSingle(true); return; }
+          if(single){
+            if(h < sH + SINGLE_OUT) return;
+            setSingle(false);
+          }
+          h = Math.max(sH + SINGLE_IN, Math.min(maxH, h));
+        } else {
+          if(single) return;
+          h = Math.max(MIN_PANEL, Math.min(maxH, h));
+        }
         panelTree.style.flex = '0 0 ' + h + 'px';
       }
       function onUp(){
