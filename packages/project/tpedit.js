@@ -55,7 +55,23 @@
                        radius:0, engage:'Off', retract:'Off', leadsShort:true, feedPct:100, skim:2};
   var TRIM_RULES = Object.assign({}, DEFAULT_RULES, {shortType:'Straight', shortPct:300});
   function shortMax(op, r){ return r.shortPct / 100 * 2 * op.tool; }
-  var COL = {work:'#70cfff', retract:'#ffdf70', rapid:'#ec3b40', feed:'#00a36d', hit:'#f5f5f5', z:'235,193,74'};
+  // the canvas follows the theme (project/app.css "Themes"): ink and scene from --th-ink / --th-base; a light
+  // theme raises the ink opacities like the --ec-fg-* tokens (1 − (1 − a)^1.4 ≈ their table) and takes the
+  // move colours of the light icons (tools/theme-icons.js)
+  var COL_DARK = {work:'#70cfff', retract:'#ffdf70', rapid:'#ec3b40', feed:'#00a36d', z:'235,193,74'};
+  var COL_LIGHT = {work:'#278ebb', retract:'#9f8204', rapid:'#ec3b40', feed:'#05784f', z:'164,128,1'};
+  var COL = COL_DARK, TH = {light:false, ink:'245,245,245', base:'14,16,16'};
+  function themeSync(){
+    var cs = getComputedStyle(document.documentElement);
+    var rgb = function(v, d){ v = (v || '').trim().replace('#', ''); if(v.length !== 6) return d;
+      return [0, 2, 4].map(function(i){ return parseInt(v.slice(i, i + 2), 16); }).join(','); };
+    TH.light = /-light$/.test(document.documentElement.getAttribute('data-theme') || '');
+    TH.ink = rgb(cs.getPropertyValue('--th-ink'), '245,245,245'); TH.base = rgb(cs.getPropertyValue('--th-base'), '14,16,16');
+    COL = TH.light ? COL_LIGHT : COL_DARK; COL.hit = 'rgb(' + TH.ink + ')';
+  }
+  function inkA(a){ return TH.light ? 1 - Math.pow(1 - a, 1.4) : a; }
+  function ink(a){ return 'rgba(' + TH.ink + ',' + inkA(a).toFixed(3) + ')'; }
+  function scene(a){ return 'rgba(' + TH.base + ',' + a + ')'; }
 
   /* ---------- the part and the calculated toolpath ----------
      A stadium-shaped boss with a draft on a floor; Z-level passes around it, one closed contour
@@ -470,6 +486,8 @@
   }
   var raf = 0, handles = [], mouse = null;
   function draw(){ if(!raf) raf = requestAnimationFrame(paint); }
+  // a theme switch repaints in the new colours
+  new MutationObserver(draw).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
   function Buckets(){ this.m = {}; }
   Buckets.prototype.seg = function(col, al, w, dash, a, b){
     var k = col + '|' + al + '|' + w + '|' + (dash ? 1 : 0), p = this.m[k] || (this.m[k] = {col:col, al:al, w:w, dash:dash, path:new Path2D()});
@@ -485,7 +503,7 @@
   };
   function paint(){
     raf = 0; if(!active) return;
-    trig(); ctx.clearRect(0, 0, W, H);
+    themeSync(); trig(); ctx.clearRect(0, 0, W, H);
     var op = curOp(); if(!op) return;
     var c = centre();
     // while an edit is open the view shows its result next to what it changes;
@@ -498,7 +516,7 @@
     // trim preview: what goes away, as a faint dashed ghost
     if(R && e.type === 'trim' && e.on) inp.segs.forEach(function(s){
       var kill = killMask(s, R, e.mode);
-      for(var i = 0; i < s.pts.length - 1; i++) if(kill[i] && kill[i + 1]) put(facing(s.nrm[i]) > -0.08, '#f5f5f5', 0.55, 1, true, P(s.pts[i], c), P(s.pts[i + 1], c));
+      for(var i = 0; i < s.pts.length - 1; i++) if(kill[i] && kill[i + 1]) put(facing(s.nrm[i]) > -0.08, COL.hit, 0.55, 1, true, P(s.pts[i], c), P(s.pts[i + 1], c));
     });
     out.segs.forEach(function(s){
       for(var i = 0; i < s.pts.length - 1; i++){
@@ -510,7 +528,7 @@
     // links edit preview: the links it rebuilds in white, the shape they had faint
     if(R && e.type === 'links' && e.on) deriveLinks(op, inp).forEach(function(L){
       if(!linkMatches(L, R, e.filter)) return;
-      var old = linkPts(L); for(var j = 0; j < old.length - 1; j++) put(true, '#f5f5f5', 0.22, 1, true, P(old[j], c), P(old[j + 1], c));
+      var old = linkPts(L); for(var j = 0; j < old.length - 1; j++) put(true, COL.hit, 0.22, 1, true, P(old[j], c), P(old[j + 1], c));
     });
     deriveLinks(op, out).forEach(function(L){
       var hit = editing && e.type === 'links' && L.mod === idx;
@@ -539,11 +557,12 @@
   }
   function poly(pts, c){ ctx.beginPath(); pts.forEach(function(p, i){ var q = P(p, c); if(i) ctx.lineTo(q[0], q[1]); else ctx.moveTo(q[0], q[1]); }); ctx.closePath(); }
   // the part: the token greys (fg over bg) mixed to a solid colour, so it hides what is behind it
-  function grey(k){ var v = function(b){ return Math.round(b + (245 - b) * k); }; return 'rgb(' + v(14) + ',' + v(16) + ',' + v(16) + ')'; }
+  function grey(k){ var b = TH.base.split(',').map(Number), i = TH.ink.split(',').map(Number); k = inkA(k);
+    return 'rgb(' + b.map(function(v, j){ return Math.round(v + (i[j] - v) * k); }).join(',') + ')'; }
   function paintFloor(c){
     poly([[-G.fx, -G.fy, 0], [G.fx, -G.fy, 0], [G.fx, G.fy, 0], [-G.fx, G.fy, 0]], c);
-    ctx.fillStyle = 'rgba(245,245,245,.04)'; ctx.fill();
-    ctx.strokeStyle = 'rgba(245,245,245,.12)'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = ink(.04); ctx.fill();
+    ctx.strokeStyle = ink(.12); ctx.lineWidth = 1; ctx.stroke();
   }
   function paintPart(c){
     var N = 72, rb = G.R0, rt = bossR(G.H), Pb = stadiumLen(rb), Pt = stadiumLen(rt), bot = [], top = [];
@@ -558,9 +577,9 @@
     }
     poly(top.map(function(q){ return [q.x, q.y, G.H]; }), c);
     ctx.fillStyle = T.sp > 0 ? grey(0.17) : grey(0.05); ctx.fill();
-    ctx.strokeStyle = 'rgba(245,245,245,.24)'; ctx.stroke();
+    ctx.strokeStyle = ink(.24); ctx.stroke();
     poly(bot.map(function(q){ return [q.x, q.y, 0]; }), c);
-    ctx.strokeStyle = 'rgba(245,245,245,.16)'; ctx.stroke();
+    ctx.strokeStyle = ink(.16); ctx.stroke();
   }
   function paintRegion(e, c, live, op){
     var al = live ? 1 : 0.45;
@@ -577,7 +596,7 @@
         corners.forEach(function(p){ var q = P(p, c); if(q[0] < W - 90 && (!best || q[0] > best[0])) best = q; });
         if(!best) best = P(corners[1], c);
         ctx.fillStyle = 'rgb(' + COL.z + ')'; ctx.beginPath(); ctx.arc(best[0], best[1], 6, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#0e1010'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.strokeStyle = scene(1); ctx.lineWidth = 2; ctx.stroke();
         ctx.font = '400 11px Inter, system-ui, sans-serif'; ctx.textBaseline = 'middle';
         label('Z ' + fmt1(z), best[0] + 12, best[1], 'rgb(' + COL.z + ')');
         handles.push({kind:'z', k:k, x:best[0], y:best[1]});
@@ -588,7 +607,7 @@
   function wline(pts, c){ ctx.beginPath(); pts.forEach(function(p, i){ var q = P(p, c); if(i) ctx.lineTo(q[0], q[1]); else ctx.moveTo(q[0], q[1]); }); }
   function paintCurve(cu, closed, c, al, live, e, shape){
     var zTop = e && e.zr.on ? e.zr.hi : G.H + 4, zBot = e && e.zr.on ? e.zr.lo : 0, dr = live && drawing();
-    var W96 = 'rgba(245,245,245,' + (0.96 * al).toFixed(2) + ')';
+    var W96 = ink(0.96 * al);
     if(CUT_SHAPES[shape]){
       if(cu.length === 2) paintCut(cu[0], cu[1], c, al, zBot, zTop);
       else if(dr && mouse){ var q = P(cu[0], c); ctx.beginPath(); ctx.moveTo(q[0], q[1]); ctx.lineTo(mouse.x, mouse.y); ctx.strokeStyle = W96; ctx.lineWidth = 1.5; ctx.stroke(); }
@@ -596,7 +615,7 @@
       // the contour on the points (on the plane or on the part), the spline smoothed through them
       var path = shape === 'spline' ? splinePts(cu, closed) : cu, flat = closed ? (shape === 'spline' ? path : cu) : null;
       // the prism it cuts through the toolpath: dashed outlines below and above + verticals at the points
-      ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(245,245,245,' + (0.4 * al).toFixed(2) + ')';
+      ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.strokeStyle = ink(0.4 * al);
       ctx.beginPath();
       if(flat) [zBot, zTop].forEach(function(z){
         flat.forEach(function(p, i){ var q = P([p[0], p[1], z], c); if(i) ctx.lineTo(q[0], q[1]); else ctx.moveTo(q[0], q[1]); });
@@ -608,13 +627,13 @@
       if(closed) ctx.closePath();
       else if(dr && mouse) ctx.lineTo(mouse.x, mouse.y);
       ctx.strokeStyle = W96; ctx.lineWidth = 1.5; ctx.stroke();
-      if(closed){ ctx.fillStyle = 'rgba(245,245,245,' + (0.05 * al).toFixed(3) + ')'; ctx.fill(); }
+      if(closed){ ctx.fillStyle = ink(0.05 * al); ctx.fill(); }
     }
     if(!live) return;
     cu.forEach(function(p, i){
       var q = P(p, c), near = dr && !CUT_SHAPES[shape] && i === 0 && cu.length >= 3 && mouse && Math.hypot(mouse.x - q[0], mouse.y - q[1]) < 10;
       var r = near ? 5 : 3.5;
-      ctx.fillStyle = near ? '#00a36d' : '#f5f5f5'; ctx.strokeStyle = '#0e1010'; ctx.lineWidth = 1.5;
+      ctx.fillStyle = near ? COL.feed : COL.hit; ctx.strokeStyle = scene(1); ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.rect(q[0] - r, q[1] - r, r * 2, r * 2); ctx.fill(); ctx.stroke();
       handles.push({kind:'v', i:i, x:q[0], y:q[1]});
     });
@@ -631,18 +650,18 @@
     });
     var A = [a[0] + dx * t0, a[1] + dy * t0], Bp = [a[0] + dx * t1, a[1] + dy * t1];
     poly([[A[0], A[1], zBot], [Bp[0], Bp[1], zBot], [Bp[0], Bp[1], zTop], [A[0], A[1], zTop]], c);
-    ctx.fillStyle = 'rgba(245,245,245,' + (0.07 * al).toFixed(3) + ')'; ctx.fill();
-    ctx.strokeStyle = 'rgba(245,245,245,' + (0.5 * al).toFixed(2) + ')'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = ink(0.07 * al); ctx.fill();
+    ctx.strokeStyle = ink(0.5 * al); ctx.lineWidth = 1; ctx.stroke();
     // the drawn segment
-    wline([a, b], c); ctx.strokeStyle = 'rgba(245,245,245,' + (0.96 * al).toFixed(2) + ')'; ctx.lineWidth = 1.5; ctx.stroke();
+    wline([a, b], c); ctx.strokeStyle = ink(0.96 * al); ctx.lineWidth = 1.5; ctx.stroke();
     // arrow: from the middle of the plane to the working side (left of a→b)
     var zm = (zBot + zTop) / 2, m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, zm], nx = -dy, ny = dx, L = 12;
     var head = [m[0] + nx * L, m[1] + ny * L, zm];
-    wline([m, head], c); ctx.strokeStyle = 'rgba(245,245,245,' + al.toFixed(2) + ')'; ctx.lineWidth = 2; ctx.stroke();
+    wline([m, head], c); ctx.strokeStyle = ink(al); ctx.lineWidth = 2; ctx.stroke();
     var p = P(head, c), q = P([m[0] + nx * (L - 3), m[1] + ny * (L - 3), zm], c), ux = p[0] - q[0], uy = p[1] - q[1], ul = Math.hypot(ux, uy) || 1;
     ux /= ul; uy /= ul;
     ctx.beginPath(); ctx.moveTo(p[0] + ux * 2, p[1] + uy * 2); ctx.lineTo(p[0] - ux * 7 - uy * 4, p[1] - uy * 7 + ux * 4); ctx.lineTo(p[0] - ux * 7 + uy * 4, p[1] - uy * 7 - ux * 4); ctx.closePath();
-    ctx.fillStyle = 'rgba(245,245,245,' + al.toFixed(2) + ')'; ctx.fill();
+    ctx.fillStyle = ink(al); ctx.fill();
   }
   // where a region shows on screen: its right-most point (for placing the edit bar next to it)
   function regionAnchor(e){
@@ -692,7 +711,7 @@
   }
   function label(t, x, y, col){
     var w = ctx.measureText(t).width + 8;
-    ctx.fillStyle = 'rgba(14,16,16,.8)'; ctx.beginPath();
+    ctx.fillStyle = scene(.8); ctx.beginPath();
     if(ctx.roundRect) ctx.roundRect(x - 4, y - 8, w, 16, 4); else ctx.rect(x - 4, y - 8, w, 16);
     ctx.fill(); ctx.fillStyle = col; ctx.fillText(t, x, y + 0.5);
   }

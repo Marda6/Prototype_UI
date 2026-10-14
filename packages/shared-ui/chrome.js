@@ -239,14 +239,14 @@
     });
   })();
 
-  // temporary prototype toggle: colour variants of the 3D scene and the panels, picked
-  // from the logo menu; set as data-theme on <html>, kept across sections like online/offline
+  // colour themes, picked from the logo menu; set as data-theme on <html>, kept across
+  // sections like online/offline (the colours: "Themes" in project/app.css)
   (function(){
     var THEMES = [
-      {id:'',       t:'Default',        k:'A'},
-      {id:'scene',  t:'Lighter scene',  k:'B'},
-      {id:'gradient', t:'Gradient scene', k:'C'},
-      {id:'panels', t:'Lighter panels', k:'D'}
+      {id:'',               t:'Graphite', g:'Dark'},
+      {id:'steel',          t:'Steel',    g:'Dark'},
+      {id:'graphite-light', t:'Silver',   g:'Light'},   // the light pair of Graphite
+      {id:'steel-light',    t:'Frost',    g:'Light'}    // the light pair of Steel
     ];
     var root = document.documentElement, cur = '';
     function apply(id){
@@ -255,6 +255,8 @@
       try { localStorage.setItem('ency.theme', id); } catch(e){}
     }
     try { cur = localStorage.getItem('ency.theme') || ''; } catch(e){}
+    // a theme that is gone (the old A–D variants) falls back to the default
+    if (!THEMES.some(function(o){ return o.id === cur; })) cur = '';
     apply(cur);
     var btn = document.getElementById('logoBtn'), menu = null;
     if (!btn) return;
@@ -264,9 +266,11 @@
       if (menu){ close(); return; }
       menu = document.createElement('div');
       menu.className = 'hmenu';
-      menu.innerHTML = '<div class="hm-head">Theme</div>' + THEMES.map(function(o){
-        return '<div class="hm-opt' + (o.id === cur ? ' cur' : '') + '" data-theme="' + o.id + '">' +
-          '<span class="hm-ck">' + (o.id === cur ? '✓' : '') + '</span>' + o.t + '<span class="hm-key">' + o.k + '</span></div>';
+      // grouped Dark / Light
+      menu.innerHTML = THEMES.map(function(o, i){
+        return (i && THEMES[i - 1].g === o.g ? '' : '<div class="hm-head">' + o.g + '</div>') +
+          '<div class="hm-opt' + (o.id === cur ? ' cur' : '') + '" data-theme="' + o.id + '">' +
+          '<span class="hm-ck">' + (o.id === cur ? '✓' : '') + '</span>' + o.t + '</div>';
       }).join('');
       menu.addEventListener('click', function(ev){
         ev.stopPropagation();
