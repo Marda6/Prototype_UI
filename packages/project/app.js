@@ -3379,15 +3379,8 @@
   /* ---------- Dock resizer: drag to resize tree vs inspector ---------- */
   var dockResizer = document.getElementById('dockResizer');
   var panelTree = document.querySelector('.panel-tree');
-  // the inspector never gets shorter than its rail (all tabs + More), so no tab is cut off —
-  // the tree gives way instead
-  var panelInsp = document.querySelector('.panel-insp');
-  function inspMin(){
-    if(!panelInsp) return 0;
-    var h = 0; panelInsp.querySelectorAll('.rail-top').forEach(function(t){ h += t.offsetHeight; });
-    return h + 8 + 6;                                     // gap between the two rail groups + panel padding and border
-  }
-  if(panelInsp) panelInsp.style.minHeight = inspMin() + 'px';
+  // the inspector may get shorter than its rail: the tabs without room move into More
+  // ("Inspector tabs"), so it only keeps the common minimum (.panel-insp in app.css)
   // the height of the tree panel in the single-operation mode (it depends on the card):
   // switched on and back within one frame, nothing is painted in between
   function singleH(){
@@ -3421,7 +3414,7 @@
         var r = dockEl.getBoundingClientRect();
         var rezH = dockResizer.offsetHeight;
         var h = (ev.clientY - r.top) - rezH / 2; // tree height, resizer centered on cursor
-        var maxH = r.height - rezH - Math.max(MIN_PANEL, inspMin());
+        var maxH = r.height - rezH - MIN_PANEL;
         var single = dockEl.classList.contains('single');
         if(auto){
           if(!single && h <= sH + SINGLE_IN){ setSingle(true); return; }

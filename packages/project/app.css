@@ -20,7 +20,8 @@
 .panel16{background:color-mix(in srgb, #f5f5f5 8%, var(--ec-bg));
   border:1px solid var(--ec-fg-12);border-radius:8px;padding:2px;display:flex;min-height:0;}
 .panel-tree{flex:1 1 52%;flex-direction:column;gap:2px;}
-.panel-insp{flex:1 1 48%;gap:2px;}
+/* 140 = MIN_PANEL of the dock resizer; below the rail's height the tabs move into More */
+.panel-insp{flex:1 1 48%;gap:2px;min-height:140px;}
 .dock.insp-collapsed .panel-insp{display:none;}
 .dock-resizer{flex:0 0 6px;height:6px;display:flex;flex-direction:column;justify-content:center;
   gap:2px;cursor:row-resize;touch-action:none;}
