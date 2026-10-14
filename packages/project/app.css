@@ -749,7 +749,8 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 /* ===== Inspector ===== */
 .rail{display:flex;flex-direction:column;justify-content:space-between;height:100%;width:28px;flex:0 0 28px;}
 .rail-top{display:flex;flex-direction:column;gap:2px;width:28px;}
-.rbtn{display:flex;align-items:center;padding:4px;border-radius:8px;cursor:pointer;}
+/* radius 6 = panel 8 minus its 2px padding (the rail sits on the panel frame, like .seg) */
+.rbtn{display:flex;align-items:center;padding:4px;border-radius:6px;cursor:pointer;}
 .rbtn:hover{background:var(--ec-fg-4);}
 .rbtn.active{background:var(--ec-fg-16);}
 .ricn{width:20px;height:20px}

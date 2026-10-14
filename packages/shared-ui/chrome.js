@@ -96,6 +96,7 @@
           '<span class="ci on" data-net="online">Online</span>' +
           '<span class="ci" data-net="offline">Offline</span>' +
         '</div>' +
+        '<div class="hdiv"></div>' +
         '<div class="hbtn" title="More"><img class="hicn32" src="' + BASE + 'hdr-chevron.svg" alt=""></div>' +
         '<div class="hbtn" title="Minimize"><img class="hicn32" src="' + BASE + 'hdr-min.svg" alt=""></div>' +
         '<div class="hbtn" title="Maximize"><img class="hicn32" src="' + BASE + 'hdr-max.svg" alt=""></div>' +

@@ -2,10 +2,13 @@
    page header and shared toolbar controls. Sections do not override this. */
   /* ===== Header / Menu bar (shared ENCY window chrome) ===== */
   /* hairline at the bottom like the panels' border (fg-12); the bottom padding gives
-     up that 1px, so the bar stays 44px and the buttons don't move */
+     up that 1px, so the bar stays 44px and the buttons don't move.
+     One rhythm for the whole bar: 4px between neighbours, 4px from any divider on
+     both sides, the same 6px margin at both ends. Groups: logo | actions | tabs | window */
   .topbar{flex:0 0 44px;display:flex;align-items:center;gap:4px;
-    background:var(--ec-fg-8);border-radius:0;padding:6px 12px 5px 6px;
-    border-bottom:1px solid var(--ec-fg-12);}
+    background:var(--ec-fg-8);border-radius:0;padding:6px 6px 5px 6px;
+    border-bottom:1px solid var(--ec-fg-12);
+    --hdiv-bg:linear-gradient(180deg, transparent 0%, var(--ec-fg-8) 50%, transparent 100%);}
   .hbtn{width:32px;height:32px;flex:0 0 32px;display:flex;align-items:center;justify-content:center;
     border-radius:4px;cursor:pointer;}
   .hbtn:hover{background:var(--ec-fg-12);}
@@ -13,7 +16,7 @@
   .hbtn.on{background:var(--ec-fg-16);}
   .hbtn.on:hover{background:var(--ec-fg-24);}
   .hgroup-left{display:flex;align-items:center;gap:4px;}
-  .hgroup-right{display:flex;align-items:center;gap:12px;}
+  .hgroup-right{display:flex;align-items:center;gap:4px;}
   /* the "+ new tab" button is not available while the license has expired */
   .app.lic-expired .htabs .hbtn{opacity:.35;pointer-events:none;}
   .hicn32{width:32px;height:32px;}
@@ -21,8 +24,7 @@
   .hicn-logo{width:15px;height:15px;}
   .hicn-save{width:14px;height:14px;}
   .hicn-plus{width:12px;height:12px;}
-  .hdiv{width:1px;align-self:stretch;margin:0 2px;
-    background:linear-gradient(180deg, transparent 0%, var(--ec-fg-8) 50%, transparent 100%);}
+  .hdiv{width:1px;flex:0 0 1px;align-self:stretch;background:var(--hdiv-bg);}
   /* logo menu (theme variants): the dropdown look of the project window — popover
      surface 12 %, 24px rows, check column, quiet key letter on the right */
   .hmenu{position:fixed;z-index:1000;min-width:180px;padding:2px;border-radius:4px;
@@ -36,16 +38,19 @@
   .hm-opt.cur{color:var(--ec-fg-100);}
   .hm-ck{width:14px;flex:0 0 14px;text-align:center;color:var(--ec-fg-96);}
   .hm-key{margin-left:auto;padding-left:16px;color:var(--ec-fg-48);}
-  .htabs{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:4px;height:100%;overflow:hidden;}
+  /* gap 9 = 4 + divider + 4, so a tab sits 4px from the divider on each side —
+     the same as the group dividers (.hdiv) */
+  .htabs{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:9px;height:100%;overflow:hidden;}
   /* no overflow:hidden: the ::before divider sits in the gap between tabs,
-     i.e. outside the tab box; the text is clipped by .htab-t itself */
+     i.e. outside the tab box; the text is clipped by .htab-t itself.
+     It is the .hdiv look (full height, gradient) and stays next to the active tab too,
+     so the active tab has a divider at 4px on both sides */
   .htab{position:relative;display:flex;align-items:center;gap:8px;height:32px;width:180px;flex:0 1 180px;
     padding:0 11px;border-radius:4px;background:transparent;cursor:pointer;}
   .htab:hover{background:var(--ec-fg-8);}
   .htab.active{background:var(--ec-fg-16);}
-  .htab:not(:first-child)::before,.htabs .hbtn::before{content:"";position:absolute;left:-3.5px;top:6px;bottom:6px;width:1px;background:var(--ec-fg-12);}
+  .htab:not(:first-child)::before,.htabs .hbtn::before{content:"";position:absolute;left:-5px;top:0;bottom:0;width:1px;background:var(--hdiv-bg);}
   .htabs .hbtn{position:relative;}
-  .htab.active::before,.htab.active + .htab::before,.htab.active + .hbtn::before{display:none;}
   .htab-t{flex:1 1 0;min-width:0;color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .htab.active .htab-t{color:var(--ec-fg-96);}
@@ -222,7 +227,7 @@
   .dd img{width:10px;height:5px;}
 
   /* prototype online/offline toggle — lives in the title bar */
-  .hgroup-right .cseg{flex:0 0 auto;margin-right:8px;}
+  .hgroup-right .cseg{flex:0 0 auto;}
   .hgroup-right .cseg .ci{flex:0 0 auto;height:20px;padding:0 10px;font:400 11px/16px var(--ec-font);}
   .sconn{padding:8px 10px;display:flex;flex-direction:column;gap:6px;
     opacity:0;max-height:0;padding-top:0;padding-bottom:0;overflow:hidden;
