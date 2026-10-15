@@ -843,7 +843,7 @@
       e.stopPropagation();
       showMenu(more.getBoundingClientRect(), [
         {label:'Reset value'}, {label:'Copy'}, {label:'Paste'}, {sep:true}, {label:'Reset to default'}
-      ], null, 140);
+      ], more, 140);                               // owner: the dots stay lit while the menu is open
       return;
     }
     var row = e.target.closest('.irow');
