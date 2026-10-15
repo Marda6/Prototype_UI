@@ -131,7 +131,8 @@
 /* the identity half ends at the split; the facts half starts clear of it */
 .treewrap .tlayer{flex:0 0 calc(var(--tree-split) - 14px);}
 .treewrap .pslot{padding-left:14px;}
-.tree{display:flex;flex-direction:column;gap:2px;overflow:auto;position:relative;}
+/* one rhythm for the tree, the inspector and the simulation tree: 24px rows, 1px apart */
+.tree{display:flex;flex-direction:column;gap:1px;overflow:auto;position:relative;}
 /* scroll containers reserve the scrollbar lane up front — no layout jump
    when the bar appears or goes away */
 .tree,.simtree,.irows,#collList{scrollbar-gutter:stable;}
@@ -210,7 +211,7 @@
 .st-btn:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
 .st-btn svg{width:15px;height:15px;}
 .simtree{flex:1 1 0;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:1px;}
-.simrow{display:flex;align-items:center;gap:4px;padding:2px;border-radius:6px;cursor:pointer;}
+.simrow{display:flex;align-items:center;gap:4px;padding:2px;border-radius:6px;cursor:pointer;min-height:24px;}
 .simrow:hover{background:var(--ec-fg-4);}
 .simrow.ssel{background:var(--ec-fg-8);}
 .simrow .shev{width:12px;height:20px;flex:0 0 12px;transition:transform .12s ease;}
@@ -684,7 +685,7 @@
 .so-tno{flex:0 0 auto;color:var(--st-green);font:400 11px/14px var(--ec-font);}
 .so-tool{flex:1 1 0;min-width:0;color:var(--ec-fg-56);font:400 11px/14px var(--ec-font);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.trow{display:flex;align-items:center;gap:4px;padding:2px;border-radius:6px;width:100%;cursor:pointer;}
+.trow{display:flex;align-items:center;gap:4px;padding:2px;border-radius:6px;width:100%;cursor:pointer;min-height:24px;}
 .trow:hover{background:var(--ec-fg-4);}
 .trow.tsel{background:var(--ec-fg-8);}
 .trow.dragging{opacity:.45;}
@@ -709,8 +710,8 @@
    Drawn on the row (the pslot clips overflow), anchored to the status column. */
 .tree.linked .trow{position:relative;}
 .tree.linked .trow:not(:first-child)::before{content:'';position:absolute;
-  right:11.5px;top:calc(16px - var(--st-pitch, 26px));width:1px;
-  height:calc(var(--st-pitch, 26px) - 12px);background:var(--ec-fg-24);}
+  right:11.5px;top:calc(16px - var(--st-pitch, 25px));width:1px;
+  height:calc(var(--st-pitch, 25px) - 12px);background:var(--ec-fg-24);}
 /* tool number reads green, like in the live ENCY tree */
 .toolno{padding:2px;border-radius:4px;color:var(--st-green);font:400 12px/16px var(--ec-font);flex:0 0 auto;}
 .tlink{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:2px;padding:2px 4px;border-radius:4px;}
@@ -727,7 +728,8 @@
 /* sticky branch heads and the pinned selection: clones of tree rows laid over
    the tree; solid, so the rows scrolling underneath do not show through */
 .tsticky,.tghost{position:absolute;left:0;z-index:4;background:var(--ec-bg);}
-.tsticky{top:0;border-bottom:1px solid var(--ec-fg-8);}
+/* clipped: heads pushed out by the next branch leave at the tree's top edge, not over the toolbar */
+.tsticky{top:0;border-bottom:1px solid var(--ec-fg-8);overflow:hidden;}
 /* the pinned selection stands apart from the tree: 6px of air under the divider
    (the inset rhythm), not a row that merely continues the list */
 .tghost{bottom:0;padding-top:6px;border-top:1px solid var(--ec-fg-8);}
@@ -800,9 +802,9 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 .title-row .t{color:var(--ec-fg-96);font:600 14px/20px var(--ec-font);padding-right:8px;}
 .title-ctl{flex:1 1 0;display:flex;justify-content:flex-end;min-width:0;gap:4px;}
 .title-ctl .dropdown{flex:0 1 auto;max-width:300px;}
-.irows{display:flex;flex-direction:column;gap:2px;overflow:auto;flex:1 1 0;min-height:0;}
+.irows{display:flex;flex-direction:column;gap:1px;overflow:auto;flex:1 1 0;min-height:0;}
 .irows > *{flex:0 0 auto;}
-.irow{display:flex;align-items:center;gap:2px;padding:2px;border-radius:6px;width:100%;cursor:pointer;}
+.irow{display:flex;align-items:center;gap:2px;padding:2px;border-radius:6px;width:100%;cursor:pointer;min-height:24px;}
 .irow:hover{background:var(--ec-fg-8);}
 .irow.sel{background:var(--ec-fg-12);}
 .ilbl{display:flex;align-items:center;flex:1 1 0;min-width:0;}
@@ -998,6 +1000,26 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
   font-variant-numeric:tabular-nums;}
 .f-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:2px;}
 .f-grid .f-cell{height:28px;}
+.f-head-i{display:none;width:16px;height:16px;margin:0 auto;transition:transform .12s ease;}
+
+/* one column (.list, pulled down by the corner grip): the model, the machine and toolpath, then
+   dot / curve / face / mech, divided like the two-column layout; 28px cells, so the panel is
+   38px wide and its title turns into a chevron: up while open (fold), down while folded (unfold) */
+.filters.list{width:38px;}
+.filters.list .f-head-t{display:none;}
+.filters.list .f-head-i{display:block;}
+.filters.list.open .f-head-i{transform:rotate(180deg);}
+.filters.list .f-cols{flex-direction:column;gap:8px;}
+.filters.list .f-col + .f-col::before{content:'';flex:0 0 1px;margin-bottom:6px;background:var(--ec-fg-8);}
+.filters.list .f-grid{grid-template-columns:1fr;}
+.filters.list .f-cell{height:28px;}
+/* the grip: an arc around the bottom-right corner, concentric with it (radius 8 + 6px off the panel);
+   the 20px box starts 4px inside the corner, right / bottom count from the padding edge (1px border) */
+.f-grip{position:absolute;right:-17px;bottom:-17px;width:20px;height:20px;cursor:ns-resize;
+  color:var(--ec-fg-24);touch-action:none;}
+.f-grip svg{display:block;width:20px;height:20px;overflow:visible;}
+.f-grip:hover,.f-grip.dragging{color:var(--ec-fg-56);}
+.filters:not(.open) .f-grip{display:none;}
 
 /* Status panel — opens on a status-circle click in the tree */
 .stpanel{position:absolute;top:8px;left:357px;display:none;flex-direction:column;gap:8px;width:300px;

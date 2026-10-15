@@ -269,7 +269,9 @@
     <!-- ===== Viewport ===== -->
     <main class="viewport">
       <div class="filters" id="filters">
-        <button class="f-head" id="filtersBtn">Filters</button>
+        <!-- one column (pulled down by the corner grip): the word gives way to a chevron —
+             up folds the panel, down unfolds it -->
+        <button class="f-head" id="filtersBtn" title="Filters"><span class="f-head-t">Filters</span><img class="f-head-i" src="assets/dd-chev.svg" alt=""></button>
         <div class="f-body">
           <div class="f-cols">
             <div class="f-col">
@@ -294,6 +296,11 @@
             <div class="f-cell on" title="Face"><img class="f20" src="assets/f-face.svg" alt=""></div>
             <div class="f-cell on" title="Mech"><img class="f20" src="assets/f-mech.svg" alt=""></div>
           </div>
+        </div>
+        <!-- corner grip: an arc around the bottom-right corner, 6px off the panel (radius 8 + 6);
+             pull down → one column, up → two columns, double-click toggles -->
+        <div class="f-grip" id="filtersGrip" title="Drag down: one column · up: two columns">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M9.86 1.04A14.75 14.75 0 0 1 1.04 9.86" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         </div>
       </div>
       <div class="vp-hint">3D viewport</div>

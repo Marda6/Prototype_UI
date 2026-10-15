@@ -88,6 +88,43 @@
     });
   });
 
+  /* ---------- Filters: the corner grip — pulled down past halfway between the two layouts,
+     the filters line up in one column (model · machine and toolpath · dot / curve / face / mech);
+     pulled back up, two columns again. Double-click toggles; the choice is kept ---------- */
+  var fGrip = document.getElementById('filtersGrip');
+  function fSetList(on){
+    if(filters.classList.contains('list') === on) return;
+    fsClose();                                     // its settings popover was placed by the old layout
+    filters.classList.toggle('list', on);
+    try { localStorage.setItem('ency.filtersList', on ? '1' : ''); } catch(e){}
+  }
+  try { if(localStorage.getItem('ency.filtersList')) filters.classList.add('list'); } catch(e){}
+  if(fGrip){
+    fGrip.addEventListener('dblclick', function(e){ e.stopPropagation(); fSetList(!filters.classList.contains('list')); });
+    fGrip.addEventListener('click', function(e){ e.stopPropagation(); });
+    fGrip.addEventListener('pointerdown', function(e){
+      e.preventDefault(); e.stopPropagation();
+      try { fGrip.setPointerCapture(e.pointerId); } catch(err){}
+      fGrip.classList.add('dragging');
+      // both heights, measured within one frame (nothing is painted in between)
+      var list = filters.classList.contains('list'), h0 = filters.offsetHeight;
+      filters.classList.toggle('list', !list);
+      var h1 = filters.offsetHeight;
+      filters.classList.toggle('list', list);
+      var hCols = list ? h1 : h0, hList = list ? h0 : h1, mid = (hCols + hList) / 2, y0 = e.clientY;
+      function move(ev){ fSetList(h0 + ev.clientY - y0 > mid); }
+      function up(){
+        fGrip.classList.remove('dragging');
+        fGrip.removeEventListener('pointermove', move);
+        fGrip.removeEventListener('pointerup', up);
+        fGrip.removeEventListener('pointercancel', up);
+      }
+      fGrip.addEventListener('pointermove', move);
+      fGrip.addEventListener('pointerup', up);
+      fGrip.addEventListener('pointercancel', up);
+    });
+  }
+
   /* ---------- Filter settings: right-click a filter → its own display settings,
      opened to the right of the Filters panel, level with the filter ---------- */
   var FS_MATERIAL = ['Industrial', 'Plastic', 'Metal', 'Glossy', 'Matte'];
@@ -1074,7 +1111,7 @@
   function navRows(){
     return Array.prototype.filter.call(tree.children, function(r){ return r.classList.contains('trow') && r.offsetHeight > 0; });
   }
-  function rowPitch(vis){ return vis.length > 1 ? vis[1].offsetTop - vis[0].offsetTop : 26; }
+  function rowPitch(vis){ return vis.length > 1 ? vis[1].offsetTop - vis[0].offsetTop : 25; }
   // Setup / Part / Group above a row, outermost first
   function chainOf(r){
     var c = [], p = r.dataset.parent;
