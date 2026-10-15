@@ -89,8 +89,9 @@
   });
 
   /* ---------- Filters: the corner grip — pulled down past halfway between the two layouts,
-     the filters line up in one column (model · machine and toolpath · dot / curve / face / mech);
-     pulled back up, two columns again. Double-click toggles; the choice is kept ---------- */
+     the filters line up in one column (model · machine and toolpath · dot / curve / face / mech),
+     and the drawing panel under them too (app.css follows .list); pulled back up, two columns
+     again. The grip sits under the lowest panel of the column. Double-click toggles; kept ---------- */
   var fGrip = document.getElementById('filtersGrip');
   function fSetList(on){
     if(filters.classList.contains('list') === on) return;
@@ -107,9 +108,9 @@
       try { fGrip.setPointerCapture(e.pointerId); } catch(err){}
       fGrip.classList.add('dragging');
       // both heights, measured within one frame (nothing is painted in between)
-      var list = filters.classList.contains('list'), h0 = filters.offsetHeight;
+      var col = filters.parentElement, list = filters.classList.contains('list'), h0 = col.offsetHeight;
       filters.classList.toggle('list', !list);
-      var h1 = filters.offsetHeight;
+      var h1 = col.offsetHeight;
       filters.classList.toggle('list', list);
       var hCols = list ? h1 : h0, hList = list ? h0 : h1, mid = (hCols + hList) / 2, y0 = e.clientY;
       function move(ev){ fSetList(h0 + ev.clientY - y0 > mid); }
@@ -653,12 +654,13 @@
     railDraw();
     renderInspector(id);
   }
-  // as many tabs as fit above More (28px buttons, 2px gaps, some air above More); the rest
-  // go to the More overlay, and More lights up while one of them is open
+  // as many tabs as fit between the placement dots and More (28px buttons, 2px gaps, some air above
+  // More); the rest go to the More overlay, and More lights up while one of them is open
+  var railEl = railTabs.closest('.rail'), railPlaceEl = document.getElementById('railPlace');
   function railDraw(){
     if(!railCtx) return;   // before the first railSync (ResizeObserver fires on observe)
-    var list = railList(), rail = railTabs.parentElement;
-    var fit = Math.max(1, Math.floor((rail.clientHeight - railMore.offsetHeight - 8 + 2) / 30));
+    var list = railList(), placeH = railPlaceEl ? railPlaceEl.offsetHeight : 0;
+    var fit = Math.max(1, Math.floor((railEl.clientHeight - placeH - railMore.offsetHeight - 8 + 2) / 30));
     railOver = list.slice(fit);
     railTabs.innerHTML = list.slice(0, fit).map(function(id){
       return '<div class="rbtn' + (id === railCur ? ' active' : '') + '" data-tab="' + id + '" title="' + railTitle(id) + '">' + railIcon(id) + '</div>';
@@ -727,7 +729,7 @@
   new ResizeObserver(function(){
     railDraw();
     if(openMenu && openMenu._owner === railMore) railMenu();
-  }).observe(railTabs.parentElement);
+  }).observe(railEl);
   /* Tool workflow actions: Edit / Cancel / Apply / edit-tool */
   document.addEventListener('click', function(e){
     var act = e.target.closest('[data-act]');
@@ -3491,6 +3493,36 @@
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
     });
+  }
+
+  /* ---------- Inspector placement: the three dots on top of the rail (Core 300:728) pick where the
+     inspector sits — under the tree (in the dock), right of the tree or at the window's right edge;
+     the current place is the long dot. Out of
+     the dock it is a full-height panel of the workspace and the tree takes the dock's height;
+     what is laid out after the dock (filters, view cube, view tools, status panels) or before
+     the right edge (the system bar) moves aside through --free-l / --free-r (app.css). The
+     Simulation tab hides it wherever it is, as before. Kept across sessions ---------- */
+  var panelInsp = document.querySelector('.panel-insp'), workspace = document.querySelector('.workspace');
+  function inspPlace(id){
+    if(!panelInsp || !workspace) return;
+    var out = id !== 'below';
+    if(out && dockEl.classList.contains('single')) setSingle(false);
+    if(out) workspace.appendChild(panelInsp); else dockEl.appendChild(panelInsp);
+    dockEl.classList.toggle('insp-collapsed', out);
+    workspace.dataset.insp = id;
+    if(railPlaceEl) railPlaceEl.querySelectorAll('.rp-dot').forEach(function(d){ d.classList.toggle('on', d.dataset.place === id); });
+    try { localStorage.setItem('ency.inspPlace', id); } catch(e){}
+    // the calc bar, the toolpath view and open panels follow the new free view
+    window.dispatchEvent(new Event('resize'));
+  }
+  if(panelInsp && workspace){
+    if(railPlaceEl) railPlaceEl.addEventListener('click', function(e){
+      var d = e.target.closest('.rp-dot'); if(!d) return;
+      e.stopPropagation(); inspPlace(d.dataset.place);
+    });
+    document.addEventListener('ency:mode', function(e){ workspace.classList.toggle('simmode', !!e.detail.sim); });
+    var savedPlace = ''; try { savedPlace = localStorage.getItem('ency.inspPlace') || ''; } catch(e){}
+    inspPlace(savedPlace === 'side' || savedPlace === 'right' ? savedPlace : 'below');
   }
 })();
 

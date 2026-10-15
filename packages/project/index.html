@@ -252,7 +252,16 @@
         <!-- the tabs depend on the node selected in the tree (filled by "Inspector tabs" in app.js);
              More opens the overlay with the optional tabs and the ones the rail has no room for -->
         <div class="rail">
-          <div class="rail-top" id="railTabs"></div>
+          <div class="rail-head">
+            <!-- where the inspector sits (Core 300:728): under the tree · right of the tree · right edge of
+                 the window; the current place is the long dot ("Inspector placement" in app.js) -->
+            <div class="rail-place" id="railPlace">
+              <span class="rp-dot" data-place="below" title="Inspector under the tree"></span>
+              <span class="rp-dot" data-place="side" title="Inspector right of the tree"></span>
+              <span class="rp-dot" data-place="right" title="Inspector at the right edge of the window"></span>
+            </div>
+            <div class="rail-top" id="railTabs"></div>
+          </div>
           <div class="rail-top">
             <div class="rbtn" id="railMore" title="More tabs"><img class="ricn" src="assets/rail-more.svg" alt=""></div>
           </div>
@@ -268,6 +277,9 @@
 
     <!-- ===== Viewport ===== -->
     <main class="viewport">
+      <!-- the left column of the view: the Filters, and under them the drawing panel while drawing
+           (shared-ui/drawbar.js, put here by tpedit.js); one corner grip under the lowest of them -->
+      <div class="vp-left" id="vpLeft">
       <div class="filters" id="filters">
         <!-- one column (pulled down by the corner grip): the word gives way to a chevron —
              up folds the panel, down unfolds it -->
@@ -297,8 +309,9 @@
             <div class="f-cell on" title="Mech"><img class="f20" src="assets/f-mech.svg" alt=""></div>
           </div>
         </div>
-        <!-- corner grip: an arc around the bottom-right corner, 6px off the panel (radius 8 + 6);
-             pull down → one column, up → two columns, double-click toggles -->
+      </div>
+        <!-- corner grip: an arc around the bottom-right corner of the lowest panel, 6px off it
+             (radius 8 + 6); pull down → one column, up → two columns (both panels), double-click toggles -->
         <div class="f-grip" id="filtersGrip" title="Drag down: one column · up: two columns">
           <svg viewBox="0 0 20 20" fill="none"><path d="M9.86 1.04A14.75 14.75 0 0 1 1.04 9.86" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         </div>

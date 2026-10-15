@@ -32,6 +32,19 @@
 .dock.insp-collapsed .dock-resizer{display:none;}
 .dock.insp-collapsed .panel-tree{flex:1 1 auto !important;}
 
+/* ===== Inspector placement (the dots on top of the rail; "Inspector placement" in app.js) =====
+   under the tree (in the dock) · right of the tree · at the window's right edge. Out of the dock it
+   is a full-height panel of the workspace, as wide as the dock. --free-l / --free-r are the edges
+   of the free 3D view: what is laid out after the dock (filters, view cube, view tools, status
+   panels) starts at --free-l, the system bar ends at --free-r */
+.workspace{--free-l:357px;--free-r:8px;}
+.workspace > .panel-insp{position:absolute;top:8px;bottom:8px;width:341px;z-index:10;}
+.workspace[data-insp="side"] > .panel-insp{left:357px;}
+.workspace[data-insp="right"] > .panel-insp{right:8px;}
+.workspace[data-insp="side"]:not(.simmode){--free-l:706px;}   /* 357 + 341 + 8 */
+.workspace[data-insp="right"]:not(.simmode){--free-r:357px;}
+.workspace.simmode > .panel-insp{display:none;}
+
 /* the content well is darker than the panel frame (like the window header:
    light rail, dark content); radius 6 = panel 8 minus its 2px padding.
    No side insets — the toolbar and the tree align with the tabs row above. */
@@ -257,7 +270,7 @@
 /* ===== View cube — bottom-left of the 3D view, between the dock and the calc bar =====
    same panel pattern as .filters (light frame, dark inset); the cube itself is an
    SVG drawn by the "View cube" section in app.js */
-.vcube{position:absolute;left:357px;bottom:8px;z-index:20;width:96px;height:112px;
+.vcube{position:absolute;left:var(--free-l);bottom:8px;z-index:20;width:96px;height:112px;
   touch-action:none;user-select:none;cursor:grab;}
 /* active coordinate system under the cube; click opens the CS list */
 .vc-cs{position:absolute;left:0;right:0;bottom:0;height:16px;text-align:center;cursor:pointer;
@@ -304,11 +317,11 @@
 .vbar,.calcbar{position:absolute;bottom:8px;z-index:20;height:36px;display:flex;align-items:center;
   padding:0 4px;border-radius:8px;background:transparent;border:0;}
 .vbar{gap:2px;}
-.vb-tools{left:461px;}                 /* cube 96 + 8 */
-.vb-sys{right:8px;}
+.vb-tools{left:calc(var(--free-l) + 104px);}   /* cube 96 + 8 */
+.vb-sys{right:var(--free-r);}
 .vb-sys .cb-sep{margin:0 6px;}
 /* progress: left / right are set from the side panels in calcPlace() */
-.calcbar{gap:12px;padding:0 6px;left:461px;right:8px;}   /* fallback until calcPlace() runs */
+.calcbar{gap:12px;padding:0 6px;left:calc(var(--free-l) + 104px);right:var(--free-r);}   /* fallback until calcPlace() runs */
 .calcbar[hidden]{display:none !important;}
 /* Cancel sits 6px from the bar's edge on every side (36 − 24 = 2·6) and 6px from the divider */
 .cb-cancel + .cb-sep{margin-left:-6px;}
@@ -779,6 +792,15 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 /* ===== Inspector ===== */
 .rail{display:flex;flex-direction:column;justify-content:space-between;height:100%;width:28px;flex:0 0 28px;}
 .rail-top{display:flex;flex-direction:column;gap:2px;width:28px;}
+.rail-head{display:flex;flex-direction:column;}
+/* placement dots on top of the rail (Core 300:728): a 28×12 row, 4px dots 2px apart, centred; the
+   current place a long one (8px, fg 80 %), the others fg 24 %; the tabs start right under it */
+.rail-place{display:flex;align-items:center;justify-content:center;gap:2px;height:12px;flex:0 0 12px;}
+.rp-dot{position:relative;width:4px;height:4px;border-radius:2px;background:var(--ec-fg-24);cursor:pointer;
+  transition:width .15s ease, background-color .12s ease;}
+.rp-dot::after{content:'';position:absolute;inset:-4px -1px;}   /* the row's height as the hit area */
+.rp-dot:hover{background:var(--ec-fg-48);}
+.rp-dot.on{width:8px;background:var(--ec-fg-80);}
 /* radius 6 = panel 8 minus its 2px padding (the rail sits on the panel frame, like .seg) */
 .rbtn{display:flex;align-items:center;padding:4px;border-radius:6px;cursor:pointer;}
 /* default · hover lighter · selected = the dark inset (Core inspector button 55:761) */
@@ -788,9 +810,9 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 /* a tab whose icon is not drawn yet (none at the moment): the .opic placeholder square,
    a step brighter so it reads on the panel frame */
 .ricn.opic::before{background:var(--ec-fg-24);}
+.rbtn.dd-open{background:var(--ec-fg-8);}
 /* More with nothing to offer (no optional tabs here, every tab fits) */
 .rbtn.is-off{opacity:.4;pointer-events:none;}
-.rbtn.dd-open{background:var(--ec-fg-8);}
 /* More overlay (.dd-menu): the tabs without room in the rail, then the optional tabs of an
    operation — toggle · icon 20 · name, 24px rows */
 .rail-menu{min-width:200px;}
@@ -958,12 +980,17 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 }
 [data-theme="graphite-light"]{--th-base:#f3f6f6;}
 [data-theme="steel-light"]{--th-base:#f0f5fd;}
-:is(.topbar, .dock, .filters, .simbar, .tpe-bar){--ec-bg:var(--th-panel);}
+:is(.topbar, .dock, .panel-insp, .filters, .ency-draw, .simbar, .tpe-bar){--ec-bg:var(--th-panel);}
 .vp-hint{position:absolute;inset:0;pointer-events:none;display:grid;place-items:center;color:var(--ec-fg-8);font-size:13px;letter-spacing:.04em;}
 
 /* filters float next to the dock */
 /* same panel pattern as the dock: light base, header on it, dark inset body */
-.filters{position:absolute;top:8px;left:357px;border:1px solid var(--ec-fg-12);
+/* the left column of the view: the Filters, then the drawing panel while drawing — 8px apart, as
+   far as the Filters are from the dock; the column itself lets the view through */
+.vp-left{position:absolute;top:8px;left:var(--free-l);z-index:20;display:flex;flex-direction:column;
+  align-items:flex-start;gap:8px;pointer-events:none;}
+.vp-left > *{pointer-events:auto;}
+.filters{position:relative;border:1px solid var(--ec-fg-12);
   background:color-mix(in srgb, var(--th-ink) var(--th-k8), var(--ec-bg));
   border-radius:8px;padding:2px;display:flex;flex-direction:column;gap:2px;width:67px;}
 /* same height as the mode tabs of the tree panel (32px), so both dark insets start on one line */
@@ -1016,16 +1043,24 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 .filters.list .f-col + .f-col::before{content:'';flex:0 0 1px;margin-bottom:6px;background:var(--ec-fg-8);}
 .filters.list .f-grid{grid-template-columns:1fr;}
 .filters.list .f-cell{height:28px;}
-/* the grip: an arc around the bottom-right corner, concentric with it (radius 8 + 6px off the panel);
-   the 20px box starts 4px inside the corner, right / bottom count from the padding edge (1px border) */
-.f-grip{position:absolute;right:-17px;bottom:-17px;width:20px;height:20px;cursor:ns-resize;
+/* the grip: an arc around the bottom-right corner of the column's lowest panel, concentric with it
+   (radius 8 + 6px off the panel); the 20px box starts 4px inside the corner */
+.f-grip{position:absolute;right:-16px;bottom:-16px;width:20px;height:20px;cursor:ns-resize;
   color:var(--ec-fg-24);touch-action:none;}
 .f-grip svg{display:block;width:20px;height:20px;overflow:visible;}
 .f-grip:hover,.f-grip.dragging{color:var(--ec-fg-56);}
-.filters:not(.open) .f-grip{display:none;}
+/* no grip under a folded panel: the lowest one is the drawing panel while it shows, else the Filters */
+.vp-left:has(> .ency-draw:not([hidden]):not(.open)) > .f-grip,
+.vp-left:not(:has(> .ency-draw:not([hidden]))):has(> .filters:not(.open)) > .f-grip{display:none;}
+/* the drawing panel follows the Filters' layout: in one column 38px wide, a chevron for its title */
+#filters.list ~ .ency-draw{width:38px;}
+#filters.list ~ .ency-draw .ency-draw__t{display:none;}
+#filters.list ~ .ency-draw .ency-draw__i{display:block;}
+#filters.list ~ .ency-draw.open .ency-draw__i{transform:rotate(180deg);}
+#filters.list ~ .ency-draw .ency-draw__grid{grid-template-columns:1fr;}
 
 /* Status panel — opens on a status-circle click in the tree */
-.stpanel{position:absolute;top:8px;left:357px;display:none;flex-direction:column;gap:8px;width:300px;
+.stpanel{position:absolute;top:8px;left:var(--free-l);display:none;flex-direction:column;gap:8px;width:300px;
   background:var(--pop-bg);border:1px solid var(--ec-fg-12);border-radius:10px;padding:12px;
   box-shadow:0 8px 28px var(--th-shadow);z-index:50;}
 .stpanel.open{display:flex;}
@@ -1634,10 +1669,6 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 .tp-view[hidden]{display:none;}
 .viewport.tp-on .vp-hint{display:none;}
 .viewport.ar-open .tp-view,.viewport.ar-open .tpe-bar,.viewport.ar-open .tpe-tip{display:none !important;}
-/* tree: pencil mark in front of the operation colour */
-.tpe-mark{color:var(--ec-fg-56);}
-.tpe-mark[hidden]{display:none;}
-.tpe-mark svg{width:16px;height:16px;}
 /* menu extras (shared .dd-menu): icon, disabled, destructive, trailing hint */
 .dd-opt.has-ic{display:flex;align-items:center;gap:8px;}
 .dd-ic{display:flex;width:16px;height:16px;flex:0 0 16px;color:var(--ec-fg-72);}
@@ -1745,8 +1776,6 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 .tpe-bar[hidden]{display:none;}
 /* after drawing: the bar sits next to the point where the drawing ended (then the last click) */
 .tpe-bar.at,.tpe-tip.at{transform:none;}
-/* the shared drawing bar (shared-ui/drawbar.js) while a region is drawn: centred at the top of the view */
-.viewport > .ency-draw{top:8px;transform:translateX(-50%);}
 .tpe-op{display:inline-flex;align-items:center;gap:4px;padding:0 4px;color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);}
 .tpe-ic{display:flex;width:16px;height:16px;flex:0 0 16px;color:var(--ec-fg-72);}
 .tpe-ic .i16{width:16px;height:16px;}

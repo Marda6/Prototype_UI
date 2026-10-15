@@ -29,8 +29,7 @@
     chev:  '<img class="chev7" src="assets/tb-chev.svg" alt="">',
     ok:    svg('<path d="M3.5 8.5l3 3 6-7"/>', ' stroke-width="1.6"'),
     x:     svg('<path d="M4 4l8 8M12 4l-8 8"/>', ' stroke-width="1.4"'),
-    note:  svg('<path d="M3 2.5h7l3 3v8H3Z"/><path d="M5.5 7.5h5M5.5 10h3.5"/>'),
-    mark:  '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.4 3.1l2.5 2.5M2.7 11.2l7.7-7.7 2.5 2.5-7.7 7.7-3 .5.5-3z"/></svg>'
+    note:  svg('<path d="M3 2.5h7l3 3v8H3Z"/><path d="M5.5 7.5h5M5.5 10h3.5"/>')
   };
   var SHAPE_NAMES = {line:'Line', normal:'Normal', polyline:'Polyline', spline:'Spline'};
   var TYPES = {
@@ -447,8 +446,15 @@
   var active = false, simOn = false;
   var T = {};
   function trig(){ T.cy = Math.cos(cam.yaw); T.sy = Math.sin(cam.yaw); T.cp = Math.cos(cam.pitch); T.sp = Math.sin(cam.pitch); }
-  function freeLeft(){ var vr = vp.getBoundingClientRect(), dr = dock.getBoundingClientRect(); return Math.max(0, dr.right - vr.left + 8); }
-  function centre(){ var l = freeLeft(); return [l + (W - l) / 2 + cam.ox, H / 2 + cam.oy]; }
+  // the free part of the view, [left, right]: right of the dock, and of the inspector when it sits
+  // next to the tree; left of the inspector when it sits at the window's right edge
+  function freeSpan(){
+    var vr = vp.getBoundingClientRect(), l = dock.getBoundingClientRect().right - vr.left + 8, r = W;
+    var ins = document.querySelector('.workspace > .panel-insp'), ir = ins && ins.offsetWidth ? ins.getBoundingClientRect() : null;
+    if(ir){ if(ir.left - vr.left > W / 2) r = ir.left - vr.left - 8; else l = Math.max(l, ir.right - vr.left + 8); }
+    return [Math.max(0, l), r];
+  }
+  function centre(){ var f = freeSpan(); return [(f[0] + f[1]) / 2 + cam.ox, H / 2 + cam.oy]; }
   function P(p, c){
     var x1 = T.cy * p[0] - T.sy * p[1], y1 = T.sy * p[0] + T.cy * p[1];
     return [c[0] + cam.s * x1, c[1] + cam.s * (T.sp * y1 - T.cp * p[2]), T.cp * y1 + T.sp * p[2]];
@@ -477,7 +483,7 @@
      [-G.Lh - 26, -26, G.H + 12], [G.Lh + 26, -26, G.H + 12], [G.Lh + 26, 26, G.H + 12], [-G.Lh - 26, 26, G.H + 12]]
       .forEach(function(p){ var q = P(p, c); xs.push(q[0] - c[0]); ys.push(q[1] - c[1]); });
     var w = Math.max.apply(null, xs) - Math.min.apply(null, xs), h = Math.max.apply(null, ys) - Math.min.apply(null, ys);
-    var l = freeLeft(), s = Math.min((W - l - 140) / w, (H - 190) / h);
+    var f = freeSpan(), s = Math.min((f[1] - f[0] - 140) / w, (H - 190) / h);
     if(!(s > 0)){ cam.s = save.s; cam.ox = save.ox; cam.oy = save.oy; return; }
     cam.s = s;
     cam.ox = -s * (Math.max.apply(null, xs) + Math.min.apply(null, xs)) / 2;
@@ -833,9 +839,10 @@
     var b = toastEl.querySelector('button'); if(b) b.onclick = function(ev){ ev.stopPropagation(); toastEl.hidden = true; fn(); };
     clearTimeout(toastTimer); toastTimer = setTimeout(function(){ toastEl.hidden = true; undo = null; }, 5000);
   }
-  /* the drawing bar (shared-ui/drawbar.js): at the top of the view while a region is being drawn */
+  /* the drawing panel (shared-ui/drawbar.js): in the view's left column, under the Filters, while a
+     region is being drawn */
   var draw0 = window.ENCY_DRAWBAR;
-  var dbar = draw0 ? draw0.create(vp, {tool:'polyline',
+  var dbar = draw0 ? draw0.create(document.getElementById('vpLeft') || vp, {tool:'polyline',
     onTool:function(id){
       if(!drawing()) return;
       // Polyline ⇄ Spline keep the points; a cut (Line / Normal) starts over
@@ -852,10 +859,10 @@
     normal:function(){ return 'Normal: click on the toolpath — the cut goes across the passes at that point'; }
   };
   // the edit bar sits next to its anchor (the end of the drawing, then the last click on the view);
-  // the drawing bar and its tip stay centred at the top
+  // the drawing tip stays centred at the top
   function barPlace(){
-    var l = freeLeft(), cx = l + (W - l) / 2;
-    dbar.el.style.left = toastEl.style.left = cx + 'px';
+    var f = freeSpan(), cx = (f[0] + f[1]) / 2;
+    toastEl.style.left = cx + 'px';
     var an = cur && cur.anchor;
     // moved by hand: stays where it was put (kept inside the view)
     if(!bar.hidden && cur && cur.pos){
@@ -870,9 +877,9 @@
       return;
     }
     var w = bar.offsetWidth, bh = bar.offsetHeight, x = an.x + 16, y = an.y + 16;
-    if(x + w > W - 8) x = an.x - 16 - w;                       // no room on the right: the left of the cursor
+    if(x + w > f[1] - 8) x = an.x - 16 - w;                    // no room on the right: the left of the cursor
     if(y + bh > H - 56) y = an.y - 16 - bh;                    // no room below: above the cursor
-    x = Math.max(l, Math.min(W - w - 8, x)); y = Math.max(8, Math.min(H - bh - 56, y));
+    x = Math.max(f[0], Math.min(f[1] - w - 8, x)); y = Math.max(8, Math.min(H - bh - 56, y));
     bar.classList.add('at'); bar.style.left = x + 'px'; bar.style.top = y + 'px';
     tipEl.classList.add('at'); tipEl.style.left = x + 'px'; tipEl.style.top = (y + 42) + 'px';
   }
@@ -1219,9 +1226,9 @@
   // a click that lands while an input commits: rebuild the list after the click, not under it
   var ptrDown = false, pendingRender = false;
   document.addEventListener('pointerdown', function(){ ptrDown = true; }, true);
-  document.addEventListener('pointerup', function(){ ptrDown = false; if(pendingRender){ pendingRender = false; setTimeout(function(){ render(); marks(); }, 0); } }, true);
+  document.addEventListener('pointerup', function(){ ptrDown = false; if(pendingRender){ pendingRender = false; setTimeout(function(){ render(); }, 0); } }, true);
   function refresh(light){
-    draw(); barSync(); marks();
+    draw(); barSync();
     if(!light && !ptrDown) render();
     else {
       if(!light) pendingRender = true;
@@ -1232,19 +1239,6 @@
       });
     }
   }
-  // tree marks: the operation has committed manual edits
-  function marks(){
-    opRows().forEach(function(r){
-      var pslot = r.querySelector('.pslot'), m = pslot.querySelector('.tpe-mark');
-      if(!m){
-        m = document.createElement('span'); m.className = 'bicn tpe-mark'; m.innerHTML = IC.mark;
-        var anchor = pslot.querySelectorAll('.bicn'); pslot.insertBefore(m, anchor.length > 1 ? anchor[anchor.length - 2] : null);
-      }
-      var op = OPS[r.dataset.id], n = op ? applied(op).length : 0;
-      m.hidden = !n; m.title = n ? 'Toolpath edited manually: ' + n + (n === 1 ? ' edit' : ' edits') : '';
-    });
-  }
-
   /* inspector events — captured before the generic inspector handler */
   function within(ev){ return INS.activeTab() === 'Edits' && irows.contains(ev.target); }
   function select(id){
@@ -1402,7 +1396,7 @@
     refresh();
   }
   window.tpeTab = function(on){ setActive(on); };
-  window.tpeRender = function(){ render(); marks(); };
+  window.tpeRender = function(){ render(); };
   document.addEventListener('ency:mode', function(ev){ simOn = !!ev.detail.sim; setActive(INS.activeTab() === 'Edits'); });
   var lastSel = null;
   document.addEventListener('ency:treesel', function(ev){
@@ -1413,5 +1407,4 @@
     selId = null; refresh();
   });
   (function(){ var r = selRow(); lastSel = r ? r.dataset.id : null; })();
-  marks();
 })();
