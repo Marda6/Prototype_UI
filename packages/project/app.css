@@ -10,8 +10,19 @@
    frame — defined with the colours in "Themes" below */
 
 /* ===== Dock: tree panel + resizer + inspector panel (floats over the viewport) ===== */
+/* --dock-w: the width of the tree panel and of the inspector, wherever it sits — one grip on the
+   dock's right edge widens and narrows both ("Panel width" in app.js); what is laid out after the
+   panels follows through --free-l / --free-r (below) */
+.workspace{--dock-w:341px;}
 .dock{position:absolute;top:8px;left:8px;bottom:8px;z-index:10;
-  width:341px;display:flex;flex-direction:column;gap:0;}
+  width:var(--dock-w);display:flex;flex-direction:column;gap:0;}
+/* the width grip: in the 8px gap right of the dock, two violet lines on hover, like the resizer */
+.dock-wgrip{position:absolute;top:0;bottom:0;right:-7px;width:6px;z-index:11;display:flex;justify-content:center;
+  gap:2px;cursor:col-resize;touch-action:none;}
+.dock-wgrip::before,.dock-wgrip::after{content:"";display:block;width:1px;opacity:0;transition:opacity .12s ease;
+  background:linear-gradient(to bottom,rgba(246,246,246,0) 0%,#9747ff 50%,rgba(246,246,246,0) 100%);}
+.dock-wgrip:hover::before,.dock-wgrip:hover::after,
+.dock-wgrip.dragging::before,.dock-wgrip.dragging::after{opacity:1;}
 /* floating panel surface: near-opaque window background + fg-12 border,
    blurred so 3D content doesn't bleed through */
 /* same surface as the window header: fg-8 over the app background, solid
@@ -37,12 +48,12 @@
    is a full-height panel of the workspace, as wide as the dock. --free-l / --free-r are the edges
    of the free 3D view: what is laid out after the dock (filters, view cube, view tools, status
    panels) starts at --free-l, the system bar ends at --free-r */
-.workspace{--free-l:357px;--free-r:8px;}
-.workspace > .panel-insp{position:absolute;top:8px;bottom:8px;width:341px;z-index:10;}
-.workspace[data-insp="side"] > .panel-insp{left:357px;}
+.workspace{--free-l:calc(var(--dock-w) + 16px);--free-r:8px;}
+.workspace > .panel-insp{position:absolute;top:8px;bottom:8px;width:var(--dock-w);z-index:10;}
+.workspace[data-insp="side"] > .panel-insp{left:calc(var(--dock-w) + 16px);}
 .workspace[data-insp="right"] > .panel-insp{right:8px;}
-.workspace[data-insp="side"]:not(.simmode){--free-l:706px;}   /* 357 + 341 + 8 */
-.workspace[data-insp="right"]:not(.simmode){--free-r:357px;}
+.workspace[data-insp="side"]:not(.simmode){--free-l:calc(2 * var(--dock-w) + 24px);}
+.workspace[data-insp="right"]:not(.simmode){--free-r:calc(var(--dock-w) + 16px);}
 .workspace.simmode > .panel-insp{display:none;}
 
 /* the content well is darker than the panel frame (like the window header:
@@ -270,8 +281,18 @@
 /* ===== View cube — bottom-left of the 3D view, between the dock and the calc bar =====
    same panel pattern as .filters (light frame, dark inset); the cube itself is an
    SVG drawn by the "View cube" section in app.js */
-.vcube{position:absolute;left:var(--free-l);bottom:8px;z-index:20;width:96px;height:112px;
+.vcube{position:absolute;left:var(--free-l);bottom:var(--vbar-b);z-index:20;width:96px;height:112px;
   touch-action:none;user-select:none;cursor:grab;}
+/* the cube's corner of the 3D view (its menu, "Position"; data-cube on .viewport): bottom-left by
+   default, next to the view tools; bottom-right — above the system bar (36 + 8); top-right; top-left —
+   right of the Filters column (--vpl-w, its width). --vbar-b: the bottom of the view bars (8, above
+   the wide Simulation panel when it shows). Away from bottom-left, the view tools take its place */
+.viewport{--vbar-b:8px;}
+.viewport[data-cube="br"] .vcube{left:auto;right:var(--free-r);bottom:calc(var(--vbar-b) + 44px);}
+.viewport[data-cube="tr"] .vcube{left:auto;right:var(--free-r);top:8px;bottom:auto;}
+.viewport[data-cube="tl"] .vcube{left:calc(var(--free-l) + var(--vpl-w, 67px) + 8px);top:8px;bottom:auto;}
+.viewport[data-cube]:not([data-cube="bl"]) .vb-tools{left:var(--free-l);}
+.vb-seg svg{display:block;width:16px;height:12px;}
 /* active coordinate system under the cube; click opens the CS list */
 .vc-cs{position:absolute;left:0;right:0;bottom:0;height:16px;text-align:center;cursor:pointer;
   color:var(--ec-fg-56);font:400 11px/16px var(--ec-font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -318,6 +339,34 @@
   padding:0 4px;border-radius:8px;background:transparent;border:0;}
 .vbar{gap:2px;}
 .vb-tools{left:calc(var(--free-l) + 104px);}   /* cube 96 + 8 */
+/* ===== Function bar ("Function bar" in app.js): the ENCY function panel at the top of the 3D view,
+   centred over the free view. The plate of the Filters (--th-float: the panel frame colour at 25 %, a 2px blur; what
+   is behind shows through), no border; the buttons right on it: 36px (4px of air
+   around the 28px icons), radius 6 (8 − 2px padding), 4px apart, groups divided by a line fading to
+   its ends; hover = ink 6 %, on (Smart snap) = the Filters' on: ink 10 % with a 25 % ring. Icons:
+   ENCY's own sprite (Supplement/GUI/SVG/Dark_Function_panel.svg, 28px cells), the light one on the
+   light themes */
+.etb{position:absolute;top:8px;left:calc((var(--free-l) + 100% - var(--free-r)) / 2);transform:translateX(-50%);
+  z-index:25;display:flex;align-items:center;gap:4px;padding:2px;border-radius:8px;border:1px solid transparent;
+  background:var(--th-float);
+  -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
+  --etb-sprite:url(assets/ency/function-panel-dark.svg);}
+[data-theme$="-light"] .etb{--etb-sprite:url(assets/ency/function-panel.svg);}
+.etb-b{width:36px;height:36px;display:grid;place-items:center;border-radius:6px;cursor:pointer;}
+.etb-b:hover,.etb-b.dd-open{background:var(--ec-fg-6);}
+.etb-b.on{background:color-mix(in srgb, var(--ec-fg-100) 10%, transparent);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--ec-fg-100) 25%, transparent);}
+.etb-b.on:hover{background:color-mix(in srgb, var(--ec-fg-100) 16%, transparent);}
+.etb-ic{width:28px;height:28px;background:var(--etb-sprite) no-repeat;background-size:336px 84px;}
+.etb-sep{width:1px;height:20px;margin:0 4px;
+  background:linear-gradient(to bottom, transparent, var(--ec-fg-12) 30%, var(--ec-fg-12) 70%, transparent);}
+/* its tooltip, as in ENCY: the name, a line, what it does */
+.etb-tip{position:fixed;z-index:1000;max-width:280px;padding:6px 8px;border-radius:4px;pointer-events:none;
+  background:var(--pop-bg);border:1px solid var(--ec-fg-12);box-shadow:0 6px 20px var(--th-shadow);}
+.etb-tip[hidden]{display:none;}
+.etb-tip b{display:block;padding-bottom:4px;margin-bottom:4px;border-bottom:1px solid var(--ec-fg-12);
+  color:var(--ec-fg-96);font:600 12px/16px var(--ec-font);}
+.etb-tip span{display:block;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);}
 .vb-sys{right:var(--free-r);}
 .vb-sys .cb-sep{margin:0 6px;}
 /* progress: left / right are set from the side panels in calcPlace() */
@@ -824,6 +873,17 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 .title-row .t{color:var(--ec-fg-96);font:600 14px/20px var(--ec-font);padding-right:8px;}
 .title-ctl{flex:1 1 0;display:flex;justify-content:flex-end;min-width:0;gap:4px;}
 .title-ctl .dropdown{flex:0 1 auto;max-width:300px;}
+/* the label | control divider of the inspector, as the tree's: a full-height line that does not
+   scroll with the rows, shown while its handle is hovered or dragged; the columns follow
+   --insp-split (a share of the width, so they stretch with the panel) */
+.iwrap{position:relative;flex:1 1 0;min-height:0;display:flex;flex-direction:column;--insp-split:50%;}
+.isplit-line{position:absolute;top:0;bottom:0;left:calc(var(--insp-split) - 1px);width:1px;
+  opacity:0;transition:opacity .12s ease;pointer-events:none;z-index:5;background:var(--ec-fg-32);}
+.iwrap:has(.isplit-handle:hover) .isplit-line,.iwrap.splitting .isplit-line{opacity:1;}
+.isplit-handle{position:absolute;top:0;bottom:0;left:var(--insp-split);width:9px;margin-left:-5px;
+  cursor:col-resize;touch-action:none;z-index:6;}
+/* the label column ends 2px short of the line, the controls start right after it */
+.iwrap .ilbl{flex:0 0 calc(var(--insp-split) - 4px);}
 .irows{display:flex;flex-direction:column;gap:1px;overflow:auto;flex:1 1 0;min-height:0;}
 .irows > *{flex:0 0 auto;}
 .irow{display:flex;align-items:center;gap:2px;padding:2px;border-radius:6px;width:100%;cursor:pointer;min-height:24px;}
@@ -928,6 +988,24 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 /* ===== Viewport + filters + status panel ===== */
 /* the viewport is the frameless 3D scene itself */
 .viewport{position:absolute;inset:0;background:var(--scene);}
+/* the floor of the scene, under everything ("View cube" in app.js draws it in the cube's camera, so it
+   turns with the cube): ENCY's grid — a 1px line every 6.4px (ink 8 %), every tenth stronger (11 %), easing
+   off towards the edges of the view. --gx / --gy: its origin, the centre of the free view */
+.vp-grid{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;
+  -webkit-mask-image:radial-gradient(ellipse 75% 85% at var(--gx, 50%) var(--gy, 60%), #000 30%, rgba(0,0,0,.45) 100%);
+  mask-image:radial-gradient(ellipse 75% 85% at var(--gx, 50%) var(--gy, 60%), #000 30%, rgba(0,0,0,.45) 100%);}
+/* the diffuse light ENCY sheds on the scene while the machine is shown (its filter on): a soft ellipse
+   over the free view, a little below its middle */
+.vp-glow{position:absolute;top:0;bottom:0;left:var(--free-l);right:var(--free-r);pointer-events:none;
+  opacity:0;transition:opacity .4s ease;
+  background:radial-gradient(ellipse 46% 40% at 50% 60%,
+    color-mix(in srgb, var(--vp-glow) 12%, transparent) 0%,
+    color-mix(in srgb, var(--vp-glow) 9%, transparent) 25%,
+    color-mix(in srgb, var(--vp-glow) 5%, transparent) 50%,
+    color-mix(in srgb, var(--vp-glow) 2%, transparent) 75%, transparent 100%);}
+.viewport.env-machine .vp-glow{opacity:1;}
+/* Environment off (the cube menu): a bare scene */
+.viewport.env-off .vp-grid,.viewport.env-off .vp-glow{display:none;}
 
 /* Themes, picked in the logo menu (shared-ui/chrome.js sets data-theme on <html>).
    Every theme is one base (--th-base, the scene under everything) and one ink (--th-ink) the
@@ -952,6 +1030,8 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
   --ec-bg-96:color-mix(in srgb, var(--th-base) 96%, transparent);
   --ec-bg-80:color-mix(in srgb, var(--th-base) 80%, transparent);
   --pop-bg:color-mix(in srgb, var(--th-ink) var(--th-k12), var(--th-panel));
+  --th-float:color-mix(in srgb, color-mix(in srgb, var(--th-ink) var(--th-k8), var(--th-panel)) 25%, transparent);   /* the panels floating on the 3D view: the frame colour of the panels (the tree's) at 25 % */
+  --vp-glow:var(--th-ink);                 /* the machine light on the scene (white on the light themes) */
   --th-shadow:rgba(0,0,0,.5);
   --th-knob:#fff; --th-on-green:#04150e; --th-green-hover:#00b578;
   --th-red:#ff5c5e; --th-red-text:#ff8384; --th-red-text2:#ff7072; --th-blue-text:#46acff;
@@ -959,6 +1039,7 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 }
 [data-theme="steel"]{--th-base:#0d1015;}
 [data-theme$="-light"]{
+  --vp-glow:#fff;
   --th-ink:#0e1010; --th-k4:6%; --th-k8:11.6%; --th-k12:17%;
   /* not mirrored: text on a grey well reads dirty, so the panels' wells are near white, a step
      lighter than the scene as in the dark themes; popovers white too, lifted by border and shadow */
@@ -984,28 +1065,40 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 .vp-hint{position:absolute;inset:0;pointer-events:none;display:grid;place-items:center;color:var(--ec-fg-8);font-size:13px;letter-spacing:.04em;}
 
 /* filters float next to the dock */
-/* same panel pattern as the dock: light base, header on it, dark inset body */
-/* the left column of the view: the Filters, then the drawing panel while drawing — 8px apart, as
-   far as the Filters are from the dock; the column itself lets the view through */
+/* a plate of the panels' frame colour (the tree's) at 25 % with a 2px blur (--th-float) — the grid and what is
+   behind show through, lightly veiled and softened, so the panel is there without standing out; no border
+   (a transparent one keeps the metrics); on = an ink tint (10 %, a 25 % ring). Folded, the title becomes a
+   button: a resting plate and a chevron down */
+/* the left column of the view: the Filters, then the drawing panel while drawing — 4px apart, so the
+   next title sits about as far from the cells as a group inside a panel; the column lets the view through */
 .vp-left{position:absolute;top:8px;left:var(--free-l);z-index:20;display:flex;flex-direction:column;
-  align-items:flex-start;gap:8px;pointer-events:none;}
+  align-items:flex-start;gap:4px;pointer-events:none;}
 .vp-left > *{pointer-events:auto;}
-.filters{position:relative;border:1px solid var(--ec-fg-12);
-  background:color-mix(in srgb, var(--th-ink) var(--th-k8), var(--ec-bg));
+.filters{position:relative;border:1px solid transparent;background:var(--th-float);
+  -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
   border-radius:8px;padding:2px;display:flex;flex-direction:column;gap:2px;width:67px;}
-/* same height as the mode tabs of the tree panel (32px), so both dark insets start on one line */
-.f-head{border:0;background:transparent;cursor:pointer;width:100%;padding:8px 4px;border-radius:6px;
+/* the title: 24px */
+.f-head{border:0;background:transparent;cursor:pointer;width:100%;padding:4px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;gap:2px;
   color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);text-align:center;}
 .f-head:hover{background:var(--ec-fg-8);}
-/* nested radii: panel 8 → 2 → inset 6 → 2 → cells 4 (inner radius = outer − padding) */
-.f-body{display:none;background:var(--ec-bg);border-radius:6px;padding:2px;flex-direction:column;gap:8px;}
+/* folded: a button — a resting plate, the chevron down next to the title */
+.filters:not(.open) .f-head{background:var(--ec-fg-6);}
+.filters:not(.open) .f-head:hover{background:var(--ec-fg-12);}
+/* nested radii: panel 8 → 2px padding → cells 6. The cells fill the panel: two columns 29.5 × 30,
+   one column 32 × 32 */
+.f-body{display:none;flex-direction:column;gap:8px;}
 .filters.open .f-body{display:flex;}
 .f-cols{display:flex;gap:2px;}
 .f-col{flex:1 1 0;display:flex;flex-direction:column;gap:2px;}
-.f-cell{width:100%;height:27.5px;display:flex;align-items:center;justify-content:center;padding:2px;
-  border-radius:4px;background:transparent;cursor:pointer;}
-.f-cell:hover{background:var(--ec-fg-8);}
-.f-cell.on{background:var(--ec-fg-16);}
+.f-cell{width:100%;height:30px;display:flex;align-items:center;justify-content:center;padding:2px;
+  border-radius:6px;background:transparent;cursor:pointer;}
+.f-cell:hover{background:var(--ec-fg-6);}   /* weaker than on (10 %), so a hovered filter never reads as on */
+/* on — the intensity of the Calculate tint, in the ink colour (white on the dark themes): 10 % with a
+   25 % ring, 16 % on hover */
+.f-cell.on{background:color-mix(in srgb, var(--ec-fg-100) 10%, transparent);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--ec-fg-100) 25%, transparent);}
+.f-cell.on:hover{background:color-mix(in srgb, var(--ec-fg-100) 16%, transparent);}
 /* the filter whose settings are open — same "open" ring as an opened dropdown */
 .f-cell.dd-open{box-shadow:inset 0 0 0 1px var(--ec-fg-48);}
 .f20{width:20px;height:20px}
@@ -1029,20 +1122,21 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 .fs-num{flex:0 0 20px;text-align:right;font:400 12px/16px var(--ec-font);color:var(--ec-fg-96);
   font-variant-numeric:tabular-nums;}
 .f-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:2px;}
-.f-grid .f-cell{height:28px;}
-.f-head-i{display:none;width:16px;height:16px;margin:0 auto;transition:transform .12s ease;}
+/* the chevron, right of the title: up while open (fold), down while folded (unfold) */
+.f-head-i{display:block;width:16px;height:16px;flex:0 0 16px;transition:transform .12s ease;}
+.filters.open .f-head-i{transform:rotate(180deg);}
 
 /* one column (.list, pulled down by the corner grip): the model, the machine and toolpath, then
-   dot / curve / face / mech, divided like the two-column layout; 28px cells, so the panel is
-   38px wide and its title turns into a chevron: up while open (fold), down while folded (unfold) */
+   dot / curve / face / mech, divided like the two-column layout; 32px cells, so the panel is
+   38px wide and the title word gives way, leaving its chevron */
 .filters.list{width:38px;}
 .filters.list .f-head-t{display:none;}
-.filters.list .f-head-i{display:block;}
-.filters.list.open .f-head-i{transform:rotate(180deg);}
 .filters.list .f-cols{flex-direction:column;gap:8px;}
-.filters.list .f-col + .f-col::before{content:'';flex:0 0 1px;margin-bottom:6px;background:var(--ec-fg-8);}
+.filters.list .f-col + .f-col::before{content:'';flex:0 0 1px;margin-bottom:6px;background:linear-gradient(to right, transparent, var(--ec-fg-12) 30%, var(--ec-fg-12) 70%, transparent);}
+/* the dividers fade out to the edges (no panel edge for them to meet): fg-12 across the middle */
+.filters .line{background:linear-gradient(to right, transparent, var(--ec-fg-12) 30%, var(--ec-fg-12) 70%, transparent);}
 .filters.list .f-grid{grid-template-columns:1fr;}
-.filters.list .f-cell{height:28px;}
+.filters.list .f-cell{height:32px;}
 /* the grip: an arc around the bottom-right corner of the column's lowest panel, concentric with it
    (radius 8 + 6px off the panel); the 20px box starts 4px inside the corner */
 .f-grip{position:absolute;right:-16px;bottom:-16px;width:20px;height:20px;cursor:ns-resize;
@@ -1052,12 +1146,11 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 /* no grip under a folded panel: the lowest one is the drawing panel while it shows, else the Filters */
 .vp-left:has(> .ency-draw:not([hidden]):not(.open)) > .f-grip,
 .vp-left:not(:has(> .ency-draw:not([hidden]))):has(> .filters:not(.open)) > .f-grip{display:none;}
-/* the drawing panel follows the Filters' layout: in one column 38px wide, a chevron for its title */
+/* the drawing panel follows the Filters' layout: in one column 38px wide, only the chevron for a title */
 #filters.list ~ .ency-draw{width:38px;}
 #filters.list ~ .ency-draw .ency-draw__t{display:none;}
-#filters.list ~ .ency-draw .ency-draw__i{display:block;}
-#filters.list ~ .ency-draw.open .ency-draw__i{transform:rotate(180deg);}
 #filters.list ~ .ency-draw .ency-draw__grid{grid-template-columns:1fr;}
+#filters.list ~ .ency-draw .ency-draw__c{height:32px;}
 
 /* Status panel — opens on a status-circle click in the tree */
 .stpanel{position:absolute;top:8px;left:var(--free-l);display:none;flex-direction:column;gap:8px;width:300px;
@@ -1738,7 +1831,7 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 
 /* --- the edit bar on the 3D view: the panel finish of the view bars, centred over the free view --- */
 /* the panel pattern: controls on the light frame, the content in the dark inset (radius 6 = 8 − 2px padding) */
-.tpe-bar{position:absolute;top:8px;z-index:30;transform:translateX(-50%);display:flex;flex-direction:column;gap:2px;
+.tpe-bar{position:absolute;top:58px;z-index:30;transform:translateX(-50%);display:flex;flex-direction:column;gap:2px;
   min-width:360px;padding:2px;border-radius:8px;white-space:nowrap;
   background:color-mix(in srgb, var(--th-ink) var(--th-k8), var(--ec-bg));border:1px solid var(--ec-fg-12);}
 .tpe-row{display:flex;align-items:center;gap:2px;height:32px;padding:0 2px;cursor:grab;user-select:none;touch-action:none;}
@@ -1793,7 +1886,7 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 .tpe-ok.dis:hover{background:transparent;}
 .tpe-x{color:var(--th-red-text2);}
 /* one-line hint under the bar (the .ph-tip surface) */
-.tpe-tip{position:absolute;top:50px;z-index:30;transform:translateX(-50%);padding:2px 8px;border-radius:4px;
+.tpe-tip{position:absolute;top:58px;z-index:30;transform:translateX(-50%);padding:2px 8px;border-radius:4px;
   background:var(--pop-bg);border:1px solid var(--ec-fg-12);color:var(--ec-fg-72);
   font:400 11px/16px var(--ec-font);white-space:nowrap;pointer-events:none;}
 .tpe-tip.warn{color:var(--ec-amber,#ebc14a);}

@@ -444,6 +444,14 @@
   var ctx = cv.getContext('2d');
   var cam = {yaw:0.68, pitch:0.49, s:4, ox:0, oy:0}, W = 0, H = 0, fitted = false, dpr = 1;
   var active = false, simOn = false;
+  /* the view shows outside the Edits tab too (Machining and Model): the part while the Part filter is
+     on, the toolpath while the Toolpath filter is on (the selected milling operation's, else the first
+     one's); the Edits tab makes it editable (active) */
+  var shown = false;
+  var fPart = document.querySelector('#filters .f-cell[data-ftype="part"]');
+  var fPath = document.querySelector('#filters .f-cell[data-fview="toolpath"]');
+  function partOn(){ return !fPart || fPart.classList.contains('on'); }
+  function pathOn(){ return !fPath || fPath.classList.contains('on'); }
   var T = {};
   function trig(){ T.cy = Math.cos(cam.yaw); T.sy = Math.sin(cam.yaw); T.cp = Math.cos(cam.pitch); T.sp = Math.sin(cam.pitch); }
   // the free part of the view, [left, right]: right of the dock, and of the inspector when it sits
@@ -508,51 +516,54 @@
     ctx.globalAlpha = 1; ctx.setLineDash([]);
   };
   function paint(){
-    raf = 0; if(!active) return;
+    raf = 0; if(!shown) return;
     themeSync(); trig(); ctx.clearRect(0, 0, W, H);
-    var op = curOp(); if(!op) return;
-    var c = centre();
+    var c = centre(), showPart = partOn(), showPath = pathOn();
+    var op = curOp(); if(!op){ var r0 = millRows()[0]; op = r0 ? opOf(r0) : null; }
     // while an edit is open the view shows its result next to what it changes;
     // otherwise — the result of all enabled edits
-    var editing = !!(cur && cur.op === op), idx = editing ? op.edits.indexOf(cur.e) : op.edits.length;
+    var editing = !!(op && active && cur && cur.op === op), idx = editing ? op.edits.indexOf(cur.e) : op ? op.edits.length : 0;
     var e = editing ? cur.e : null, R = editing ? region(e) : null;
-    var inp = editing ? evaluate(op, idx) : null, out = evaluate(op, editing ? idx + 1 : idx);
     var back = new Buckets(), front = new Buckets();
-    function put(isFront, col, al, w, dash, a, b){ (isFront ? front : back).seg(col, isFront ? al : al * 0.5, w, dash, a, b); }
-    // trim preview: what goes away, as a faint dashed ghost
-    if(R && e.type === 'trim' && e.on) inp.segs.forEach(function(s){
-      var kill = killMask(s, R, e.mode);
-      for(var i = 0; i < s.pts.length - 1; i++) if(kill[i] && kill[i + 1]) put(facing(s.nrm[i]) > -0.08, COL.hit, 0.55, 1, true, P(s.pts[i], c), P(s.pts[i + 1], c));
-    });
-    out.segs.forEach(function(s){
-      for(var i = 0; i < s.pts.length - 1; i++){
-        var col = s.f[i] !== 100 ? COL.feed : COL.work, w = s.f[i] !== 100 ? 1.4 : 1;
-        if(R && e.type === 'feeds' && e.on && R(s.pts[i])){ col = COL.hit; w = 1.6; }
-        put(facing(s.nrm[i]) > -0.08, col, 0.95, w, false, P(s.pts[i], c), P(s.pts[i + 1], c));
+    // what the part would hide is fainter; with the part hidden, nothing is
+    function put(isFront, col, al, w, dash, a, b){ isFront = isFront || !showPart; (isFront ? front : back).seg(col, isFront ? al : al * 0.5, w, dash, a, b); }
+    if(op && showPath){
+      var inp = editing ? evaluate(op, idx) : null, out = evaluate(op, editing ? idx + 1 : idx);
+      // trim preview: what goes away, as a faint dashed ghost
+      if(R && e.type === 'trim' && e.on) inp.segs.forEach(function(s){
+        var kill = killMask(s, R, e.mode);
+        for(var i = 0; i < s.pts.length - 1; i++) if(kill[i] && kill[i + 1]) put(facing(s.nrm[i]) > -0.08, COL.hit, 0.55, 1, true, P(s.pts[i], c), P(s.pts[i + 1], c));
+      });
+      out.segs.forEach(function(s){
+        for(var i = 0; i < s.pts.length - 1; i++){
+          var col = s.f[i] !== 100 ? COL.feed : COL.work, w = s.f[i] !== 100 ? 1.4 : 1;
+          if(R && e.type === 'feeds' && e.on && R(s.pts[i])){ col = COL.hit; w = 1.6; }
+          put(facing(s.nrm[i]) > -0.08, col, 0.95, w, false, P(s.pts[i], c), P(s.pts[i + 1], c));
+        }
+      });
+      // links edit preview: the links it rebuilds in white, the shape they had faint
+      if(R && e.type === 'links' && e.on) deriveLinks(op, inp).forEach(function(L){
+        if(!linkMatches(L, R, e.filter)) return;
+        var old = linkPts(L); for(var j = 0; j < old.length - 1; j++) put(true, COL.hit, 0.22, 1, true, P(old[j], c), P(old[j + 1], c));
+      });
+      deriveLinks(op, out).forEach(function(L){
+        var hit = editing && e.type === 'links' && L.mod === idx;
+        var isF = hit || facing([(L.na[0] + L.nb[0]) / 2, (L.na[1] + L.nb[1]) / 2]) > -0.08, p = linkPts(L);
+        for(var i = 0; i < p.length - 1; i++){
+          var lifted = LIFTED[L.type], col = hit ? COL.hit : !lifted ? COL.work : i === 0 ? COL.retract : COL.rapid;
+          put(isF, col, hit ? 1 : 0.85, hit ? 1.6 : 1, !hit && lifted && i > 0, P(p[i], c), P(p[i + 1], c));
+        }
+      });
+      // approach and return of the operation: rapid down to the first cut, up from the last
+      if(out.segs.length){
+        var f0 = out.segs[0].pts[0], l0 = out.segs[out.segs.length - 1], lp = l0.pts[l0.pts.length - 1], zs = G.H + DEFAULT_RULES.safe + 6;
+        put(true, COL.rapid, 0.85, 1, true, P([f0[0], f0[1], zs], c), P(f0, c));
+        put(true, COL.retract, 0.85, 1, false, P(lp, c), P([lp[0], lp[1], zs], c));
       }
-    });
-    // links edit preview: the links it rebuilds in white, the shape they had faint
-    if(R && e.type === 'links' && e.on) deriveLinks(op, inp).forEach(function(L){
-      if(!linkMatches(L, R, e.filter)) return;
-      var old = linkPts(L); for(var j = 0; j < old.length - 1; j++) put(true, COL.hit, 0.22, 1, true, P(old[j], c), P(old[j + 1], c));
-    });
-    deriveLinks(op, out).forEach(function(L){
-      var hit = editing && e.type === 'links' && L.mod === idx;
-      var isF = hit || facing([(L.na[0] + L.nb[0]) / 2, (L.na[1] + L.nb[1]) / 2]) > -0.08, p = linkPts(L);
-      for(var i = 0; i < p.length - 1; i++){
-        var lifted = LIFTED[L.type], col = hit ? COL.hit : !lifted ? COL.work : i === 0 ? COL.retract : COL.rapid;
-        put(isF, col, hit ? 1 : 0.85, hit ? 1.6 : 1, !hit && lifted && i > 0, P(p[i], c), P(p[i + 1], c));
-      }
-    });
-    // approach and return of the operation: rapid down to the first cut, up from the last
-    if(out.segs.length){
-      var f0 = out.segs[0].pts[0], l0 = out.segs[out.segs.length - 1], lp = l0.pts[l0.pts.length - 1], zs = G.H + DEFAULT_RULES.safe + 6;
-      put(true, COL.rapid, 0.85, 1, true, P([f0[0], f0[1], zs], c), P(f0, c));
-      put(true, COL.retract, 0.85, 1, false, P(lp, c), P([lp[0], lp[1], zs], c));
     }
-    paintFloor(c);
+    if(showPart) paintFloor(c);
     back.flush();
-    paintPart(c);
+    if(showPart) paintPart(c);
     front.flush();
     // the region shows only while its edit is open (pencil); an applied edit shows just its result
     handles = [];
@@ -818,13 +829,15 @@
     cam.ox += vx * (cam.s - s2); cam.oy += vy * (cam.s - s2);
     cam.s = s2; draw();
   }, {passive:false});
-  if(window.ResizeObserver) new ResizeObserver(function(){ if(active) resize(); }).observe(vp);
-  if(window.ResizeObserver) new ResizeObserver(function(){ if(active){ draw(); barPlace(); } }).observe(dock);
-  window.addEventListener('resize', function(){ if(active) resize(); });
+  if(window.ResizeObserver) new ResizeObserver(function(){ if(shown) resize(); }).observe(vp);
+  if(window.ResizeObserver) new ResizeObserver(function(){ if(shown){ draw(); barPlace(); } }).observe(dock);
+  window.addEventListener('resize', function(){ if(shown) resize(); });
   window.tpView = {
     setCamera:function(c){ cam.yaw = c.yaw; cam.pitch = c.pitch; draw(); },
-    fit:function(){ if(active) fit(); }
+    fit:function(){ if(shown) fit(); }
   };
+  // a filter switched: the part or the toolpath comes and goes
+  [fPart, fPath].forEach(function(f){ if(f) new MutationObserver(draw).observe(f, {attributes:true, attributeFilter:['class']}); });
 
   /* ---------- the edit bar on the 3D view ---------- */
   var bar = document.createElement('div'); bar.className = 'tpe-bar'; bar.hidden = true;
@@ -890,10 +903,14 @@
   function feedValue(e){ return e.feedUnit === 'mm/min' ? Math.round(FEED * e.feed / 100) : Math.round(e.feed * 10) / 10; }
   function feedText(e){ return feedValue(e) + (e.feedUnit === 'mm/min' ? ' mm/min' : '%'); }
   function plural(n, unit){ return n + ' ' + (n === 1 ? {passes:'pass', links:'link', retracts:'retract'}[unit] : unit); }
+  // the drawing panel: while a region is drawn here, and all the time the inspector's Job tab is open
+  // (its geometry is picked and drawn there, as in ENCY); never on the Simulation tab
+  var jobOn = false;
+  function dbarSync(){ dbar.show(!simOn && (jobOn || !!(active && mine() && drawing()))); }
   function barSync(){
     var on = !!(active && mine()), dr = on && drawing();
-    // while drawing: the drawing bar; when the shape is done: the edit bar next to it
-    dbar.show(dr); bar.hidden = !on || dr; tipEl.hidden = true;
+    // while drawing: the drawing panel; when the shape is done: the edit bar next to it
+    dbarSync(); bar.hidden = !on || dr; tipEl.hidden = true;
     if(dr){
       var n = cur.e.curve.length, m = tipMsg || TOOL_TIPS[shapeOf(cur.e)](n);
       if(dbar.state.surface) m += ' · On Surface: points land on the part';
@@ -1378,12 +1395,23 @@
   });
 
   /* ---------- show / hide with the tab, the mode and the selection ---------- */
+  // the view: everywhere but the Simulation tab (it starts in the cube's camera)
+  function viewSync(){
+    var on = !simOn;
+    if(on === shown){ if(on) draw(); return; }
+    shown = on;
+    cv.hidden = !on; vp.classList.toggle('tp-on', on);
+    if(on){
+      if(window.viewCube){ var c = window.viewCube.get(); cam.yaw = c.yaw; cam.pitch = c.pitch; }
+      resize();
+    }
+  }
+  // editing: the Edits tab
   function setActive(on){
     on = on && !simOn;
     if(on === active){ if(on) refresh(); return; }
     if(!on) leave();
     active = on;
-    cv.hidden = !on; vp.classList.toggle('tp-on', on);
     if(!on){ toastEl.hidden = true; }
     if(on){
       // the rules window of the Links tab covers the view: close it
@@ -1395,9 +1423,9 @@
     }
     refresh();
   }
-  window.tpeTab = function(on){ setActive(on); };
+  window.tpeTab = function(on, tab){ jobOn = tab === 'Job'; setActive(on); dbarSync(); };
   window.tpeRender = function(){ render(); };
-  document.addEventListener('ency:mode', function(ev){ simOn = !!ev.detail.sim; setActive(INS.activeTab() === 'Edits'); });
+  document.addEventListener('ency:mode', function(ev){ simOn = !!ev.detail.sim; viewSync(); setActive(INS.activeTab() === 'Edits'); dbarSync(); });
   var lastSel = null;
   document.addEventListener('ency:treesel', function(ev){
     var id = ev.detail && ev.detail.id;
@@ -1407,4 +1435,6 @@
     selId = null; refresh();
   });
   (function(){ var r = selRow(); lastSel = r ? r.dataset.id : null; })();
+  jobOn = INS.activeTab() === 'Job'; dbarSync();                  // the page may open on the Job tab
+  viewSync();
 })();

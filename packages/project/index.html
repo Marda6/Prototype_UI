@@ -21,6 +21,9 @@
   <div class="workspace">
 
     <aside class="dock">
+      <!-- width grip on the dock's right edge: the tree and the inspector widen and narrow together
+           ("Panel width" in app.js) -->
+      <div class="dock-wgrip" id="dockWidth" title="Drag to resize the panels"></div>
 
       <!-- ===== Tree panel ===== -->
       <section class="panel16 panel-tree">
@@ -270,7 +273,12 @@
         <div class="inner">
           <div class="title-row"><span class="t" id="inspTitle">Tool Assembly</span><span class="title-ctl" id="titleCtl"></span></div>
           <div class="line"></div>
-          <div class="irows" id="irows"></div>
+          <!-- the label | control divider, as in the tree: shows on hover, drag to resize the columns -->
+          <div class="iwrap" id="iwrap">
+            <div class="isplit-line"></div>
+            <div class="isplit-handle" id="inspSplit" title="Drag to resize"></div>
+            <div class="irows" id="irows"></div>
+          </div>
         </div>
       </section>
     </aside>
@@ -298,7 +306,7 @@
               <div class="f-cell on" title="Tool"><img class="f20" src="assets/f-tool2.svg" alt=""></div>
               <div class="f-cell" title="Fixtures"><img class="f20" src="assets/f-fixtures.svg" alt=""></div>
               <div class="f-cell" title="Machine" data-ftype="machine"><img class="f20" src="assets/f-machine1.svg" alt=""></div>
-              <div class="f-cell" title="Machine"><img class="f20" src="assets/f-machine2.svg" alt=""></div>
+              <div class="f-cell on" title="Toolpath" data-fview="toolpath"><img class="f20" src="assets/f-machine2.svg" alt=""></div>
             </div>
           </div>
           <div class="line"></div>

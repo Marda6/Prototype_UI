@@ -1,23 +1,33 @@
 /* ENCY drawing panel (drawbar.js) — the tools for drawing on the 3D view, shown while drawing.
-   The pattern and metrics of the Filters panel (project app.css): a light frame (ink 8 % over the
-   panel base) with the title on it (32px, folds the panel), a dark well with 28px cells in two
-   columns, 2px apart, 20px glyphs; on = fg-16 plate. Free / On Surface (where the points land) sit
-   side by side under a divider, apart from the tools. Nested radii: panel 8, well 6, cells 4.
-   The host places it; in a narrow host the title gives way to the chevron (.ency-draw__i). */
+   The pattern and metrics of the Filters panel (project app.css): a plate (--th-float: the panel frame colour at
+   25 %, a 2px blur — what is behind shows through; no border) — the title
+   (24px, folds the panel; folded, a button with a chevron) and the cells right on the 3D view —
+   two columns of 30px cells, 2px apart, 20px glyphs; on = an ink tint (white on the dark, 10 %,
+   a 25 % ring). Free / On Surface (where the points land) sit side by side under a divider, apart
+   from the tools. Nested radii: panel 8 → 2px padding → cells 6.
+   The chevron (.ency-draw__i) sits right of the title, up while open, down while folded; in a narrow
+   host the title word gives way, leaving the chevron. The host places it. */
 .ency-draw{position:relative;display:flex;flex-direction:column;gap:2px;width:67px;padding:2px;
-  border:1px solid var(--ec-fg-12);border-radius:8px;
-  background:color-mix(in srgb, var(--th-ink, #f5f5f5) var(--th-k8, 8%), var(--ec-bg));}
+  border:1px solid transparent;border-radius:8px;
+  background:var(--th-float, rgba(36,38,38,.25));
+  -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);}
 .ency-draw[hidden]{display:none;}
-.ency-draw__head{border:0;background:transparent;cursor:pointer;width:100%;padding:8px 4px;border-radius:6px;
+.ency-draw__head{border:0;background:transparent;cursor:pointer;width:100%;padding:4px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;gap:2px;
   color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);text-align:center;}
 .ency-draw__head:hover{background:var(--ec-fg-8);}
-.ency-draw__i{display:none;width:16px;height:16px;margin:0 auto;color:var(--ec-fg-56);transition:transform .12s ease;}
-.ency-draw__body{display:none;flex-direction:column;gap:8px;padding:2px;border-radius:6px;background:var(--ec-bg);}
+.ency-draw:not(.open) .ency-draw__head{background:var(--ec-fg-6);}
+.ency-draw:not(.open) .ency-draw__head:hover{background:var(--ec-fg-12);}
+.ency-draw__i{display:block;width:16px;height:16px;flex:0 0 16px;color:var(--ec-fg-56);transition:transform .12s ease;}
+.ency-draw.open .ency-draw__i{transform:rotate(180deg);}
+.ency-draw__body{display:none;flex-direction:column;gap:8px;}
 .ency-draw.open .ency-draw__body{display:flex;}
 .ency-draw__grid{display:grid;grid-template-columns:repeat(2,1fr);gap:2px;}
-.ency-draw__c{display:flex;align-items:center;justify-content:center;height:28px;padding:2px;border:0;
-  border-radius:4px;background:transparent;cursor:pointer;}
-.ency-draw__c:hover{background:var(--ec-fg-8);}
-.ency-draw__c.on{background:var(--ec-fg-16);}
+.ency-draw__c{display:flex;align-items:center;justify-content:center;height:30px;padding:2px;border:0;
+  border-radius:6px;background:transparent;cursor:pointer;}
+.ency-draw__c:hover{background:var(--ec-fg-6);}
+.ency-draw__c.on{background:color-mix(in srgb, var(--ec-fg-100) 10%, transparent);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--ec-fg-100) 25%, transparent);}
+.ency-draw__c.on:hover{background:color-mix(in srgb, var(--ec-fg-100) 16%, transparent);}
 .ency-draw__c svg{display:block;}
-.ency-draw__sep{height:1px;flex:0 0 1px;background:var(--ec-fg-8);}
+.ency-draw__sep{height:1px;flex:0 0 1px;background:linear-gradient(to right, transparent, var(--ec-fg-12) 30%, var(--ec-fg-12) 70%, transparent);}   /* fades out to the edges, as the Filters' dividers */

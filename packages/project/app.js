@@ -151,7 +151,7 @@
     {title:'Tool', rows:[fsColor('#7C70FF', false), fsPct(false, 50), fsSel('Display mode', FS_DISPLAY)]},
     {title:'Fixtures', rows:fsSolid('#FFDF70')},
     {title:'Machine', rows:[fsPct(true, 40), fsSel('Display mode', FS_DISPLAY), fsTgl('Motionless', false)]},
-    {title:'Machine', rows:[fsColor('#70FFAC'), fsSlider('Line width', 1, 5, 1)]},
+    {title:'Toolpath', rows:[fsColor('#70FFAC'), fsSlider('Line width', 1, 5, 1)]},
     {title:'Dot', rows:[fsColor('#FFDF70'), fsSlider('Point size', 1, 10, 4)]},
     {title:'Curve', rows:[fsColor('#70CFFF'), fsSlider('Line width', 1, 5, 2)]},
     {title:'Face', rows:[fsColor('#70FFAC'), fsPct(false, 50), fsSel('Display mode', FS_DISPLAY)]},
@@ -593,8 +593,9 @@
   }
 
   function renderInspector(tab){
-    // the Toolpath edits tab (tpedit.js) owns the 3D toolpath view: it shows only while the tab is open
-    if(window.tpeTab) window.tpeTab(tab === 'Edits');
+    // the Toolpath edits tab (tpedit.js) owns the 3D toolpath view: it shows only while the tab is open;
+    // the drawing panel (also tpedit.js) shows on the Job tab too
+    if(window.tpeTab) window.tpeTab(tab === 'Edits', tab);
     if(tab==='Tool'){ renderToolTab(); return; }
     if(tab==='Edits' && window.tpeRender){ titleCtl.innerHTML = ''; irows.classList.remove('ro'); window.tpeRender(); return; }
     titleCtl.innerHTML = '';
@@ -1614,6 +1615,7 @@
         var pl = proj(add(o0, mul(a[1], 2*R + 15)));
         el('text', {x:pl[0].toFixed(1), y:pl[1].toFixed(1), 'class':'vc-axl '+a[0]}).textContent = a[0].toUpperCase();
       });
+      gridDraw();
     }
     // region hover: light every cell of the same region
     svg.addEventListener('mouseover', function(e){
@@ -1716,18 +1718,104 @@
         {t:'Set current view as Home', fn:function(){ HOME = {yaw:cam.yaw, pitch:cam.pitch}; }},
         {t:'Reset Home', fn:function(){ HOME = {yaw:0.68, pitch:0.49}; set(HOME.yaw, HOME.pitch, true); }},
         {sep:true},
-        {t:'Environment', chk:envOn, fn:function(){ envOn = !envOn; return true; }},
+        {t:'Environment', chk:envOn, fn:function(){ envOn = !envOn; vpEl.classList.toggle('env-off', !envOn); return true; }},
         {sep:true},
         {t:'Define floor', fn:function(){ floorSet = true; }},
         {t:'Rotate 90°', title:'Turn the floor by 90°', fn:function(){ floorTurn = (floorTurn + 90) % 360; }},
-        {t:'Reset', title:'Reset the floor', dis:!floorSet && !floorTurn, fn:function(){ floorSet = false; floorTurn = 0; }}
+        {t:'Reset', title:'Reset the floor', dis:!floorSet && !floorTurn, fn:function(){ floorSet = false; floorTurn = 0; }},
+        {sep:true},
+        {head:'Position'},
+        {seg:CUBE_CORNERS.map(function(c){ return cornerIcon(c.x, c.y); }), segHtml:true,
+         segTitles:CUBE_CORNERS.map(function(c){ return c.t; }),
+         cur:CUBE_CORNERS.map(function(c){ return c.id; }).indexOf(cubeCorner),
+         fn:function(i){ cubeAt(CUBE_CORNERS[i].id); vbMenuClose(); }}
       ];
     }
+    /* the corner of the 3D view the cube sits in (app.css: data-cube on .viewport); kept */
+    var CUBE_CORNERS = [{id:'tl', t:'Top left', x:2, y:2}, {id:'tr', t:'Top right', x:10, y:2},
+                        {id:'bl', t:'Bottom left', x:2, y:6}, {id:'br', t:'Bottom right', x:10, y:6}];
+    function cornerIcon(x, y){
+      return '<svg viewBox="0 0 16 12" fill="none"><rect x=".5" y=".5" width="15" height="11" rx="1.5" stroke="currentColor" stroke-opacity=".56"/>' +
+        '<rect x="' + x + '" y="' + y + '" width="4" height="4" rx="1" fill="currentColor"/></svg>';
+    }
+    var cubeVp = box.parentElement, cubeCorner = 'bl';
+    try { cubeCorner = localStorage.getItem('ency.cubeCorner') || 'bl'; } catch(e){}
+    function cubeAt(id){
+      cubeCorner = id; cubeVp.dataset.cube = id;
+      try { localStorage.setItem('ency.cubeCorner', id); } catch(e){}
+      window.dispatchEvent(new Event('resize'));       // the calc bar re-fits between the view bars
+    }
+    cubeAt(cubeCorner);
+    // top-left sits right of the Filters column, whose width changes (one column, folded)
+    var vpLeftEl = document.getElementById('vpLeft');
+    if(vpLeftEl && window.ResizeObserver) new ResizeObserver(function(){
+      cubeVp.style.setProperty('--vpl-w', vpLeftEl.offsetWidth + 'px');
+    }).observe(vpLeftEl);
     var more = btn('vc-more', 'View options', ICON_MORE, function(){ vbMenuOpen(more, cubeMenu); });
     // active coordinate system as a caption under the cube; click opens the CS list
     var cap = document.createElement('div'); cap.className = 'vc-cs'; cap.id = 'vcCs'; cap.title = 'Active coordinate system';
     cap.addEventListener('click', function(e){ e.stopPropagation(); vbMenuOpen(cap, csSection); });
     box.appendChild(cap);
+
+    /* the floor grid of the 3D view (app.css .vp-grid): the XY plane through the centre of the free
+       view, in the cube's camera (proj() above), so it turns with the cube. ENCY's grid: a line every
+       6.4px, every tenth stronger; the lines thin out as they crowd, and all of it as the floor turns
+       edge-on. Plus the diffuse light while the machine is shown (its filter on, .vp-glow) */
+    var vpEl = box.parentElement;
+    var grid = document.createElement('canvas'); grid.className = 'vp-grid';
+    var glow = document.createElement('div'); glow.className = 'vp-glow';
+    vpEl.insertBefore(glow, vpEl.firstChild); vpEl.insertBefore(grid, glow);
+    var GRID_STEP = 6.4, GRID_MINOR = 0.08, GRID_MAJOR = 0.11;
+    function ease(a, b, x){ var t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }
+    function gridDraw(){
+      if(!grid) return;
+      var dpr = window.devicePixelRatio || 1, W = vpEl.clientWidth, H = vpEl.clientHeight;
+      if(!W || !H) return;
+      var bw = Math.round(W * dpr), bh = Math.round(H * dpr);
+      if(grid.width !== bw || grid.height !== bh){ grid.width = bw; grid.height = bh; }
+      var g = grid.getContext('2d');
+      g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, bw, bh);
+      var cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), sp = Math.sin(cam.pitch);
+      var tilt = ease(0.03, 0.25, Math.abs(sp)); if(!tilt) return;
+      // the origin: the centre of the free view (the glow spans it), a little below the middle
+      var gr = glow.getBoundingClientRect(), vr = vpEl.getBoundingClientRect();
+      var ox = gr.left - vr.left + gr.width / 2, oy = H * 0.6;
+      grid.style.setProperty('--gx', ox + 'px'); grid.style.setProperty('--gy', oy + 'px');
+      function fwd(X, Y){ return [ox + cy*X - sy*Y, oy + sp*(sy*X + cy*Y)]; }
+      function inv(u, v){ u -= ox; v = (v - oy) / sp; return [cy*u + sy*v, -sy*u + cy*v]; }
+      var cs = [inv(0, 0), inv(W, 0), inv(0, H), inv(W, H)];
+      var xs = cs.map(function(c){ return c[0]; }), ys = cs.map(function(c){ return c[1]; });
+      var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+      var ink = getComputedStyle(vpEl).getPropertyValue('--th-ink').trim() || '#f5f5f5';
+      var lift = /-light$/.test(document.documentElement.dataset.theme || '') ? 1.4 : 1;   // the light themes' raised ink
+      g.setTransform(dpr, 0, 0, dpr, 0, 0); g.lineWidth = 1; g.strokeStyle = ink;   // 1px lines, as ENCY draws them
+      // one family: lines along the floor's Y (at X = k·step) or along its X (at Y = k·step)
+      function family(alongY){
+        var gap = GRID_STEP * Math.abs(sp) / Math.hypot(alongY ? sy : cy, sp * (alongY ? cy : sy));  // screen gap of two lines
+        var lo = alongY ? x0 : y0, hi = alongY ? x1 : y1, a = alongY ? y0 : x0, b = alongY ? y1 : x1;
+        var kMinor = ease(3, 6, gap) * GRID_MINOR, kMajor = ease(3, 6, gap * 10) * GRID_MAJOR;
+        [[kMinor, false], [kMajor, true]].forEach(function(pass){
+          if(!pass[0]) return;
+          g.globalAlpha = pass[0] * tilt * lift; g.beginPath();
+          for(var k = Math.ceil(lo / GRID_STEP); k <= Math.floor(hi / GRID_STEP); k++){
+            if((k % 10 === 0) !== pass[1]) continue;
+            var c = k * GRID_STEP, p = alongY ? fwd(c, a) : fwd(a, c), q = alongY ? fwd(c, b) : fwd(b, c);
+            g.moveTo(p[0], p[1]); g.lineTo(q[0], q[1]);
+          }
+          g.stroke();
+        });
+      }
+      family(true); family(false);
+      g.globalAlpha = 1;
+    }
+    window.addEventListener('resize', gridDraw);
+    new MutationObserver(gridDraw).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+    // the machine light follows the Machine filter
+    var machineCell = document.querySelector('#filters .f-cell[data-ftype="machine"]');
+    function glowSync(){ vpEl.classList.toggle('env-machine', !!machineCell && machineCell.classList.contains('on')); }
+    if(machineCell) new MutationObserver(glowSync).observe(machineCell, {attributes:true, attributeFilter:['class']});
+    glowSync();
+
     draw();
     requestAnimationFrame(pull);
     window.viewCube = {set:set, get:function(){ return {yaw:cam.yaw, pitch:cam.pitch}; }, look:function(d){ var c = camFrom(d); set(c.yaw, c.pitch, true); }};
@@ -1753,6 +1841,107 @@
   };
   // three separate floating panels: view tools · calculation progress · CS / status
   var vp = document.querySelector('.viewport');
+
+  /* ---------- Function bar: the ENCY function panel at the top of the 3D view, its set by the mode
+     tab — Model: the geometry tools, Machining (and Simulation for now): the machining ones. Every
+     button calls a function (not built in the prototype yet); Smart snap is a switch, shared by the
+     sets. Tools opens its list under the pointer and runs the first item on a click. Hover: the ENCY
+     tooltip (name · what it does). Icons: i = the cell of ENCY's sprite, 12 a row (names and hints
+     from ENCY: BtnsDarkIconPack.ini, the forms in SCKernel.dll) ---------- */
+  var FN_MEASURE = [
+    {id:'snap', i:8, t:'Smart snap', d:'Enable/disable smart snap', toggle:true},
+    {id:'measure', i:10, t:'Measure tool', d:'This tool shows a linear part annotation dimension between two points'},
+    {id:'geom', i:9, t:'Geometry measuring', d:'Measurement of geometrical parameters of the model'}
+  ];
+  var FN_BARS = {
+    machining: FN_MEASURE.concat([
+      {sep:true},
+      {id:'post', i:0, t:'Postprocessor', d:'Generate NC-code by postprocessor'},
+      {id:'report', i:1, t:'Machining report', d:'Generate machining report'},
+      {id:'tools', i:2, t:'Tools', menu:['Load tool list', null, 'Import tools to the project...', 'Save list of project tools as...',
+        'Delete all unused tools from the project', 'Adapt machine for advanced tools']},
+      {sep:true},
+      {id:'mcp', i:3, t:'Machine control panel', d:'Opens window to see and change the machine state'},
+      {id:'axes', i:5, t:'Graph of the axes', d:'Graph of change the machine state'},
+      {id:'verify', i:6, t:'Verify compare', d:'Compare machining result with part'},
+      {id:'reach', i:4, t:'Tool reach inspector', d:'Opens inspector to see tool reach'}
+    ]),
+    model: FN_MEASURE.concat([
+      {sep:true},
+      {id:'transform', i:16, t:'Spatial transformations', d:'Spatial transformations of selected objects'},
+      {id:'triangulate', i:18, t:'Surface triangulation', d:'Triangulation of selected surfaces'},
+      {id:'intersect', i:15, t:'Intersect', d:'Getting curves as section of 3D model by plane'},
+      {id:'project', i:14, t:'Surfaces boundary projection', d:'Projections of the selected surfaces boundary on plane'},
+      {id:'isolines', i:17, t:'Extract isolines', d:'Extract face isolines'},
+      {id:'sew', i:12, t:'Sew Faces', d:'Sewing surfaces on 3D model'},
+      {id:'patch', i:13, t:'Patch hole', d:'Triangulation of selected curves or patching holes in meshes'},
+      {id:'join', i:23, t:'Join curves', d:'Join of selected curves'},
+      {id:'extend', i:29, t:'Extend surface', d:'Extend surface'}
+    ])
+  };
+  var FN_BAR = FN_BARS.machining, fnSnapOn = false;
+  var fnBar = document.createElement('div'); fnBar.className = 'etb';
+  function fnRender(set){
+    FN_BAR = FN_BARS[set];
+    fnBar.innerHTML = FN_BAR.map(function(b){
+      if(b.sep) return '<span class="etb-sep"></span>';
+      var on = b.toggle && fnSnapOn;
+      return '<div class="etb-b' + (on ? ' on' : '') + '" data-fn="' + b.id + '"' + (b.menu ? ' title="' + b.t + '"' : '') + '>' +
+        '<span class="etb-ic" style="background-position:-' + (b.i % 12 * 28) + 'px -' + (Math.floor(b.i / 12) * 28) + 'px"></span></div>';
+    }).join('');
+  }
+  fnRender('machining');
+  vp.appendChild(fnBar);
+  // the mode tabs pick the set (Model · Machining; Simulation keeps the machining one for now)
+  document.querySelectorAll('.tabs[data-group="mode"] .seg').forEach(function(s){
+    s.addEventListener('click', function(){ fnTipHide(); fnRender(s.textContent.trim() === 'Model' ? 'model' : 'machining'); });
+  });
+  var fnTip = document.createElement('div'); fnTip.className = 'etb-tip'; fnTip.hidden = true;
+  document.body.appendChild(fnTip);
+  function fnOf(el){ var id = el.dataset.fn; return FN_BAR.filter(function(b){ return b.id === id; })[0]; }
+  var fnTipTimer = 0, fnMenuTimer = 0;
+  function fnTipHide(){ clearTimeout(fnTipTimer); fnTip.hidden = true; }
+  // the tooltip under the button, left-aligned to it, after a short rest of the pointer
+  function fnTipShow(btn){
+    var b = fnOf(btn); if(!b || !b.d) return;
+    fnTipTimer = setTimeout(function(){
+      fnTip.innerHTML = '<b>' + b.t + '</b><span>' + b.d + '</span>';
+      fnTip.hidden = false;
+      var r = btn.getBoundingClientRect();
+      fnTip.style.left = Math.max(8, Math.min(r.left, innerWidth - fnTip.offsetWidth - 8)) + 'px';
+      fnTip.style.top = (r.bottom + 6) + 'px';
+    }, 450);
+  }
+  // Tools: its list opens under the pointer and stays while the pointer is on the button or on it
+  function fnMenuOpen(btn){
+    var b = fnOf(btn);
+    if(openMenu && openMenu._owner === btn) return;
+    var m = showMenu(btn.getBoundingClientRect(), b.menu.map(function(t){ return t ? {label:t} : {sep:true}; }), btn, 260);
+    m.addEventListener('mouseenter', function(){ clearTimeout(fnMenuTimer); });
+    m.addEventListener('mouseleave', function(){ fnMenuLater(btn); });
+  }
+  function fnMenuLater(btn){
+    clearTimeout(fnMenuTimer);
+    fnMenuTimer = setTimeout(function(){ if(openMenu && openMenu._owner === btn) closeMenu(); }, 250);
+  }
+  fnBar.addEventListener('mouseover', function(e){
+    var btn = e.target.closest('.etb-b'); if(!btn || btn.contains(e.relatedTarget)) return;
+    var b = fnOf(btn);
+    if(b.menu){ clearTimeout(fnMenuTimer); fnTipHide(); fnMenuOpen(btn); } else fnTipShow(btn);
+  });
+  fnBar.addEventListener('mouseout', function(e){
+    var btn = e.target.closest('.etb-b'); if(!btn || btn.contains(e.relatedTarget)) return;
+    fnTipHide();
+    if(fnOf(btn).menu) fnMenuLater(btn);
+  });
+  fnBar.addEventListener('click', function(e){
+    var btn = e.target.closest('.etb-b'); if(!btn) return;
+    e.stopPropagation(); fnTipHide();
+    var b = fnOf(btn);
+    if(b.toggle){ fnSnapOn = btn.classList.toggle('on'); return; }
+    // Tools runs its first item (Load tool list); the functions themselves are not built yet
+    if(b.menu) closeMenu();
+  });
   var viewTools = document.createElement('div');
   viewTools.className = 'vbar vb-tools';
   viewTools.innerHTML =
@@ -1813,7 +2002,9 @@
       else if(o.seg){
         d.className = 'vb-seg';
         o.seg.forEach(function(s, i){
-          var c = document.createElement('div'); c.textContent = s; if(i === o.cur) c.className = 'cur';
+          var c = document.createElement('div'); if(o.segHtml) c.innerHTML = s; else c.textContent = s;
+          if(o.segTitles) c.title = o.segTitles[i];
+          if(i === o.cur) c.className = 'cur';
           c.addEventListener('click', function(){ o.fn(i); render(); }); d.appendChild(c);
         });
       } else {
@@ -2424,6 +2615,72 @@
         document.body.style.cursor = '';
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
+
+  /* ---------- Inspector divider: drag to resize label | control columns (as the tree's) ---------- */
+  var iwrap = document.getElementById('iwrap'), inspSplit = document.getElementById('inspSplit');
+  if(iwrap && inspSplit){
+    inspSplit.addEventListener('mousedown', function(e){
+      e.preventDefault();
+      iwrap.classList.add('splitting');
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'col-resize';
+      function onMove(ev){
+        var r = iwrap.getBoundingClientRect();
+        var f = Math.max(0.3, Math.min(0.7, (ev.clientX - r.left) / r.width));
+        iwrap.style.setProperty('--insp-split', (f * 100).toFixed(1) + '%');
+      }
+      function onUp(){
+        iwrap.classList.remove('splitting');
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
+
+  /* ---------- Panel width: the grip on the dock's right edge sets --dock-w — the tree panel and
+     the inspector (under the tree, next to it or at the right edge) widen and narrow together;
+     their columns are shares of the width, so they stretch with them. Kept across sessions ---------- */
+  var dockWidth = document.getElementById('dockWidth'), wsEl = document.querySelector('.workspace');
+  var DOCK_W_MIN = 300, DOCK_W_MAX = 600;
+  function dockW(w){
+    var vw = wsEl.clientWidth, side = wsEl.dataset.insp === 'side' || wsEl.dataset.insp === 'right';
+    // two panels across: each keeps the 3D view at least 240px wide
+    var max = Math.min(DOCK_W_MAX, side ? (vw - 240 - 24) / 2 : vw - 240 - 16);
+    w = Math.round(Math.max(DOCK_W_MIN, Math.min(max, w)));
+    wsEl.style.setProperty('--dock-w', w + 'px');
+    return w;
+  }
+  try { var savedW = +localStorage.getItem('ency.dockW'); if(savedW) dockW(savedW); } catch(e){}
+  if(dockWidth && wsEl){
+    var dockWRaf = 0;
+    dockWidth.addEventListener('mousedown', function(e){
+      e.preventDefault();
+      dockWidth.classList.add('dragging');
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'col-resize';
+      var x0 = e.clientX, w0 = dockEl.offsetWidth, w = w0;
+      function onMove(ev){
+        w = dockW(w0 + ev.clientX - x0);
+        // what is placed by script (the calc bar, the toolpath view, open panels) follows once a frame
+        if(!dockWRaf) dockWRaf = requestAnimationFrame(function(){ dockWRaf = 0; window.dispatchEvent(new Event('resize')); });
+      }
+      function onUp(){
+        dockWidth.classList.remove('dragging');
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        try { localStorage.setItem('ency.dockW', w); } catch(err){}
+        window.dispatchEvent(new Event('resize'));
       }
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
@@ -3306,12 +3563,12 @@
       // the wide sim panel spans the viewport — pull the dock up above it;
       // in compact mode there is no bottom panel, the dock takes full height
       dock.style.bottom = simCompact ? '' : (simBar.offsetHeight + 8 + 8) + 'px';
-      // the view cube sits above the wide panel too
-      vcube.style.bottom = dock.style.bottom;
+      // the view cube sits above the wide panel too (in any of its corners, app.css)
+      if(dock.style.bottom) vp.style.setProperty('--vbar-b', dock.style.bottom); else vp.style.removeProperty('--vbar-b');
       calcBar.style.bottom = viewTools.style.bottom = sysBar.style.bottom = dock.style.bottom;
     } else {
       dock.style.bottom = '';
-      vcube.style.bottom = '';
+      vp.style.removeProperty('--vbar-b');
       calcBar.style.bottom = viewTools.style.bottom = sysBar.style.bottom = '';
       simPause();
     }
@@ -3510,6 +3767,7 @@
     if(out) workspace.appendChild(panelInsp); else dockEl.appendChild(panelInsp);
     dockEl.classList.toggle('insp-collapsed', out);
     workspace.dataset.insp = id;
+    dockW(dockEl.offsetWidth);                      // two panels across must still leave the view room
     if(railPlaceEl) railPlaceEl.querySelectorAll('.rp-dot').forEach(function(d){ d.classList.toggle('on', d.dataset.place === id); });
     try { localStorage.setItem('ency.inspPlace', id); } catch(e){}
     // the calc bar, the toolpath view and open panels follow the new free view
