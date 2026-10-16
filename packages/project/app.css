@@ -1147,6 +1147,7 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
    by 4px, so reaching for it keeps it shown) and while it is dragged */
 .vp-left:hover > .f-grip,.f-grip.dragging{opacity:1;}
 /* no grip under a folded panel: the lowest one is the drawing panel while it shows, else the Filters */
+.vp-left.f-auto > .f-grip,
 .vp-left:has(> .ency-draw:not([hidden]):not(.open)) > .f-grip,
 .vp-left:not(:has(> .ency-draw:not([hidden]))):has(> .filters:not(.open)) > .f-grip{display:none;}
 /* the drawing panel follows the Filters' layout: in one column 38px wide, only the chevron for a title */

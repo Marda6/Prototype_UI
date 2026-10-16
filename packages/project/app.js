@@ -92,16 +92,50 @@
      the filters line up in one column (model · machine and toolpath · dot / curve / face / mech),
      and the drawing panel under them too (app.css follows .list); pulled back up, two columns
      again. The grip sits under the lowest panel of the column. Double-click toggles; kept ---------- */
-  var fGrip = document.getElementById('filtersGrip');
+  var fGrip = document.getElementById('filtersGrip'), fCol = filters.parentElement, fPref = false, fMo = null;
+  // the one-column layout keeps this far from whatever is under it: the grip's arc reaches 16px below
+  // the column, plus 4
+  var F_CLEAR = 20;
   function fSetList(on){
-    if(filters.classList.contains('list') === on) return;
-    fsClose();                                     // its settings popover was placed by the old layout
-    filters.classList.toggle('list', on);
+    if(fPref === on) return;
+    fPref = on;
     try { localStorage.setItem('ency.filtersList', on ? '1' : ''); } catch(e){}
+    fFit();
   }
-  try { if(localStorage.getItem('ency.filtersList')) filters.classList.add('list'); } catch(e){}
+  // One column only while it fits: when the column would reach the view cube, the view tools or the
+  // view's bottom, the panels go back to two columns by themselves (the grip hides — there is nothing
+  // to pull) and line up again once there is room. The stored choice stays one column.
+  function fFit(){
+    var was = filters.classList.contains('list'), on = fPref;
+    if(on){
+      filters.classList.add('list');
+      var r = fCol.getBoundingClientRect(), lim = fCol.parentElement.getBoundingClientRect().bottom;
+      document.querySelectorAll('.vcube, .vb-tools').forEach(function(o){
+        var b = o.getBoundingClientRect();
+        if(b.width && b.left < r.right && b.right > r.left && b.top > r.top) lim = Math.min(lim, b.top);
+      });
+      on = r.bottom + F_CLEAR <= lim;
+    }
+    filters.classList.toggle('list', on);
+    fCol.classList.toggle('f-auto', fPref && !on);
+    if(was !== on && fsetPop) fsClose();           // its settings popover was placed by the old layout
+                                                   // (fsetPop is set further down: none on the first fit)
+    if(fMo) fMo.takeRecords();                     // our own class flips are not a layout change
+  }
+  try { fPref = !!localStorage.getItem('ency.filtersList'); } catch(e){}
+  fFit();
+  // re-fit when the room changes: the window or the dock resized, the view bars moved (--vbar-b on
+  // the viewport, the cube's corner), the column grew (Filters folded / unfolded, the drawing panel)
+  window.addEventListener('resize', fFit);
+  requestAnimationFrame(fFit);                     // the view cube and the view tools are built further down
+  if(window.ResizeObserver) new ResizeObserver(fFit).observe(fCol.parentElement);
+  if(window.MutationObserver){
+    fMo = new MutationObserver(fFit);
+    fMo.observe(fCol.parentElement, {attributes:true, attributeFilter:['style', 'data-cube']});
+    fMo.observe(fCol, {subtree:true, childList:true, attributes:true, attributeFilter:['class', 'hidden']});
+  }
   if(fGrip){
-    fGrip.addEventListener('dblclick', function(e){ e.stopPropagation(); fSetList(!filters.classList.contains('list')); });
+    fGrip.addEventListener('dblclick', function(e){ e.stopPropagation(); fSetList(!fPref); });
     fGrip.addEventListener('click', function(e){ e.stopPropagation(); });
     fGrip.addEventListener('pointerdown', function(e){
       e.preventDefault(); e.stopPropagation();
