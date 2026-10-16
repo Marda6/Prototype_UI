@@ -108,12 +108,18 @@
   function fFit(){
     var was = filters.classList.contains('list'), on = fPref;
     if(on){
+      // measured with the panels unfolded: a folded column always fits, and folding must not
+      // flip the layout (two columns fold to "Filters ⌄", not to the one-column chevron)
+      var shut = [filters].concat([].slice.call(fCol.querySelectorAll('.ency-draw:not([hidden])')))
+        .filter(function(p){ return !p.classList.contains('open'); });
+      shut.forEach(function(p){ p.classList.add('open'); });
       filters.classList.add('list');
       var r = fCol.getBoundingClientRect(), lim = fCol.parentElement.getBoundingClientRect().bottom;
       document.querySelectorAll('.vcube, .vb-tools').forEach(function(o){
         var b = o.getBoundingClientRect();
         if(b.width && b.left < r.right && b.right > r.left && b.top > r.top) lim = Math.min(lim, b.top);
       });
+      shut.forEach(function(p){ p.classList.remove('open'); });
       on = r.bottom + F_CLEAR <= lim;
     }
     filters.classList.toggle('list', on);
@@ -1084,6 +1090,8 @@
      the selection pinned to the bottom edge, search (big projects, CAM-724) ---------- */
   var tSticky = document.getElementById('treeSticky');
   var tGhost = document.getElementById('treeGhost');
+  // the selection pinned to the bottom edge is switched off for now; true brings it back
+  var TREE_PIN = false;
   var tEmpty = document.getElementById('treeEmpty');
   var BRANCH = {setup:1, part:1, group:1};
   function opProblem(r){
@@ -1218,7 +1226,7 @@
     // the selected row scrolled out of view (or folded away) stays reachable at the bottom edge
     // its strip: 1px divider + 6px air + the row (.tghost in app.css)
     var sel = tree.querySelector('.trow.tsel'), dir = 0, G = H + 7;
-    if(sel && sel.dataset.type !== 'machine' && !tSearch && stack.indexOf(sel) < 0 && typeEnabled[sel.dataset.type]){
+    if(TREE_PIN && sel && sel.dataset.type !== 'machine' && !tSearch && stack.indexOf(sel) < 0 && typeEnabled[sel.dataset.type]){
       if(!sel.offsetHeight) dir = 2;
       else {
         var c = sel.offsetTop - top + H / 2, stickH = tSticky.hidden ? 0 : bottom;
