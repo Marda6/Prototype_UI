@@ -8,9 +8,16 @@ var app = document.getElementById('app');
 // maint: maintenance end date (past = lapsed) · null = no maintenance
 // status: 'active' (currently in use) | 'valid' (usable) | 'invalid' (unusable)
 // ver: true — the installed ENCY version is newer than the one covered by maintenance
+// dealer — provides technical support · issuer — who issued the license (often another dealer)
+
+// dealers' contacts — shown from the info icon next to Support in the current license card
+var DEALERS = {
+  'Tecnocam S.r.l.':   {mail:'support@tecnocam.it', phone:'+39 02 8295 4410', web:'tecnocam.it'},
+  'ENCY Software Ltd': {mail:'licensing@encycam.com', phone:'+44 20 3807 1150', web:'encycam.com'}
+};
+
 var LICENSES = {
   tblTonini: [
-    // dealer — provides technical support · issuer — who issued the license (often another dealer)
     {id:'#421480', name:'ENCY 5x Mill', remaining:199, term:'1 year', type:'Commercial', prot:'account',
      maint:'2027-06-30', status:'active', dealer:'Tecnocam S.r.l.', issuer:'ENCY Software Ltd',
      items:['Adaptive','ENCY NB 3 5D','ENCY NB 3D','ENCY NB 3 2D','ENCY NB 3 6D','Disc Roughing',
@@ -215,12 +222,45 @@ var LICENSES = {
   if (cur && mnt) mnt.textContent = !cur.maint ? '—'
     : fmtDate(cur.maint) + ' · ' + (maintPast(cur.maint) ? 'Expired' : left(cur.maint));
 
-  // the support dealer; the info icon next to it — only when another dealer issued the license
+  // the support dealer; the info icon next to it opens the dealers' contacts:
+  // support first, then the issuer, divided — one block when it is the same dealer.
+  // Prototype switch: ?dealers=one shows the license issued by its support dealer
   var sup = document.getElementById('curSupport'), iss = document.getElementById('curIssuer');
+  if (cur && /[?&]dealers=one\b/.test(location.search)) cur.issuer = cur.dealer;
   if (cur && sup) sup.textContent = cur.dealer || '—';
-  if (cur && iss) {
-    iss.hidden = !cur.issuer || !cur.dealer || cur.issuer === cur.dealer;
-    iss.dataset.tip = 'Issued by ' + cur.issuer + '. Technical support: ' + cur.dealer;
+  if (cur && iss) iss.hidden = !cur.dealer;
+  if (cur && iss && cur.dealer) {
+    var blocks = !cur.issuer || cur.issuer === cur.dealer
+          ? [['Technical support · Issued the license', cur.dealer]]
+          : [['Technical support', cur.dealer], ['Issued the license', cur.issuer]],
+        dpop = document.createElement('div'), hideT = null;
+    dpop.className = 'xpop dpop'; dpop.hidden = true;
+    dpop.innerHTML = blocks.map(function(b){
+      var c = DEALERS[b[1]] || {};
+      return '<div class="dp-blk"><span class="dp-role">' + b[0] + '</span><b>' + b[1] + '</b>' +
+        '<div class="dp-rows">' +
+          (c.mail ? '<span>Email</span><a href="mailto:' + c.mail + '">' + c.mail + '</a>' : '') +
+          (c.phone ? '<span>Phone</span><a href="tel:' + c.phone.replace(/\s/g, '') + '">' + c.phone + '</a>' : '') +
+          (c.web ? '<span>Website</span><a href="https://' + c.web + '" target="_blank" rel="noopener">' + c.web + '</a>' : '') +
+        '</div></div>';
+    }).join('<div class="dp-div"></div>');
+    document.body.appendChild(dpop);
+
+    // opens on hover and stays while the pointer moves into it — contacts can be copied or clicked;
+    // below the icon, left-aligned with it, flipped above when there is no room
+    var dShow = function(){
+      clearTimeout(hideT);
+      dpop.hidden = false;
+      var r = iss.getBoundingClientRect(), h = dpop.offsetHeight, w = dpop.offsetWidth;
+      var top = r.bottom + h + 12 <= window.innerHeight ? r.bottom + 4 : r.top - h - 4;
+      dpop.style.top = Math.max(8, top) + 'px';
+      dpop.style.left = Math.max(8, Math.min(r.left - 8, window.innerWidth - w - 16)) + 'px';
+    };
+    var dHide = function(){ hideT = setTimeout(function(){ dpop.hidden = true; }, 150); };
+    iss.addEventListener('mouseenter', dShow);
+    iss.addEventListener('mouseleave', dHide);
+    dpop.addEventListener('mouseenter', function(){ clearTimeout(hideT); });
+    dpop.addEventListener('mouseleave', dHide);
   }
 })();
 
@@ -749,7 +789,7 @@ window.addEventListener('resize', syncModLabels);
      mark:function(){ return all('.lsee b'); }},
     {was:'23 d left', now:'23d left', note:'чипы Upgrade trial и Grace period',
      mark:function(){ return all('#utrial, .curoff'); }},
-    {was:'', now:'Support · Tecnocam S.r.l. ⓘ', note:'дилер техподдержки; ⓘ — кто выдал лицензию, только если другой дилер',
+    {was:'', now:'Support · Tecnocam S.r.l. ⓘ', note:'дилер техподдержки; ⓘ — контакты: поддержка | кто выдал (один дилер — один блок)',
      mark:function(){ return grp('.cur-meta .grp', 'Support'); }}
   ];
 

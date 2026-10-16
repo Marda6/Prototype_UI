@@ -15,6 +15,9 @@ client the license is issued to (not the dealer). The `Licensee` label stays in 
   maintenance. The `Upgrade` button enables edit mode: picking a higher package, adding modules,
   `Save changes` starts a trial period, `Request upgrade` sends a request to the dealer,
   `Reset changes` returns the license to its original state.
+- **Support** — in the card: the dealer providing technical support. The info icon next to it
+  opens the dealers' contacts (email, phone, website): the support dealer, then — divided — the
+  one who issued the license; one block when it is the same dealer. `?dealers=one` shows that case.
 - **Tables** — grouped by customer; all states are deliberately included:
   `Current`, `Valid`, `Invalid`, `Sign in required`, `Pending restart`, `Perpetual`,
   an expired term (`Expired`, the row is marked red) and lapsed maintenance.
@@ -31,5 +34,6 @@ client the license is issued to (not the dealer). The `Licensee` label stays in 
 
 All rows live in `LICENSES` at the top of `app.js`:
 `remaining` — days (`null` = perpetual, `0` = term expired), `term` — the full duration as sold,
-`maint` — maintenance end date (past = lapsed, `null` = no maintenance), `status` — row state.
+`maint` — maintenance end date (past = lapsed, `null` = no maintenance), `status` — row state,
+`dealer` / `issuer` — who supports and who issued the license; their contacts live in `DEALERS`.
 Dates are counted from the prototype's fixed `TODAY`.
