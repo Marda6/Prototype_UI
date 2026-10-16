@@ -74,17 +74,15 @@
     document.dispatchEvent(new CustomEvent('ency:action', {detail:{label:label, val:val, cmd:cmd, op:opName, ctl:meta.ctl || 'input', opts:meta.opts || null}}));
   }
 
-  /* ---------- Filters: open/close + chips + tree type-filter ---------- */
+  /* ---------- Filters: open/close + chips. They act on the 3D view only (data-ftype / data-fview:
+     the machine light, the part, the toolpath); the tree always shows every row ---------- */
   var filters = document.getElementById('filters');
   var fhead = document.getElementById('filtersBtn');
   if(fhead) fhead.addEventListener('click', function(e){ e.stopPropagation(); filters.classList.toggle('open'); });
-  var typeEnabled = { machine:true, setup:true, part:true, group:true, operation:true };
   document.querySelectorAll('.f-cell').forEach(function(c){
     c.addEventListener('click', function(e){
       e.stopPropagation();
-      var on = c.classList.toggle('on');
-      var ft = c.dataset.ftype;
-      if(ft){ typeEnabled[ft] = on; renderTree(); }
+      c.classList.toggle('on');
     });
   });
 
@@ -1011,13 +1009,12 @@
   var tSearch = null;
   function foldMap(){ return tSearch ? tSearch.fold : collapsed; }
   function isVisible(r){
-    if(!typeEnabled[r.dataset.type]) return false;
     if(tSearch && !tSearch.keep[r.dataset.id]) return false;
     var fold = foldMap(), p = r.dataset.parent;
     while(p){
       var pr = rowById(p);
       if(!pr) break;
-      if(fold[p] || !typeEnabled[pr.dataset.type]) return false;
+      if(fold[p]) return false;
       p = pr.dataset.parent;
     }
     return true;
@@ -1226,7 +1223,7 @@
     // the selected row scrolled out of view (or folded away) stays reachable at the bottom edge
     // its strip: 1px divider + 6px air + the row (.tghost in app.css)
     var sel = tree.querySelector('.trow.tsel'), dir = 0, G = H + 7;
-    if(TREE_PIN && sel && sel.dataset.type !== 'machine' && !tSearch && stack.indexOf(sel) < 0 && typeEnabled[sel.dataset.type]){
+    if(TREE_PIN && sel && sel.dataset.type !== 'machine' && !tSearch && stack.indexOf(sel) < 0){
       if(!sel.offsetHeight) dir = 2;
       else {
         var c = sel.offsetTop - top + H / 2, stickH = tSticky.hidden ? 0 : bottom;
