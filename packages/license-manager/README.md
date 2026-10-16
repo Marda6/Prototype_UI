@@ -1,20 +1,26 @@
 # License manager
 
 License management section: current license card with an `Upgrade` mode,
-license tables grouped by licensee and the `Extensions` tab.
+license tables grouped by customer and the `Extensions` tab.
 
 Files: `index.html` — content markup, `app.css` — section styles, `app.js` — data and logic.
 The window shell comes from `../shared-ui`.
 
+Terms follow Dealer Space: `Products`, `Modules`, `Duration`; tables are grouped by the dealer’s
+client the license is issued to (not the dealer). The `Licensee` label stays in the card and sidebar.
+
 ## What the prototype shows
 
-- **Current license card** — product package, contents (`Included`), term and maintenance.
-  The `Upgrade` button enables edit mode: picking a higher package, adding modules,
+- **Current license card** — product package, licensee, contents (`Modules`), duration and
+  maintenance. The `Upgrade` button enables edit mode: picking a higher package, adding modules,
   `Save changes` starts a trial period, `Request upgrade` sends a request to the dealer,
   `Reset changes` returns the license to its original state.
-- **Tables** — grouped by licensee; all states are deliberately included:
+- **Tables** — grouped by customer; all states are deliberately included:
   `Current`, `Valid`, `Invalid`, `Sign in required`, `Pending restart`, `Perpetual`,
   an expired term (`Expired`, the row is marked red) and lapsed maintenance.
+- **Duration / Maintenance** — two lines: the full term (`1 year`) or the end date
+  (`30-Jun-2027`) on top, what is left below (`13d left`, `11m 4d left`, `1y 2m left`).
+  The card shows the same on one line: `1 year · 6m 15d left`.
 - **Activate / Release** — activation only applies after restarting ENCY:
   the row gets `Pending restart`, a notification appears on top, the current license stays.
 - **Show expired** — expired licenses are hidden by default.
@@ -24,5 +30,6 @@ The window shell comes from `../shared-ui`.
 ## Data
 
 All rows live in `LICENSES` at the top of `app.js`:
-`remaining` — days (`null` = perpetual, `0` = term expired), `maint` — maintenance end
-date (past = lapsed, `null` = no maintenance), `status` — row state.
+`remaining` — days (`null` = perpetual, `0` = term expired), `term` — the full duration as sold,
+`maint` — maintenance end date (past = lapsed, `null` = no maintenance), `status` — row state.
+Dates are counted from the prototype's fixed `TODAY`.

@@ -78,8 +78,8 @@
               <b id="curName">ENCY 5x Mill</b>
               <span class="xuse">Current</span>
               <!-- the upgrade runs as a trial: one term for the whole set, edits don't extend it -->
-              <span class="utrial" id="utrial" hidden>Upgrade trial · 23 d left</span>
-              <span class="curoff">Grace period · 7 d left</span>
+              <span class="utrial" id="utrial" hidden>Upgrade trial · 23d left</span>
+              <span class="curoff">Grace period · 7d left</span>
             </div>
             <div class="cur-btns">
               <!-- in edit mode the hint and Cancel line up to the left of the same button,
@@ -108,10 +108,22 @@
               </button>
             </span>
             <span class="grp"><span class="lbl">Licensee</span><span class="val">TONINI FABIO ELETTROMECCANICA</span></span>
+            <!-- the dealer providing technical support; the info icon names who issued the license —
+                 shown only when that is another dealer (filled from the current license's data) -->
+            <span class="grp"><span class="lbl">Support</span>
+              <span class="val-line"><span class="val" id="curSupport">Tecnocam S.r.l.</span>
+                <span class="ihint" id="curIssuer" data-tip="" hidden>
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"
+                    stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v4"/>
+                    <path d="M8 4.9v.6"/></svg>
+                </span>
+              </span>
+            </span>
             <span class="grp"><span class="lbl">Type</span><span class="val">Commercial</span></span>
             <span class="grp"><span class="lbl">Protection</span><span class="val">Account</span></span>
-            <span class="grp"><span class="lbl">Remaining</span><span class="val">199 d</span></span>
-            <span class="grp"><span class="lbl">Maintenance</span><span class="val">320 d · 2027-06-30</span></span>
+            <!-- full term · what is left; both filled from the current license's row data -->
+            <span class="grp"><span class="lbl">Duration</span><span class="val" id="curDur">1 year · 6m 15d left</span></span>
+            <span class="grp"><span class="lbl">Maintenance</span><span class="val" id="curMaint">30-Jun-2027 · 10m 16d left</span></span>
           </div>
 
           <div class="cur-div"></div>
@@ -119,7 +131,7 @@
           <!-- license contents: modules are built by the script from data-items -->
           <!-- "@trial:N" — the module is granted as a trial, N days remaining -->
           <div class="cur-mods" data-items="Adaptive|ENCY NB 3 5D|ENCY NB 3D|ENCY NB 3 2D|ENCY NB 3 6D|Disc Roughing|ENCY NB 3 operations|Multichannel|Nesting@trial:23|Robot+@trial:12|Robotic turning|SOLIDWORKS Reader|Spraying/Painting|Teamcenter integration|Turn XZCYB|Welding|Wire EDM@trial:5">
-            <span class="lbl">Included <span class="n"></span></span>
+            <span class="lbl">Modules <span class="n"></span></span>
             <span class="mods"></span>
           </div>
 
@@ -141,7 +153,7 @@
           </div>
         </div>
 
-        <!-- licenses are grouped by licensee: one account can have several -->
+        <!-- licenses are grouped by customer (as in Dealer Space): one account can have several -->
         <div class="lsee">
           <b>TONINI FABIO ELETTROMECCANICA</b>
           <span class="n">6 licenses</span>
@@ -149,7 +161,7 @@
 
         <div class="xtable use" id="tblTonini">
           <div class="lgrid xhead">
-            <span class="xh">ID</span><span class="xh">License</span><span class="xh">Remaining</span>
+            <span class="xh">ID</span><span class="xh">Products</span><span class="xh">Duration</span>
             <span class="xh">Type</span><span class="xh">Protection</span><span class="xh">Maintenance</span>
             <span class="xh">Status</span><span class="xh"></span><span class="xh"></span>
           </div>
@@ -163,7 +175,7 @@
 
         <div class="xtable use" id="tblEncySoft">
           <div class="lgrid xhead">
-            <span class="xh">ID</span><span class="xh">License</span><span class="xh">Remaining</span>
+            <span class="xh">ID</span><span class="xh">Products</span><span class="xh">Duration</span>
             <span class="xh">Type</span><span class="xh">Protection</span><span class="xh">Maintenance</span>
             <span class="xh">Status</span><span class="xh"></span><span class="xh"></span>
           </div>
@@ -196,7 +208,7 @@
 
         <div class="xtable use" id="tblExt">
           <div class="lgrid xhead">
-            <span class="xh">ID</span><span class="xh">License</span><span class="xh">Remaining</span>
+            <span class="xh">ID</span><span class="xh">Products</span><span class="xh">Duration</span>
             <span class="xh">Type</span><span class="xh">Protection</span><span class="xh">Maintenance</span>
             <span class="xh">Status</span><span class="xh"></span><span class="xh"></span>
           </div>

@@ -23,6 +23,12 @@
   .xnum.warn{color:#ebda84;}
   .xnum.bad{color:#ff5c77;}
   .v.warn{color:#ebda84;}
+  /* Duration / Maintenance: the value on top, what is left below — smaller and dimmer */
+  .xtwo{display:flex;flex-direction:column;min-width:0;}
+  .xtwo .t1{white-space:nowrap;}
+  .xtwo .t2{color:var(--ec-fg-48);font-size:11px;line-height:14px;white-space:nowrap;}
+  .xtwo .t2.warn{color:#ebda84;}
+  .xtwo .t2.bad{color:#ff5c77;}
   /* red is reserved for the license's own expired term */
   .v.bad{color:#ff5c77;}
   .xstate{color:var(--ec-fg-72);white-space:nowrap;}
@@ -90,6 +96,11 @@
   .cur-meta .lbl{color:var(--ec-fg-48);font:400 12px/16px var(--ec-font);white-space:nowrap;}
   .cur-meta .val{color:var(--ec-fg-96);white-space:nowrap;font-variant-numeric:tabular-nums;
     overflow:hidden;text-overflow:ellipsis;}
+  /* a value with an info icon after it: the icon keeps the value's line height,
+     its tooltip opens from the icon to the right */
+  .cur-meta .val-line{display:flex;align-items:center;gap:2px;min-width:0;}
+  .cur-meta .val-line .ihint{margin:-2px 0;}
+  .cur-meta .val-line .ihint::after{left:-8px;right:auto;}
   .cur-div{height:1px;background:var(--ec-fg-8);}
   /* the package picker is visible only in upgrade mode, in place of the regular value */
   /* the border sits at the column's left edge — the value shifts but the columns don't drift */
@@ -147,7 +158,7 @@
   .cur-mods > .lbl .n{color:var(--ec-fg-24);}
   /* upgrade mode: the card gets a dashed border — neutral, no color */
   .cur.upg{border-style:dashed;border-color:var(--ec-fg-56);background:var(--st-w06);}
-  /* upgrade module: the same Included list, but filled — it runs as a trial */
+  /* upgrade module: the same Modules list, but filled — it runs as a trial */
   .mod.upg{background:var(--st-upg-16);color:var(--st-upg-txt);
     box-shadow:inset 0 0 0 1px var(--st-upg);}
   .mod .rm{margin-left:1px;margin-right:-3px;width:16px;height:16px;flex:0 0 16px;display:flex;align-items:center;
@@ -270,7 +281,7 @@
     background:var(--ec-green-16);color:var(--st-green);font:400 12px/16px var(--ec-font);}
 
   /* licenses and containers share one grid:
-     ID · Product · Remaining · Type · Protection · Maintenance · Status · Actions */
+     ID · Products · Duration · Type · Protection · Maintenance · Status · Actions */
   .lgrid{display:grid;
     grid-template-columns:80px minmax(160px,1.2fr) 92px 144px 92px 104px 124px 104px 36px;
     align-items:center;height:36px;padding:0;font:400 12px/16px var(--ec-font);}
@@ -300,3 +311,29 @@
   /* the header is shorter than data rows — it's a caption, not a record */
   .lgrid.xhead,.lgrid.xhead>*{height:28px;}
   .lgrid>:not(:first-child){border-left:1px solid var(--ec-fg-8);}
+
+  /* ===== Review: what changed for Dealer Space (app.js "Review") =====
+     a review overlay, not product UI: the magenta is the one from the annotated screenshot */
+  :root{--chg:#ff2d8a;}
+  .chg{outline:1px solid var(--chg);outline-offset:1px;}
+  .chg.chg-hot{outline-width:2px;}
+  .chg-tint{background:rgba(255,45,138,.10);}
+  .chg-tint.chg-hot{background:rgba(255,45,138,.24);}
+  .chg-layer{position:fixed;inset:0;z-index:90;pointer-events:none;}
+  .chg-badge,.chg-n{width:14px;height:14px;border-radius:50%;background:var(--chg);color:#fff;
+    font:600 10px/14px var(--ec-font);text-align:center;}
+  .chg-badge{position:fixed;}
+  .chg-badge[hidden]{display:none;}
+  .chg-panel{position:fixed;right:16px;bottom:16px;z-index:91;width:320px;padding:10px 12px;
+    display:flex;flex-direction:column;gap:2px;background:#191b1d;border:1px solid var(--chg);
+    border-radius:8px;box-shadow:0 16px 40px rgba(0,0,0,.5);}
+  .chg-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:4px;}
+  .chg-head b{color:var(--ec-fg-96);font:600 12px/16px var(--ec-font);}
+  .chg-head span{color:var(--ec-fg-48);font:400 11px/16px var(--ec-font);white-space:nowrap;}
+  .chg-it{display:flex;gap:8px;margin:0 -6px;padding:4px 6px;border-radius:4px;cursor:pointer;}
+  .chg-it:hover{background:var(--ec-fg-8);}
+  .chg-n{flex:0 0 14px;margin-top:1px;}
+  .chg-tx{display:flex;flex-direction:column;min-width:0;color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);}
+  .chg-tx s{color:var(--ec-fg-48);}
+  .chg-new{color:var(--chg);}
+  .chg-note{color:var(--ec-fg-48);font-size:11px;line-height:14px;}

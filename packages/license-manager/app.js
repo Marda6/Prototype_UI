@@ -4,86 +4,88 @@ var app = document.getElementById('app');
 
 // ===== license data =====
 // remaining: number of days · null = perpetual · 0 = term expired
+// term: the license's full duration as sold (Duration column: term on top, what is left below)
 // maint: maintenance end date (past = lapsed) · null = no maintenance
 // status: 'active' (currently in use) | 'valid' (usable) | 'invalid' (unusable)
 // ver: true — the installed ENCY version is newer than the one covered by maintenance
 var LICENSES = {
   tblTonini: [
-    {id:'#421480', name:'ENCY 5x Mill', remaining:199, type:'Commercial', prot:'account',
-     maint:'2027-06-30', status:'active',
+    // dealer — provides technical support · issuer — who issued the license (often another dealer)
+    {id:'#421480', name:'ENCY 5x Mill', remaining:199, term:'1 year', type:'Commercial', prot:'account',
+     maint:'2027-06-30', status:'active', dealer:'Tecnocam S.r.l.', issuer:'ENCY Software Ltd',
      items:['Adaptive','ENCY NB 3 5D','ENCY NB 3D','ENCY NB 3 2D','ENCY NB 3 6D','Disc Roughing',
             'ENCY NB 3 operations','Multichannel','Nesting@trial:23','Robot+@trial:12','Robotic turning',
             'SOLIDWORKS Reader','Spraying/Painting','Teamcenter integration','Turn XZCYB','Welding',
             'Wire EDM@trial:5']},
     // term expired on 2026-08-30 — kept in the default list and still selectable: activating it
     // is the prototype's way into the "expired license" state (Clouds, sidebar, project tabs)
-    {id:'#421481', name:'ENCY 3x Mill Advanced', remaining:0, type:'Commercial', prot:'software',
+    {id:'#421481', name:'ENCY 3x Mill Advanced', remaining:0, term:'1 year', type:'Commercial', prot:'software',
      maint:'2026-05-30', status:'valid', ver:true, expired:true,
      items:['Adaptive','ENCY NB 3 5D','ENCY NB 3 2D','Disc Roughing','Multichannel','Nesting']},
-    {id:'#421495', name:'ENCY Lathe', remaining:29, type:'Commercial', prot:'account',
+    {id:'#421495', name:'ENCY Lathe', remaining:29, term:'1 year', type:'Commercial', prot:'account',
      maint:'2026-09-12', status:'valid',
      items:['Turn XZCYB','Robotic turning','Multichannel']},
-    {id:'#421502', name:'ENCY Cutting 5D', remaining:159, type:'Education Commercial', prot:'software',
+    {id:'#421502', name:'ENCY Cutting 5D', remaining:159, term:'1 year', type:'Education Commercial', prot:'software',
      maint:'2026-12-05', status:'valid',
      items:['Turn part probing','Mill part probing']},
-    {id:'#419330', name:'ENCY Rotary', remaining:289, type:'Education', prot:'account',
+    {id:'#419330', name:'ENCY Rotary', remaining:289, term:'1 year', type:'Education', prot:'account',
      maint:'2027-04-02', status:'valid',
      items:['Planar slicing','Spraying/Painting','Welding']},
-    {id:'#421520', name:'ENCY 5x Mill Advanced', remaining:412, type:'Commercial', prot:'dongle',
+    {id:'#421520', name:'ENCY 5x Mill Advanced', remaining:412, term:'2 years', type:'Commercial', prot:'dongle',
      maint:'2026-09-05', status:'valid',
      items:['Robot+','Robotic turning','Multichannel']},
-    {id:'#421533', name:'ENCY Wire EDM', remaining:96, type:'Commercial', prot:'account',
+    {id:'#421533', name:'ENCY Wire EDM', remaining:96, term:'1 year', type:'Commercial', prot:'account',
      maint:'2027-02-10', status:'signin',
      items:['Wire EDM','Disc Roughing']},
-    {id:'#419355', name:'ENCY 2.5x Mill', remaining:5, type:'Education', prot:'software',
+    {id:'#419355', name:'ENCY 2.5x Mill', remaining:5, term:'6 months', type:'Education', prot:'software',
      maint:'2026-06-12', status:'valid',
      items:['Adaptive','Nesting']},
-    {id:'#402118', name:'ENCY Cutting', remaining:0, type:'Trial', prot:'software',
+    {id:'#402118', name:'ENCY Cutting', remaining:0, term:'30 days', type:'Trial', prot:'software',
      maint:'2026-02-28', status:'invalid',
      items:['Adaptive','ENCY NB 3 2D']}
   ],
   tblEncySoft: [
     // newest first — activation failed: the server rejected the last attempt, the reason is kept on the row
-    {id:'#464871', name:'ENCY NB 5x Mill Advanced', remaining:29, type:'Trial', prot:'software',
+    {id:'#464871', name:'ENCY NB 5x Mill Advanced', remaining:29, term:'30 days', type:'Trial', prot:'software',
      maint:'2026-09-12', status:'error',
      err:'Bad request: Duplicate PC activation for free trial license.',
      items:['Adaptive','ENCY NB 3 5D','ENCY NB 3D','ENCY NB 3 2D','ENCY NB 3 6D','Disc Roughing',
             'ENCY NB 3 operations','Multichannel','Nesting','Robot+','Robotic turning',
             'SOLIDWORKS Reader','Spraying/Painting','Teamcenter integration','Turn XZCYB','Welding',
             'Wire EDM']},
-    {id:'#462785', name:'ENCY 5x Mill Advanced', remaining:341, type:'Commercial', prot:'software',
+    {id:'#462785', name:'ENCY 5x Mill Advanced', remaining:341, term:'1 year', type:'Commercial', prot:'software',
      maint:'2027-09-10', status:'valid',
      items:['Adaptive','ENCY NB 3 5D','ENCY NB 3 6D','Multichannel','Nesting','Robot+','Wire EDM']},
     {id:'#462790', name:'ENCY 3x Mill', remaining:null, type:'Commercial', prot:'software',
      maint:null, status:'valid',
      items:['SOLIDWORKS Reader','Teamcenter integration']},
-    {id:'#462812', name:'ENCY Cutting', remaining:17, type:'Education Commercial', prot:'software',
+    {id:'#462812', name:'ENCY Cutting', remaining:17, term:'6 months', type:'Education Commercial', prot:'software',
      maint:'2026-09-04', status:'valid',
      items:['Nesting','Disc Roughing']}
   ],
   tblExt: [
-    {id:'#530114', name:'DMG MORI NLX 2500', remaining:199, type:'Machine', prot:'dongle',
+    {id:'#530114', name:'DMG MORI NLX 2500', remaining:199, term:'1 year', type:'Machine', prot:'dongle',
      maint:'2027-06-30', status:'valid', items:['Turn XZCYB','Multichannel','Robotic turning']},
-    {id:'#530115', name:'Haas VF-2SS', remaining:199, type:'Machine', prot:'dongle',
+    {id:'#530115', name:'Haas VF-2SS', remaining:199, term:'1 year', type:'Machine', prot:'dongle',
      maint:'2027-06-30', status:'valid', items:['ENCY NB 3 2D','ENCY NB 3 5D']},
     {id:'#530142', name:'Fanuc 31i · Mill 5X', remaining:null, type:'Post', prot:'dongle',
      maint:null, status:'valid', items:['Mill 5X post','Mill 3X post','Drill post']},
-    {id:'#530143', name:'Siemens 840D · Turn', remaining:29, type:'Post', prot:'account',
+    {id:'#530143', name:'Siemens 840D · Turn', remaining:29, term:'1 year', type:'Post', prot:'account',
      maint:'2026-09-12', status:'valid', items:['Turn post','Turn-mill post']},
-    {id:'#530190', name:'Adaptive roughing', remaining:159, type:'Operation', prot:'dongle',
+    {id:'#530190', name:'Adaptive roughing', remaining:159, term:'1 year', type:'Operation', prot:'dongle',
      maint:'2026-12-05', status:'valid', items:['Adaptive']},
-    {id:'#530191', name:'Planar slicing', remaining:0, type:'Operation', prot:'dongle',
+    {id:'#530191', name:'Planar slicing', remaining:0, term:'1 year', type:'Operation', prot:'dongle',
      maint:'2026-03-15', status:'invalid', items:['Planar slicing']},
-    {id:'#530220', name:'Aerospace pack', remaining:289, type:'Extension', prot:'dongle',
+    {id:'#530220', name:'Aerospace pack', remaining:289, term:'1 year', type:'Extension', prot:'dongle',
      maint:'2027-04-02', status:'valid',
      items:['Adaptive','ENCY NB 3 5D','ENCY NB 3 6D','Disc Roughing','Multichannel','Nesting','Robot+',
             'SOLIDWORKS Reader','Teamcenter integration','Wire EDM','Welding','Turn XZCYB']},
     // interpreters — reading machine NC programs back into ENCY
-    {id:'#530301', name:'Fanuc 0i · interpreter', remaining:199, type:'Interpreter', prot:'dongle',
+    {id:'#530301', name:'Fanuc 0i · interpreter', remaining:199, term:'1 year', type:'Interpreter', prot:'dongle',
      maint:'2027-06-30', status:'valid', items:['Mill cycles','Drill cycles','Subprograms']},
     {id:'#530302', name:'Heidenhain TNC 640 · interpreter', remaining:null, type:'Interpreter',
      prot:'software', maint:'2026-09-08', status:'valid', items:['Plain text cycles','Q-parameters']},
-    {id:'#530303', name:'Siemens 840D · interpreter', remaining:0, type:'Interpreter', prot:'account',
+    {id:'#530303', name:'Siemens 840D · interpreter', remaining:0, term:'1 year', type:'Interpreter', prot:'account',
      maint:'2026-04-22', status:'invalid', items:['ShopTurn','ShopMill']}
   ]
 };
@@ -105,12 +107,40 @@ var LICENSES = {
   function maintPast(d){ var n = maintDays(d); return n !== null && n <= 0; }
   function maintSoon(d){ var n = maintDays(d); return n !== null && n > 0 && n <= SOON; }
 
-  // Maintenance cell: days until maintenance ends, Expired — once it has lapsed
+  // dates as in Dealer Space: 28-Oct-2026 (parsed by hand — no time zone shift)
+  var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function ymd(s){ var p = s.split('-'); return {y:+p[0], m:+p[1] - 1, d:+p[2]}; }
+  function fmtDate(s){
+    var p = ymd(s);
+    return (p.d < 10 ? '0' : '') + p.d + '-' + MON[p.m] + '-' + p.y;
+  }
+  function addDays(n){
+    var t = ymd(TODAY);
+    return new Date(Date.UTC(t.y, t.m, t.d + n)).toISOString().slice(0, 10);
+  }
+  // what is left until a date, by the calendar: 13d · 11m 4d · 1y 2m
+  function left(s){
+    var a = ymd(TODAY), b = ymd(s),
+        months = (b.y - a.y) * 12 + (b.m - a.m) - (b.d < a.d ? 1 : 0),
+        days = Math.round((Date.UTC(b.y, b.m, b.d) - Date.UTC(a.y, a.m + months, a.d)) / 86400000),
+        y = Math.floor(months / 12), m = months % 12;
+    if (y) return y + 'y' + (m ? ' ' + m + 'm' : '') + ' left';
+    if (m) return m + 'm' + (days ? ' ' + days + 'd' : '') + ' left';
+    return days + 'd left';
+  }
+
+  // a two-line cell: the value on top, what is left (or Expired) below
+  function two(top, sub, cls){
+    return '<span class="xtwo"><span class="t1">' + top + '</span>' +
+      '<span class="t2' + (cls ? ' ' + cls : '') + '">' + sub + '</span></span>';
+  }
+
+  // Maintenance cell: the end date, below it — what is left, Expired once it has lapsed
   function maintCell(l){
     var n = maintDays(l.maint);
-    if (n === null)  return '<span class="xnum">—</span>';
-    if (n <= 0)      return '<span class="xnum"><span class="v bad">Expired</span></span>';
-    return '<span class="xnum' + (n <= SOON ? ' warn' : '') + '">' + n + ' days</span>';
+    if (n === null) return '<span class="xnum">—</span>';
+    return '<span class="xnum">' + two(fmtDate(l.maint), n <= 0 ? 'Expired' : left(l.maint),
+      n <= 0 ? 'bad' : (n <= SOON ? 'warn' : '')) + '</span>';
   }
 
   // dedicated activation column: enable a license or release the active one
@@ -138,11 +168,12 @@ var LICENSES = {
       '</div>';
   }
 
-  function remainingCell(l){
+  // Duration cell: the full term, below it — what is left; perpetual has no term.
+  // Wrapped in .v: offline it gives way to "No connection" for account licenses
+  function durationCell(l){
     if (l.remaining === null) return '<span class="v">Perpetual</span>';
-    if (l.remaining === 0)    return '<span class="v bad">Expired</span>';
-    var cls = l.remaining <= SOON ? ' warn' : '';
-    return '<span class="v' + cls + '">' + l.remaining + ' days</span>';
+    return '<span class="v">' + (l.remaining === 0 ? two(l.term, 'Expired', 'bad')
+      : two(l.term, left(addDays(l.remaining)), l.remaining <= SOON ? 'warn' : '')) + '</span>';
   }
 
   function row(l){
@@ -156,7 +187,7 @@ var LICENSES = {
       '<span class="xnum">' + l.id + '</span>' +
       '<span class="xprod" data-items="' + l.items.join('|') + '">' +
         '<span class="xname">' + l.name + '</span></span>' +
-      '<span class="xnum">' + remainingCell(l) +
+      '<span class="xnum">' + durationCell(l) +
         '<span class="xoff">No connection</span></span>' +
       '<span class="xdim">' + l.type + '</span>' +
       '<span class="xdim">' + PROT[l.prot] + '</span>' +
@@ -175,6 +206,22 @@ var LICENSES = {
     var box = document.getElementById(id);
     if (box) box.insertAdjacentHTML('beforeend', LICENSES[id].map(row).join(''));
   });
+
+  // the current license card: the same Duration and Maintenance as its row, on one line
+  var cur = LICENSES.tblTonini.filter(function(l){ return l.status === 'active'; })[0],
+      dur = document.getElementById('curDur'), mnt = document.getElementById('curMaint');
+  if (cur && dur) dur.textContent = cur.remaining === null ? 'Perpetual'
+    : cur.term + ' · ' + (cur.remaining === 0 ? 'Expired' : left(addDays(cur.remaining)));
+  if (cur && mnt) mnt.textContent = !cur.maint ? '—'
+    : fmtDate(cur.maint) + ' · ' + (maintPast(cur.maint) ? 'Expired' : left(cur.maint));
+
+  // the support dealer; the info icon next to it — only when another dealer issued the license
+  var sup = document.getElementById('curSupport'), iss = document.getElementById('curIssuer');
+  if (cur && sup) sup.textContent = cur.dealer || '—';
+  if (cur && iss) {
+    iss.hidden = !cur.issuer || !cur.dealer || cur.issuer === cur.dealer;
+    iss.dataset.tip = 'Issued by ' + cur.issuer + '. Technical support: ' + cur.dealer;
+  }
 })();
 
 
@@ -224,7 +271,7 @@ document.querySelectorAll('.ph-tab').forEach(function(t){
         it.querySelector(".cnt").textContent = n;
       });
 
-      // the licensee group's counter — based on its table's visible rows
+      // the customer group's counter — based on its table's visible rows
       page.querySelectorAll(".lsee").forEach(function(l){
         var table = l.nextElementSibling, out = l.querySelector(".n");
         if (!table || !out) return;
@@ -348,7 +395,7 @@ document.querySelectorAll('.ph-tab').forEach(function(t){
   document.querySelectorAll('#page-licenses .xrow').forEach(bind);
 })();
 
-// The module list starts on the same vertical as the Package column: the Included
+// The module list starts on the same vertical as the Package column: the Modules
 // label width is fitted to that offset, but never smaller than its own content.
 function syncModLabels(){
   var card = document.querySelector('.cur'),
@@ -364,7 +411,7 @@ function syncModLabels(){
 window.addEventListener('resize', syncModLabels);
 
 // ===== license contents and Upgrade mode =====
-// One Included list: the license's permanent modules plus the upgrade modules.
+// One Modules list: the license's permanent modules plus the upgrade modules.
 // Upgrade modules are accent-marked and run as a trial — the shared term is shown by the name.
 (function(){
   var btn = document.getElementById('upgBtn'),
@@ -530,7 +577,7 @@ window.addEventListener('resize', syncModLabels);
 
     // the shared trial term — until the upgrade is formalized
     utrial.hidden = trial === null || !(saved.mods.length || saved.pkg !== CUR_PKG);
-    if (trial !== null) utrial.textContent = 'Upgrade trial · ' + trial + ' d left';
+    if (trial !== null) utrial.textContent = 'Upgrade trial · ' + trial + 'd left';
 
     // change summary — in the header, to the left of Cancel
     var parts = [];
@@ -562,7 +609,7 @@ window.addEventListener('resize', syncModLabels);
     reqBtn.disabled = sent;
     reqBtn.textContent = sent ? 'Requested' : 'Request upgrade';
 
-    // the Included label width depends on the meta row — recalculated after rendering
+    // the Modules label width depends on the meta row — recalculated after rendering
     syncModLabels();
   }
 
@@ -672,4 +719,110 @@ window.addEventListener('resize', syncModLabels);
   pop.addEventListener('click', function(e){ e.stopPropagation(); });
   document.addEventListener('click', hide);
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') hide(); });
+})();
+
+// ===== Review: what changed for Dealer Space =====
+// A secret switch for showing the change to colleagues: a click on "Online" in the sidebar
+// outlines everything that changed, numbered, with a
+// was → now list in the corner. Online again or Esc turns it off.
+(function(){
+  function all(sel){ return [].slice.call(document.querySelectorAll(sel)); }
+  function grp(sel, text){
+    return all(sel).filter(function(g){
+      var l = g.querySelector('.lbl'); return l && l.textContent.trim() === text;
+    });
+  }
+
+  // mark — outlined and numbered; tint — table cells, only filled so the columns stay readable
+  var CHANGES = [
+    {was:'Remaining · 199 d', now:'Duration · 1 year · 6m 15d left', note:'в таблицах срок, под ним остаток',
+     mark:function(){ return grp('.cur-meta .grp', 'Duration').concat(all('.xhead > :nth-child(3)')); },
+     tint:function(){ return all('.xrow > :nth-child(3)'); }},
+    {was:'320 d · 2027-06-30', now:'30-Jun-2027 · 10m 16d left', note:'Maintenance: сначала дата, потом остаток',
+     mark:function(){ return grp('.cur-meta .grp', 'Maintenance').concat(all('.xhead > :nth-child(6)')); },
+     tint:function(){ return all('.xrow > :nth-child(6)'); }},
+    {was:'Included 17', now:'Modules 17', note:'состав лицензии в карточке',
+     mark:function(){ return all('.cur-mods > .lbl'); }},
+    {was:'License', now:'Products', note:'колонка таблиц, как в Dealer Space',
+     mark:function(){ return all('.xhead > :nth-child(2)'); }},
+    {was:'дилер', now:'клиент', note:'группы таблиц — по клиенту из Dealer Space; в прототипе уже так',
+     mark:function(){ return all('.lsee b'); }},
+    {was:'23 d left', now:'23d left', note:'чипы Upgrade trial и Grace period',
+     mark:function(){ return all('#utrial, .curoff'); }},
+    {was:'', now:'Support · Tecnocam S.r.l. ⓘ', note:'дилер техподдержки; ⓘ — кто выдал лицензию, только если другой дилер',
+     mark:function(){ return grp('.cur-meta .grp', 'Support'); }}
+  ];
+
+  var on = false, marks = [], raf = 0,
+      layer = document.createElement('div'),
+      panel = document.createElement('div');
+  layer.className = 'chg-layer';
+  panel.className = 'chg-panel';
+  panel.innerHTML = '<div class="chg-head"><b>Изменения · Dealer Space</b><span>Esc — закрыть</span></div>' +
+    CHANGES.map(function(c, i){
+      return '<div class="chg-it" data-n="' + (i + 1) + '"><span class="chg-n">' + (i + 1) + '</span>' +
+        '<span class="chg-tx"><span>' + (c.was ? '<s>' + c.was + '</s> → ' : '<span class="chg-new">новое</span> ') +
+          c.now + '</span>' +
+        '<span class="chg-note">' + c.note + '</span></span></div>';
+    }).join('');
+
+  // a badge shows only while its element is really on screen: not scrolled away,
+  // not inside the folded sidebar, not under the open one: the badge's own corner is hit-tested
+  // (the badge layer itself ignores the pointer)
+  function place(){
+    marks.forEach(function(m){
+      if (!m.badge) return;
+      var r = m.el.getBoundingClientRect(),
+          hit = r.width && r.height ? document.elementFromPoint(r.left + 2, r.top + 2) : null,
+          vis = !!hit && (m.el === hit || m.el.contains(hit));
+      m.badge.hidden = !vis;
+      if (vis) { m.badge.style.left = (r.left - 7) + 'px'; m.badge.style.top = (r.top - 7) + 'px'; }
+    });
+  }
+
+  function set(v){
+    on = v;
+    cancelAnimationFrame(raf);
+    marks.forEach(function(m){ m.el.classList.remove('chg', 'chg-tint', 'chg-hot'); });
+    marks = [];
+    layer.innerHTML = '';
+    layer.remove(); panel.remove();
+    if (!on) return;
+    CHANGES.forEach(function(c, i){
+      c.mark().forEach(function(el){
+        var b = document.createElement('span');
+        b.className = 'chg-badge'; b.textContent = i + 1;
+        layer.appendChild(b);
+        el.classList.add('chg');
+        marks.push({el:el, n:i + 1, badge:b});
+      });
+      (c.tint ? c.tint() : []).forEach(function(el){
+        el.classList.add('chg-tint');
+        marks.push({el:el, n:i + 1});
+      });
+    });
+    document.body.appendChild(layer);
+    document.body.appendChild(panel);
+    (function loop(){ place(); raf = requestAnimationFrame(loop); })();
+  }
+
+  // a list item: hover brings its elements forward, click scrolls to the first one on screen
+  function hot(n){
+    marks.forEach(function(m){ m.el.classList.toggle('chg-hot', m.n === n); });
+  }
+  panel.addEventListener('mouseover', function(e){
+    var it = e.target.closest('.chg-it'); hot(it ? +it.dataset.n : 0);
+  });
+  panel.addEventListener('mouseleave', function(){ hot(0); });
+  panel.addEventListener('click', function(e){
+    var it = e.target.closest('.chg-it'); if (!it) return;
+    var m = marks.filter(function(x){ return x.n === +it.dataset.n && x.el.getClientRects().length; })[0];
+    if (m) m.el.scrollIntoView({block:'center', behavior:'smooth'});
+  });
+
+  // the sidebar is rebuilt by the shell, so the click is caught on the document
+  document.addEventListener('click', function(e){
+    if (e.target.closest && e.target.closest('.sinfo-conn')) set(!on);
+  });
+  document.addEventListener('keydown', function(e){ if (on && e.key === 'Escape') set(false); });
 })();
