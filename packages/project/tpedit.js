@@ -73,8 +73,9 @@
   function scene(a){ return 'rgba(' + TH.base + ',' + a + ')'; }
 
   /* ---------- the part and the calculated toolpath ----------
-     A stadium-shaped boss with a draft on a floor; Z-level passes around it, one closed contour
-     per level, the seam on the front face. Units: mm, Z up (setup coordinate system). */
+     A stadium-shaped boss with a draft; Z-level passes around it, one closed contour per level, the
+     seam on the front face. The floor under it (fx × fy) is not drawn: it only frames the view (fit)
+     and bounds the cut planes. Units: mm, Z up (setup coordinate system). */
   var G = {Lh:24, R0:20, draft:0.16, H:30, fx:78, fy:56, drawZ:15};
   function bossR(z){ return G.R0 - G.draft * Math.max(0, Math.min(G.H, z)); }
   function stadiumAt(s, rho){
@@ -561,9 +562,8 @@
         put(true, COL.retract, 0.85, 1, false, P(lp, c), P([lp[0], lp[1], zs], c));
       }
     }
-    if(showPart) paintFloor(c);
     back.flush();
-    if(showPart) paintPart(c);
+    if(showPart) paintPartAt(c, partAlpha());
     front.flush();
     // the region shows only while its edit is open (pencil); an applied edit shows just its result
     handles = [];
@@ -576,10 +576,26 @@
   // the part: the token greys (fg over bg) mixed to a solid colour, so it hides what is behind it
   function grey(k){ var b = TH.base.split(',').map(Number), i = TH.ink.split(',').map(Number); k = inkA(k);
     return 'rgb(' + b.map(function(v, j){ return Math.round(v + (i[j] - v) * k); }).join(',') + ')'; }
-  function paintFloor(c){
-    poly([[-G.fx, -G.fy, 0], [G.fx, -G.fy, 0], [G.fx, G.fy, 0], [-G.fx, G.fy, 0]], c);
-    ctx.fillStyle = ink(.04); ctx.fill();
-    ctx.strokeStyle = ink(.12); ctx.lineWidth = 1; ctx.stroke();
+  // the Part filter's settings (right-click it, app.js "Filter settings"): Transparent on → the part
+  // at (100 − value) % opacity, so the toolpath behind it shows through
+  function partAlpha(){
+    var cfg = (window.ENCY_FS || []).filter(function(f){ return f.title === 'Part'; })[0],
+        t = cfg && cfg.rows.filter(function(r){ return r.k === 'pct'; })[0];
+    return t && t.on ? 1 - t.val / 100 : 1;
+  }
+  document.addEventListener('ency:fs', draw);
+  // a see-through part is drawn whole on its own canvas, then laid over at its opacity —
+  // painted face by face at that opacity, the shared edges would show as seams
+  var pcv = document.createElement('canvas'), pctx = pcv.getContext('2d');
+  function paintPartAt(c, al){
+    if(al >= 1){ paintPart(c); return; }
+    if(al <= 0) return;
+    if(pcv.width !== cv.width || pcv.height !== cv.height){ pcv.width = cv.width; pcv.height = cv.height; }
+    var main = ctx; ctx = pctx;
+    ctx.setTransform(main.getTransform()); ctx.clearRect(0, 0, W, H);
+    paintPart(c);
+    ctx = main;
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = al; ctx.drawImage(pcv, 0, 0); ctx.restore();
   }
   function paintPart(c){
     var N = 72, rb = G.R0, rt = bossR(G.H), Pb = stadiumLen(rb), Pt = stadiumLen(rt), bot = [], top = [];
@@ -689,12 +705,9 @@
     return best;
   }
   /* picking a point for the drawing tools: Free — on the horizontal plane at mid-height;
-     On Surface — on the part (boss or floor) under the cursor */
+     On Surface — on the part under the cursor (off it — on that plane) */
   function onPlane(X, Y){ var w = unproject(X, Y, G.drawZ); return w ? [w[0], w[1], G.drawZ] : null; }
-  function solidAt(x, y, z){
-    if(z >= 0 && z <= G.H && spineDist(x, y) <= bossR(z)) return true;
-    return z <= 0 && z >= -1 && Math.abs(x) <= G.fx && Math.abs(y) <= G.fy;
-  }
+  function solidAt(x, y, z){ return z >= 0 && z <= G.H && spineDist(x, y) <= bossR(z); }
   function onSurface(X, Y){
     var c = centre(), a = (X - c[0]) / cam.s, v = (Y - c[1]) / cam.s;
     function at(t){ var y1 = T.sp * v + T.cp * t, z = -T.cp * v + T.sp * t; return [T.cy * a + T.sy * y1, -T.sy * a + T.cy * y1, z]; }

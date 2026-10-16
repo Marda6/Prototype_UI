@@ -195,6 +195,9 @@
     {title:'Face', rows:[fsColor('#70FFAC'), fsPct(false, 50), fsSel('Display mode', FS_DISPLAY)]},
     {title:'Mech', rows:[fsColor('#70FFAC'), fsPct(false, 50), fsSlider('Line width', 1, 5, 1)]}
   ];
+  // the 3D view reads them (tpedit.js: the Part's Transparent) and repaints on 'ency:fs'
+  window.ENCY_FS = FS;
+  function fsChanged(){ document.dispatchEvent(new CustomEvent('ency:fs')); }
   var fsetPop = document.getElementById('fsetPop');
   var fsCells = Array.prototype.slice.call(filters.querySelectorAll('.f-cell'));
   var fsCell = null;
@@ -245,18 +248,18 @@
     e.stopPropagation(); closeMenu();
     if(e.target.closest('[data-x]')){ fsClose(); return; }
     var r = fsRowOf(e.target); if(!r) return;
-    if(e.target.closest('[data-tgl]')){ r.on = !r.on; fsRender(); return; }
+    if(e.target.closest('[data-tgl]')){ r.on = !r.on; fsRender(); fsChanged(); return; }
     var sw = e.target.closest('[data-sw]');
     if(sw && r.on){
       showMenu(sw.getBoundingClientRect(), OP_COLORS.map(function(c){
-        return {label:c.label, color:c.color, cur:c.color === r.color, onPick:function(){ r.color = c.color; fsRender(); }};
+        return {label:c.label, color:c.color, cur:c.color === r.color, onPick:function(){ r.color = c.color; fsRender(); fsChanged(); }};
       }), sw, 120);
       return;
     }
     var dd = e.target.closest('[data-dd]');
     if(dd){
       showMenu(dd.getBoundingClientRect(), r.opts.map(function(o){
-        return {label:o, cur:o === r.val, onPick:function(){ r.val = o; fsRender(); }};
+        return {label:o, cur:o === r.val, onPick:function(){ r.val = o; fsRender(); fsChanged(); }};
       }), dd, dd.offsetWidth);
     }
   });
@@ -273,6 +276,7 @@
       tr.querySelector('.fill').style.width = p + '%'; tr.querySelector('.knob').style.left = p + '%';
       var inp = row.querySelector('input'), num = row.querySelector('.fs-num');
       if(inp) inp.value = r.val; if(num) num.textContent = r.val;
+      fsChanged();
     };
     set(e);
     var up = function(){ tr.removeEventListener('pointermove', set); tr.removeEventListener('pointerup', up); };
@@ -283,7 +287,7 @@
     var r = fsRowOf(e.target); if(!r || r.k !== 'pct') return;
     var v = parseInt(e.target.value, 10);
     r.val = isNaN(v) ? r.val : Math.max(0, Math.min(100, v));
-    fsRender();
+    fsRender(); fsChanged();
   });
 
   /* ---------- Inspector rail: switch active + content ---------- */
