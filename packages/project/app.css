@@ -1140,9 +1140,12 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 /* the grip: an arc around the bottom-right corner of the column's lowest panel, concentric with it
    (radius 8 + 6px off the panel); the 20px box starts 4px inside the corner */
 .f-grip{position:absolute;right:-16px;bottom:-16px;width:20px;height:20px;cursor:ns-resize;
-  color:var(--ec-fg-24);touch-action:none;}
+  color:var(--ec-fg-24);touch-action:none;opacity:0;transition:opacity .12s ease;}
 .f-grip svg{display:block;width:20px;height:20px;overflow:visible;}
 .f-grip:hover,.f-grip.dragging{color:var(--ec-fg-56);}
+/* the arc shows only while the pointer is over the panels (the grip box overlaps their corner
+   by 4px, so reaching for it keeps it shown) and while it is dragged */
+.vp-left:hover > .f-grip,.f-grip.dragging{opacity:1;}
 /* no grip under a folded panel: the lowest one is the drawing panel while it shows, else the Filters */
 .vp-left:has(> .ency-draw:not([hidden]):not(.open)) > .f-grip,
 .vp-left:not(:has(> .ency-draw:not([hidden]))):has(> .filters:not(.open)) > .f-grip{display:none;}
