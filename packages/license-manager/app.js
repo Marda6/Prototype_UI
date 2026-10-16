@@ -233,7 +233,7 @@ var LICENSES = {
     var blocks = !cur.issuer || cur.issuer === cur.dealer
           ? [['Technical support · Issued the license', cur.dealer]]
           : [['Technical support', cur.dealer], ['Issued the license', cur.issuer]],
-        dpop = document.createElement('div'), hideT = null;
+        dpop = document.createElement('div');
     dpop.className = 'xpop dpop'; dpop.hidden = true;
     dpop.innerHTML = blocks.map(function(b){
       var c = DEALERS[b[1]] || {};
@@ -246,21 +246,22 @@ var LICENSES = {
     }).join('<div class="dp-div"></div>');
     document.body.appendChild(dpop);
 
-    // opens on hover and stays while the pointer moves into it — contacts can be copied or clicked;
-    // below the icon, left-aligned with it, flipped above when there is no room
+    // opens on a click on the icon, a second click closes it, so does a click outside or Esc;
+    // clicks inside keep it open — contacts can be copied or clicked.
+    // Below the icon, left-aligned with it, flipped above when there is no room
     var dShow = function(){
-      clearTimeout(hideT);
       dpop.hidden = false;
+      iss.classList.add('on');
       var r = iss.getBoundingClientRect(), h = dpop.offsetHeight, w = dpop.offsetWidth;
       var top = r.bottom + h + 12 <= window.innerHeight ? r.bottom + 4 : r.top - h - 4;
       dpop.style.top = Math.max(8, top) + 'px';
       dpop.style.left = Math.max(8, Math.min(r.left - 8, window.innerWidth - w - 16)) + 'px';
     };
-    var dHide = function(){ hideT = setTimeout(function(){ dpop.hidden = true; }, 150); };
-    iss.addEventListener('mouseenter', dShow);
-    iss.addEventListener('mouseleave', dHide);
-    dpop.addEventListener('mouseenter', function(){ clearTimeout(hideT); });
-    dpop.addEventListener('mouseleave', dHide);
+    var dHide = function(){ dpop.hidden = true; iss.classList.remove('on'); };
+    iss.addEventListener('click', function(e){ e.stopPropagation(); if(dpop.hidden) dShow(); else dHide(); });
+    dpop.addEventListener('click', function(e){ e.stopPropagation(); });
+    document.addEventListener('click', dHide);
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') dHide(); });
   }
 })();
 

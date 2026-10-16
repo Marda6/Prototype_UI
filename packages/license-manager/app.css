@@ -100,11 +100,16 @@
      its tooltip opens from the icon to the right */
   .cur-meta .val-line{display:flex;align-items:center;gap:2px;min-width:0;}
   .cur-meta .val-line .ihint{margin:-2px 0;}
-  /* this icon opens the dealers popover (.dpop) instead of a text tooltip */
+  /* this icon opens the dealers popover (.dpop) on click instead of a text tooltip;
+     lit while the popover is open */
+  .cur-meta .val-line .ihint{cursor:pointer;border-radius:4px;}
+  .cur-meta .val-line .ihint.on{color:var(--ec-fg-96);background:var(--ec-fg-8);}
   .cur-meta .val-line .ihint::after{display:none;}
   /* dealers popover: support first, then the issuer, divided; contacts as label · value rows */
   .xpop.dpop{width:280px;max-width:280px;max-height:none;padding:12px 14px;
     display:flex;flex-direction:column;gap:10px;}
+  /* its display:flex comes after the generic .xpop[hidden] — hidden has to win here again */
+  .xpop.dpop[hidden]{display:none;}
   .dp-blk{display:flex;flex-direction:column;gap:2px;min-width:0;}
   .dp-role{color:var(--ec-fg-48);font:400 11px/14px var(--ec-font);}
   .dp-blk b{color:var(--ec-fg-96);font:600 12px/16px var(--ec-font);}

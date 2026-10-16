@@ -15,7 +15,7 @@ client the license is issued to (not the dealer). The `Licensee` label stays in 
   maintenance. The `Upgrade` button enables edit mode: picking a higher package, adding modules,
   `Save changes` starts a trial period, `Request upgrade` sends a request to the dealer,
   `Reset changes` returns the license to its original state.
-- **Support** — in the card: the dealer providing technical support. The info icon next to it
+- **Support** — in the card: the dealer providing technical support. A click on the info icon next to it
   opens the dealers' contacts (email, phone, website): the support dealer, then — divided — the
   one who issued the license; one block when it is the same dealer. `?dealers=one` shows that case.
 - **Tables** — grouped by customer; all states are deliberately included:
