@@ -1,0 +1,226 @@
+/* System setup — ENCY's settings window (shared-ui/setup.js builds it; logo menu → Settings, loaded on
+   first use). Drawn with the approved settings patterns of the web prototype v2 (Setup Sheet/v2:
+   clouds.css "account settings" + the Media modal, styles.css controls):
+   - the modal: a 50 % black veil; the window is the overlay of the project (.stpanel, the status
+     panel): the popover surface, an fg 12 % border, radius 10, its shadow;
+   - left, the page list (the v2 nav: 28px items, 15px icons, active fg 8 %), a hairline to the page;
+   - the page: its title, then sections right on the window surface (no plates), divided by hairlines;
+     a section head in Subtitle (12/16 600, like the overlay's "Operations:"), rows of a title
+     (12/16, fg 80 %) with an optional description (11/15 fg 48 %), the control on the right;
+   - controls: selectish / field (24px, fg 4 %, a 16 % ring on hover / focus), seg (accent fill),
+     Core's toggle (24×14), btn-primary / btn-secondary.
+   The project's theme tokens (--pop-bg, --th-*) with dark fallbacks, so the window also works in the
+   sections that do not define them. Prefix su- (ss- is the sim speed slider's). */
+.su-scrim{position:fixed;inset:0;z-index:900;display:grid;place-items:center;background:rgba(0,0,0,.5);}
+[data-theme$="-light"] .su-scrim{background:rgba(14,16,16,.24);}
+.su-win{
+  --su-surface:var(--pop-bg, var(--ec-popover, #1e2223));
+  --su-divider:var(--ec-fg-8);
+  --su-fg32:var(--ec-fg-32, rgba(245,245,245,.32));
+  width:740px;height:640px;max-width:calc(100vw - 32px);max-height:calc(100vh - 32px);
+  display:flex;border-radius:10px;overflow:hidden;
+  background:var(--su-surface);border:1px solid var(--ec-fg-12);
+  box-shadow:0 8px 28px var(--th-shadow, rgba(0,0,0,.5));
+  color:var(--ec-fg-80);font:400 12px/16px var(--ec-font);user-select:none;}
+/* button reset without weight, so every class below wins */
+:where(.su-win, .su-menu) button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;}
+.su-win svg,.su-menu svg{display:block;}
+.su-ic{width:15px;height:15px;flex:0 0 15px;}
+
+/* ---- the page list ---- */
+.su-nav{width:184px;flex:0 0 184px;display:flex;flex-direction:column;border-right:1px solid var(--su-divider);}
+.su-nav-head{height:48px;flex:0 0 48px;display:flex;align-items:center;padding:0 16px;
+  color:var(--ec-fg-100);font:600 13px/18px var(--ec-font);}
+.su-nav-body{flex:1 1 0;min-height:0;overflow-y:auto;padding:0 8px 8px;display:flex;flex-direction:column;gap:2px;}
+.su-tab{display:flex;align-items:center;gap:8px;height:28px;flex:0 0 28px;padding:0 8px;border-radius:4px;
+  color:var(--ec-fg-80);cursor:pointer;transition:background-color .12s,color .12s;}
+.su-tab:hover{background:var(--ec-fg-4);color:var(--ec-fg-100);}
+.su-tab.on{background:var(--ec-fg-8);color:var(--ec-fg-100);}
+.su-tab .su-ic{color:var(--ec-fg-56);}
+.su-tab.on .su-ic{color:var(--ec-fg-80);}
+.su-tab span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ---- the page ---- */
+/* the page side half a step darker than the overlay surface the page list keeps: the ink halfway
+   between the popover (k12) and the panel frame (k8) over the panel base, so the list reads one
+   step lighter, as the v2 sidebar beside its content */
+.su-main{flex:1 1 0;min-width:0;display:flex;flex-direction:column;
+  background:color-mix(in srgb, var(--th-ink, #f5f5f5) calc((var(--th-k8, 8%) + var(--th-k12, 12%)) / 2), var(--th-panel, color-mix(in srgb, #f5f5f5 4%, var(--ec-bg))));}
+.su-head{height:48px;flex:0 0 48px;display:flex;align-items:center;gap:8px;padding:0 12px 0 20px;}
+.su-title{flex:1 1 auto;color:var(--ec-fg-100);font:600 13px/18px var(--ec-font);}
+.su-x{width:24px;height:24px;display:grid;place-items:center;border-radius:4px;color:var(--ec-fg-64);cursor:pointer;}
+.su-x:hover{background:var(--ec-fg-8);color:var(--ec-fg-100);}
+.su-x .su-ic{width:16px;height:16px;}
+.su-body{position:relative;flex:1 1 0;min-height:0;display:flex;flex-direction:column;}
+.su-page{flex:1 1 0;min-height:0;overflow-y:auto;scrollbar-gutter:stable;overscroll-behavior:contain;
+  padding:0 12px 20px 20px;display:flex;flex-direction:column;}
+
+/* sections and rows: no plates — a hairline between sections, the rows breathe without lines.
+   Two columns, the inspector's label | control: names in --su-lw (long ones wrap, the description
+   under them), every control starts at the same line; fields and lists fill their column, switches,
+   numbers and segments keep their size. The section head sits on the same grid, its control (a
+   slider) in the second column — Core Title row 3:395 */
+.su-win{--su-lw:200px;}
+.su-sec{flex:0 0 auto;padding:12px 0;}
+.su-sec:first-child{padding-top:2px;}
+.su-sec + .su-sec{box-shadow:inset 0 1px 0 var(--su-divider);}
+.su-row,.su-sec-head,.su-th,.su-trow,.su-md{display:grid;grid-template-columns:var(--su-lw) minmax(0,1fr);column-gap:16px;align-items:center;}
+.su-sec-head{min-height:24px;padding:2px 0 6px;}
+.su-sec-head > b{color:var(--ec-fg-96);font:600 12px/16px var(--ec-font);}
+.su-row{min-height:36px;padding:6px 0;}
+.su-txt{min-width:0;}
+.su-txt b{display:block;color:var(--ec-fg-80);font:400 12px/16px var(--ec-font);}
+.su-txt span{display:block;margin-top:2px;color:var(--ec-fg-48);font:400 11px/15px var(--ec-font);}
+.su-txt span.warn{color:var(--ec-amber, #ebc14a);}
+.su-ctl{display:flex;align-items:center;gap:8px;min-width:0;}
+/* a control with something under it (a slider or a choice and its description) */
+.su-stack{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:6px;}
+.su-stack > .su-sl{width:100%;}
+/* a row that depends on the switch above: its name indented under it (the control stays on the
+   line), dimmed while that switch is off */
+.su-row.sub .su-txt{padding-left:16px;}
+.su-row.dis > *{opacity:.4;pointer-events:none;}
+/* the names | controls divider, as the inspector's: a full-height line in the middle of the column gap
+   (20px page padding + the names column + half the gap) that does not scroll with the rows, shown while
+   its handle is hovered or dragged */
+.su-split-line{position:absolute;top:0;bottom:0;left:calc(20px + var(--su-lw) + 8px);width:1px;margin-left:-1px;
+  opacity:0;transition:opacity .12s ease;pointer-events:none;z-index:5;background:var(--su-fg32);}
+.su-body:has(.su-split:hover) .su-split-line,.su-body.splitting .su-split-line{opacity:1;}
+.su-split{position:absolute;top:0;bottom:0;left:calc(20px + var(--su-lw) + 8px);width:9px;margin-left:-5px;
+  cursor:col-resize;touch-action:none;z-index:6;}
+.su-body.splitting{cursor:col-resize;}
+/* full-width blocks: a table, the colour list */
+.su-block{padding:8px 0;display:flex;flex-direction:column;}
+.su-desc{color:var(--ec-fg-48);font:400 11px/15px var(--ec-font);}
+.su-desc b{color:var(--ec-fg-80);font-weight:500;}
+
+/* selectish (v2): 24px, fg 4 %, the ring on hover; open = the ring and fg 8 % */
+.su-dd{flex:1 1 0;min-width:0;display:inline-flex;align-items:center;justify-content:space-between;gap:8px;height:24px;
+  padding:0 6px 0 8px;border-radius:4px;background:var(--ec-fg-4);box-shadow:inset 0 0 0 1px transparent;
+  color:var(--ec-fg-100);cursor:pointer;transition:box-shadow .12s;}
+.su-dd:hover{box-shadow:inset 0 0 0 1px var(--ec-fg-16);}
+.su-dd.open{background:var(--ec-fg-8);box-shadow:inset 0 0 0 1px var(--ec-fg-16);}
+.su-dd .v{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.su-dd .su-ic{width:13px;height:13px;flex:0 0 13px;color:var(--ec-fg-48);}
+.su-sw{width:12px;height:12px;flex:0 0 12px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--ec-fg-24);}
+/* field (v2) */
+.su-in{flex:1 1 0;min-width:0;display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:4px;
+  background:var(--ec-fg-4);box-shadow:inset 0 0 0 1px transparent;cursor:text;transition:box-shadow .12s;}
+.su-in:hover,.su-in:focus-within{box-shadow:inset 0 0 0 1px var(--ec-fg-16);}
+.su-in input{flex:1 1 0;min-width:0;padding:0;border:0;outline:0;background:transparent;
+  color:var(--ec-fg-100);font:400 12px/16px var(--ec-font);}
+.su-in input::placeholder{color:var(--ec-fg-48);}
+.su-in em{font-style:normal;color:var(--ec-fg-48);white-space:nowrap;}
+.su-in.n{flex:0 0 88px;}
+.su-in.n input{text-align:right;}
+.su-in:has(input:disabled){opacity:.4;pointer-events:none;}
+/* icon button (v2 header icon button): browse, more */
+.su-ib{width:24px;height:24px;flex:0 0 24px;display:grid;place-items:center;border-radius:4px;color:var(--ec-fg-64);cursor:pointer;}
+.su-ib:hover,.su-ib.open{background:var(--ec-fg-8);color:var(--ec-fg-100);}
+.su-ib .su-ic{width:16px;height:16px;}
+/* toogle (Core 11:411): 24×14, accent when on, the knob the scene colour */
+.su-tgl{position:relative;margin-right:4px;width:24px;height:14px;flex:0 0 24px;border-radius:7px;background:var(--ec-fg-24);
+  cursor:pointer;transition:background-color .12s ease;}
+.su-tgl::after{content:"";position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;
+  background:var(--th-base, #0e1010);opacity:.96;transition:left .12s ease;}
+.su-tgl.on{background:var(--ec-green);}
+.su-tgl.on::after{left:12px;}
+/* seg (v2): inner radius 2 + 2px inset = 4; the picked one solid accent */
+.su-seg{display:inline-flex;gap:2px;padding:2px;border-radius:4px;background:var(--ec-fg-4);}
+.su-seg button{height:20px;min-width:36px;padding:0 10px;border-radius:2px;display:inline-flex;align-items:center;
+  justify-content:center;gap:6px;font-size:11px;font-weight:500;color:var(--ec-fg-56);white-space:nowrap;
+  transition:background-color .12s,color .12s;}
+.su-seg button:hover{color:var(--ec-fg-100);}
+.su-seg button.on{background:var(--ec-green);color:#fff;}
+.su-seg button.on:hover{background:color-mix(in srgb, #fff 12%, var(--ec-green));}
+.su-seg.full{display:flex;flex:1 1 0;min-width:0;}
+.su-seg.full button{flex:1 1 auto;padding:0 8px;}
+.su-seg .su-sw{width:10px;height:10px;flex:0 0 10px;}
+/* slider: a 2px line, the accent fill, a 12px knob ringed in the card colour; stops as dots */
+.su-sl{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:10px;color:var(--ec-fg-48);font:400 11px/14px var(--ec-font);white-space:nowrap;}
+.su-tr{position:relative;flex:1 1 0;min-width:60px;height:16px;margin:0 6px;cursor:pointer;touch-action:none;}
+.su-tr::before{content:"";position:absolute;left:0;right:0;top:7px;height:2px;border-radius:2px;background:var(--ec-fg-16);}
+.su-tr .fill{position:absolute;left:0;top:7px;height:2px;border-radius:2px;background:var(--ec-green);}
+.su-tr .dot{position:absolute;top:6px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--su-fg32);}
+.su-tr .knob{position:absolute;top:2px;width:12px;height:12px;margin-left:-6px;border-radius:50%;
+  background:var(--th-knob, #fff);box-shadow:0 1px 3px rgba(0,0,0,.35);}
+.su-ro{color:var(--ec-fg-64);white-space:nowrap;}
+.su-link{color:var(--ec-green);cursor:pointer;}
+.su-link:hover{text-decoration:underline;text-underline-offset:2px;}
+
+/* tables (key mapping, PLM): a quiet head over a hairline, the rows without lines */
+.su-table{display:flex;flex-direction:column;}
+.su-th{height:28px;color:var(--ec-fg-48);font:400 11px/14px var(--ec-font);box-shadow:inset 0 -1px 0 var(--su-divider);}
+.su-trow{min-height:32px;padding:4px 0;color:var(--ec-fg-80);}
+.su-th + .su-trow{margin-top:4px;}
+.su-th > *,.su-trow > *{min-width:0;}
+.su-trow > :last-child{display:flex;}
+/* over the dropdown values, which sit 8px into their fields */
+.su-th.su-th-dd > :last-child{padding-left:8px;}
+.su-trow .su-dd{background:transparent;}
+.su-trow:hover .su-dd,.su-trow .su-dd.open{background:var(--ec-fg-4);}
+.su-trow .su-dd .su-ic{opacity:0;}
+.su-trow:hover .su-dd .su-ic,.su-trow .su-dd.open .su-ic{opacity:1;}
+/* a pickable list (PLM connections): rows light up, the picked one stays lit */
+.su-table.pick .su-trow{cursor:pointer;border-radius:4px;padding:6px 8px;margin:0 -8px;}
+.su-table.pick .su-th{padding:0 8px;margin:0 -8px;}
+.su-table.pick .su-trow:hover{background:var(--ec-fg-4);}
+.su-table.pick .su-trow.sel{background:var(--ec-fg-8);}
+.su-table.pick .su-trow > :last-child{color:var(--ec-fg-64);}
+.su-empty{padding:16px 0 8px;color:var(--ec-fg-48);text-align:center;}
+.su-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 0 4px;}
+.su-tools .su-gap{flex:1 1 auto;}
+
+/* colours: the element list on the left, the picked element's settings on the right */
+.su-md{align-items:start;padding:4px 0 0;}
+.su-list{height:304px;overflow-y:auto;padding:4px;border-radius:6px;
+  box-shadow:inset 0 0 0 1px var(--ec-fg-8);display:flex;flex-direction:column;gap:2px;}
+.su-li{display:flex;align-items:center;gap:6px;height:26px;flex:0 0 26px;padding:0 6px;border-radius:4px;cursor:pointer;
+  color:var(--ec-fg-80);}
+.su-li:hover{background:var(--ec-fg-4);color:var(--ec-fg-100);}
+.su-li.sel{background:var(--ec-fg-8);color:var(--ec-fg-100);}
+.su-li.kid{padding-left:26px;}
+.su-li .arr{width:14px;height:14px;flex:0 0 14px;color:var(--ec-fg-48);transition:transform .12s ease;}
+.su-li.open .arr{transform:rotate(90deg);}
+.su-li span{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.su-props{min-width:0;display:flex;flex-direction:column;}
+.su-props-title{padding:4px 0 4px;color:var(--ec-fg-100);font:600 12px/16px var(--ec-font);}
+.su-props .su-row{min-height:36px;grid-template-columns:84px minmax(0,1fr);column-gap:12px;}
+.su-props .su-row.sub .su-txt{padding-left:12px;}
+.su-prev{height:88px;margin-top:8px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--ec-fg-12);display:grid;place-items:center;
+  color:rgba(255,255,255,.56);font:400 11px/14px var(--ec-font);}
+
+/* ---- the bottom: Defaults (menu) on the left, Ok · Cancel · Apply on the right ---- */
+.su-foot{height:56px;flex:0 0 56px;display:flex;align-items:center;gap:8px;padding:0 20px;
+  box-shadow:inset 0 1px 0 var(--su-divider);}
+.su-foot .su-gap{flex:1 1 auto;}
+/* btn-primary / btn-secondary (v2); 28px in the dialog's bottom bar */
+.su-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:24px;padding:0 10px;border-radius:4px;
+  background:var(--ec-fg-12);box-shadow:inset 0 0 0 1px var(--ec-fg-16);color:var(--ec-fg-100);
+  white-space:nowrap;transition:background-color .12s;}
+.su-btn:hover{background:var(--ec-fg-16);}
+.su-btn:disabled{opacity:.4;cursor:default;background:var(--ec-fg-12);}
+.su-btn .su-ic{width:13px;height:13px;color:var(--ec-fg-64);}
+.su-btn.open{background:var(--ec-fg-16);}
+.su-foot .su-btn{height:28px;min-width:80px;padding:0 14px;}
+.su-btn.pri{background:var(--ec-green);box-shadow:none;color:var(--th-on-green, #04150e);font-weight:500;}
+.su-btn.pri:hover{background:var(--th-green-hover, #00b578);}
+
+/* ---- menus (v2 hmenu): radius 8, 4px padding, 28px rows, a check for the current value ---- */
+.su-menu{position:fixed;z-index:1001;min-width:160px;max-height:320px;overflow-y:auto;padding:4px;
+  display:flex;flex-direction:column;gap:2px;border-radius:8px;background:var(--pop-bg, var(--ec-popover, #1e2223));
+  border:1px solid var(--ec-fg-16);box-shadow:0 12px 40px var(--th-shadow, rgba(0,0,0,.5));
+  color:var(--ec-fg-80);font:400 12px/16px var(--ec-font);}
+.su-mi{display:flex;align-items:center;gap:8px;height:28px;flex:0 0 28px;padding:0 10px 0 8px;border-radius:4px;
+  cursor:pointer;white-space:nowrap;}
+.su-mi:hover{background:var(--ec-fg-8);color:var(--ec-fg-100);}
+.su-mi.su-cur{color:var(--ec-fg-100);}
+.su-mi > .su-ic{color:var(--ec-green);}
+.su-mi > .su-ic.none{visibility:hidden;}
+.su-mi.plain{padding-left:10px;}
+.su-mh{padding:6px 8px 2px;color:var(--ec-fg-48);font:400 11px/14px var(--ec-font);}
+/* tooltips */
+.su-tip{position:fixed;z-index:1002;max-width:300px;padding:4px 8px;border-radius:4px;pointer-events:none;
+  background:var(--pop-bg, var(--ec-popover, #1e2223));border:1px solid var(--ec-fg-16);
+  box-shadow:0 6px 20px var(--th-shadow, rgba(0,0,0,.5));color:var(--ec-fg-100);font:400 12px/16px var(--ec-font);}
+.su-tip[hidden]{display:none;}

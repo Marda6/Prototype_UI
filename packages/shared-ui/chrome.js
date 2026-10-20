@@ -239,14 +239,15 @@
     });
   })();
 
-  // colour themes, picked from the logo menu; set as data-theme on <html>, kept across
-  // sections like online/offline (the colours: "Themes" in project/app.css)
+  // colour themes; set as data-theme on <html>, kept across sections like online/offline
+  // (the colours: "Themes" in project/app.css). Picked in the logo menu (Theme ›) and in
+  // System setup → Colors → UI theme, both through window.ENCY_THEMES
   (function(){
     var THEMES = [
-      {id:'',               t:'Graphite', g:'Dark'},
-      {id:'steel',          t:'Steel',    g:'Dark'},
-      {id:'graphite-light', t:'Silver',   g:'Light'},   // the light pair of Graphite
-      {id:'steel-light',    t:'Frost',    g:'Light'}    // the light pair of Steel
+      {id:'',               t:'Graphite', g:'Dark',  base:'#0e1010'},
+      {id:'steel',          t:'Steel',    g:'Dark',  base:'#0d1015'},
+      {id:'graphite-light', t:'Silver',   g:'Light', base:'#f3f6f6'},   // the light pair of Graphite
+      {id:'steel-light',    t:'Frost',    g:'Light', base:'#f0f5fd'}    // the light pair of Steel
     ];
     var root = document.documentElement, cur = '';
     function apply(id){
@@ -258,24 +259,97 @@
     // a theme that is gone (the old A–D variants) falls back to the default
     if (!THEMES.some(function(o){ return o.id === cur; })) cur = '';
     apply(cur);
-    var btn = document.getElementById('logoBtn'), menu = null;
+    window.ENCY_THEMES = {list:THEMES, get:function(){ return cur; }, set:apply};
+  })();
+
+  // logo menu, as in ENCY: Settings · Theme › · About · Version · License manager. Icons from ENCY's
+  // own sprite (Supplement/GUI/SVG/Dark_Menu.svg, 28px cells: Settings 5·9, VersionInfo 5·10,
+  // LM 6·1, AppLogo2 6·2), drawn at 20px; Theme opens the Dark / Light list to the right.
+  // Settings opens System setup (shared-ui/setup.js, loaded on first use)
+  (function(){
+    var btn = document.getElementById('logoBtn'), menu = null, sub = null;
     if (!btn) return;
-    function close(){ if (menu){ menu.remove(); menu = null; btn.classList.remove('open'); } }
+    var TH = window.ENCY_THEMES;
+    var ITEMS = [
+      {id:'settings', t:'Settings',        ic:'-160px -80px'},
+      {id:'theme',    t:'Theme'},
+      {id:'about',    t:'About',           ic:'-20px -100px'},
+      {id:'version',  t:'Version',         ic:'-180px -80px'},
+      {id:'lm',       t:'License manager', ic:'0 -100px'}
+    ];
+    var ARR = '<svg class="hm-arr" viewBox="0 0 16 16" fill="none"><path d="M6.5 5L9.5 8L6.5 11" stroke="currentColor"/></svg>';
+    function curTheme(){ var id = TH.get(); return TH.list.filter(function(o){ return o.id === id; })[0] || TH.list[0]; }
+    function closeSub(){
+      if (sub){ sub.remove(); sub = null; }
+      if (menu){ var r = menu.querySelector('.hm-opt.open'); if (r) r.classList.remove('open'); }
+    }
+    function close(){ closeSub(); if (menu){ menu.remove(); menu = null; btn.classList.remove('open'); } }
+    function openSub(row){
+      if (sub) return;
+      var id = TH.get();
+      sub = document.createElement('div');
+      sub.className = 'hmenu hm-sub';
+      // grouped Dark / Light
+      sub.innerHTML = TH.list.map(function(o, i){
+        return (i && TH.list[i - 1].g === o.g ? '' : '<div class="hm-head">' + o.g + '</div>') +
+          '<div class="hm-opt' + (o.id === id ? ' cur' : '') + '" data-th="' + o.id + '">' +
+          '<span class="hm-ck">' + (o.id === id ? '✓' : '') + '</span>' + o.t + '</div>';
+      }).join('');
+      sub.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        var opt = ev.target.closest('.hm-opt'); if (!opt) return;
+        TH.set(opt.dataset.th); close();
+      });
+      document.body.appendChild(sub);
+      row.classList.add('open');
+      // the first option level with the Theme row (its 2px padding and the head above it)
+      var r = row.getBoundingClientRect(), m = menu.getBoundingClientRect(), h = sub.querySelector('.hm-opt');
+      var dy = h.getBoundingClientRect().top - sub.getBoundingClientRect().top;
+      sub.style.left = (m.right + 2) + 'px';
+      sub.style.top = Math.max(4, Math.min(r.top - dy, innerHeight - sub.offsetHeight - 4)) + 'px';
+    }
+    function openSetup(){
+      if (window.ENCY_SETUP){ window.ENCY_SETUP.open(); return; }
+      // the stylesheet first, so the window never shows unstyled
+      var dir = BASE.replace(/assets\/$/, '');
+      var l = document.createElement('link');
+      l.rel = 'stylesheet'; l.href = dir + 'setup.css';
+      l.onload = function(){
+        var s = document.createElement('script');
+        s.src = dir + 'setup.js';
+        s.onload = function(){ window.ENCY_SETUP.open(); };
+        document.head.appendChild(s);
+      };
+      document.head.appendChild(l);
+    }
     btn.addEventListener('click', function(e){
       e.stopPropagation();
       if (menu){ close(); return; }
+      var th = curTheme();
       menu = document.createElement('div');
-      menu.className = 'hmenu';
-      // grouped Dark / Light
-      menu.innerHTML = THEMES.map(function(o, i){
-        return (i && THEMES[i - 1].g === o.g ? '' : '<div class="hm-head">' + o.g + '</div>') +
-          '<div class="hm-opt' + (o.id === cur ? ' cur' : '') + '" data-theme="' + o.id + '">' +
-          '<span class="hm-ck">' + (o.id === cur ? '✓' : '') + '</span>' + o.t + '</div>';
+      menu.className = 'hmenu hm-main';
+      menu.innerHTML = ITEMS.map(function(o){
+        var ic = o.id === 'theme'
+          ? '<span class="hm-ic"><i class="hm-sw" style="background:' + th.base + '"></i></span>'
+          : '<span class="hm-ic hm-spr" style="background-position:' + o.ic + '"></span>';
+        return '<div class="hm-opt" data-act="' + o.id + '"' +
+          (o.id === 'about' || o.id === 'version' ? ' title="Not built in the prototype"' : '') + '>' + ic +
+          '<span class="hm-t">' + o.t + '</span>' +
+          (o.id === 'theme' ? '<span class="hm-val">' + th.t + '</span>' + ARR : '') + '</div>';
       }).join('');
+      // the Theme list follows the pointer: opens over its row, closes over any other
+      menu.addEventListener('mouseover', function(ev){
+        var row = ev.target.closest('.hm-opt'); if (!row) return;
+        if (row.dataset.act === 'theme') openSub(row); else closeSub();
+      });
       menu.addEventListener('click', function(ev){
         ev.stopPropagation();
-        var opt = ev.target.closest('.hm-opt'); if (!opt) return;
-        apply(opt.dataset.theme); close();
+        var row = ev.target.closest('.hm-opt'); if (!row) return;
+        var act = row.dataset.act;
+        if (act === 'theme'){ if (sub) closeSub(); else openSub(row); return; }
+        close();
+        if (act === 'settings') openSetup();
+        else if (act === 'lm' && APP.id !== 'license-manager') location.href = '../license-manager/';
       });
       document.body.appendChild(menu);
       var r = btn.getBoundingClientRect();

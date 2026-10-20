@@ -39,6 +39,21 @@
   .hm-opt:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
   .hm-opt.cur{color:var(--ec-fg-100);}
   .hm-ck{width:14px;flex:0 0 14px;text-align:center;color:var(--ec-fg-96);}
+  /* the main logo menu (Settings · Theme › · About · Version · License manager): a 20px icon slot
+     with ENCY's own menu icons (Dark_Menu.svg, 28px cells drawn at 20), the light sprite on the
+     light themes; Theme carries the current theme (a swatch of its base, the name at the end) and an
+     arrow, its row stays lit while the list to the right is open */
+  .hm-main{min-width:200px;--hm-sprite:url(assets/ency/menu-dark.svg);}
+  [data-theme$="-light"] .hm-main{--hm-sprite:url(assets/ency/menu.svg);}
+  .hm-main .hm-opt{padding:0 4px 0 2px;}
+  .hm-ic{width:20px;height:20px;flex:0 0 20px;display:flex;align-items:center;justify-content:center;}
+  .hm-spr{background:var(--hm-sprite) no-repeat;background-size:200px 140px;opacity:.9;}
+  .hm-opt:hover .hm-spr,.hm-opt.open .hm-spr{opacity:1;}
+  .hm-sw{width:12px;height:12px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--ec-fg-24);}
+  .hm-t{flex:1 1 auto;}
+  .hm-val{padding-left:16px;color:var(--ec-fg-48);}
+  .hm-arr{width:16px;height:16px;flex:0 0 16px;color:var(--ec-fg-56);}
+  .hm-opt.open{background:var(--ec-fg-8);color:var(--ec-fg-96);}
   /* gap 9 = 4 + divider + 4, so a tab sits 4px from the divider on each side —
      the same as the group dividers (.hdiv) */
   .htabs{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:9px;height:100%;overflow:hidden;}
