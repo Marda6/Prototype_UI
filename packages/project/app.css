@@ -1166,6 +1166,12 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
   background:var(--pop-bg);border:1px solid var(--ec-fg-12);border-radius:10px;padding:12px;
   box-shadow:0 8px 28px var(--th-shadow);z-index:50;}
 .stpanel.open{display:flex;}
+/* the status window as glass, the Filters' recipe made readable for its text: the overlay tone at 60 %
+   (Filters: the frame colour at 25 %) over a strong blur — 24px instead of 2 — with the colours behind
+   lifted a little (saturate), so the scene shows through as soft colour while the text reads as on
+   the solid overlay */
+.stpanel.glass{background:color-mix(in srgb, var(--pop-bg) 60%, transparent);
+  -webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5);}
 .stp-head{display:flex;align-items:center;gap:8px;}
 .stp-title{flex:1;min-width:0;color:var(--ec-fg-96);font:600 14px/20px var(--ec-font);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
