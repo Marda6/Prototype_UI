@@ -456,11 +456,12 @@
   var T = {};
   function trig(){ T.cy = Math.cos(cam.yaw); T.sy = Math.sin(cam.yaw); T.cp = Math.cos(cam.pitch); T.sp = Math.sin(cam.pitch); }
   // the free part of the view, [left, right]: right of the dock, and of the inspector when it sits
-  // next to the tree; left of the inspector when it sits at the window's right edge
+  // next to the tree; left of the inspector when it sits at the window's right edge (the two
+  // panels have their own widths, so the placement says which, not the position)
   function freeSpan(){
     var vr = vp.getBoundingClientRect(), l = dock.getBoundingClientRect().right - vr.left + 8, r = W;
     var ins = document.querySelector('.workspace > .panel-insp'), ir = ins && ins.offsetWidth ? ins.getBoundingClientRect() : null;
-    if(ir){ if(ir.left - vr.left > W / 2) r = ir.left - vr.left - 8; else l = Math.max(l, ir.right - vr.left + 8); }
+    if(ir){ if(ins.parentNode.dataset.insp === 'right') r = ir.left - vr.left - 8; else l = Math.max(l, ir.right - vr.left + 8); }
     return [Math.max(0, l), r];
   }
   function centre(){ var f = freeSpan(); return [(f[0] + f[1]) / 2 + cam.ox, H / 2 + cam.oy]; }

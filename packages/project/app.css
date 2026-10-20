@@ -10,10 +10,11 @@
    frame — defined with the colours in "Themes" below */
 
 /* ===== Dock: tree panel + resizer + inspector panel (floats over the viewport) ===== */
-/* --dock-w: the width of the tree panel and of the inspector, wherever it sits — one grip on the
-   dock's right edge widens and narrows both ("Panel width" in app.js); what is laid out after the
-   panels follows through --free-l / --free-r (below) */
-.workspace{--dock-w:341px;}
+/* --dock-w: the width of the dock — the tree panel, and the inspector while it sits under the tree;
+   the grip on the dock's right edge sets it ("Panel width" in app.js). Out of the dock the inspector
+   has its own width, --insp-w, and its own grip on the edge facing the 3D view. What is laid out
+   after the panels follows through --free-l / --free-r (below) */
+.workspace{--dock-w:341px;--insp-w:341px;}
 .dock{position:absolute;top:8px;left:8px;bottom:8px;z-index:10;
   width:var(--dock-w);display:flex;flex-direction:column;gap:0;}
 /* the width grip: in the 8px gap right of the dock, two violet lines on hover, like the resizer */
@@ -45,16 +46,20 @@
 
 /* ===== Inspector placement (the dots on top of the rail; "Inspector placement" in app.js) =====
    under the tree (in the dock) · right of the tree · at the window's right edge. Out of the dock it
-   is a full-height panel of the workspace, as wide as the dock. --free-l / --free-r are the edges
-   of the free 3D view: what is laid out after the dock (filters, view cube, view tools, status
-   panels) starts at --free-l, the system bar ends at --free-r */
+   is a full-height panel of the workspace, --insp-w wide, resized by its own grip (on its right
+   edge next to the tree, on its left edge at the window's right edge). --free-l / --free-r are the
+   edges of the free 3D view: what is laid out after the dock (filters, view cube, view tools,
+   status panels) starts at --free-l, the system bar ends at --free-r */
 .workspace{--free-l:calc(var(--dock-w) + 16px);--free-r:8px;}
-.workspace > .panel-insp{position:absolute;top:8px;bottom:8px;width:var(--dock-w);z-index:10;}
+.workspace > .panel-insp{position:absolute;top:8px;bottom:8px;width:var(--insp-w);z-index:10;}
 .workspace[data-insp="side"] > .panel-insp{left:calc(var(--dock-w) + 16px);}
 .workspace[data-insp="right"] > .panel-insp{right:8px;}
-.workspace[data-insp="side"]:not(.simmode){--free-l:calc(2 * var(--dock-w) + 24px);}
-.workspace[data-insp="right"]:not(.simmode){--free-r:calc(var(--dock-w) + 16px);}
+.workspace[data-insp="side"]:not(.simmode){--free-l:calc(var(--dock-w) + var(--insp-w) + 24px);}
+.workspace[data-insp="right"]:not(.simmode){--free-r:calc(var(--insp-w) + 16px);}
 .workspace.simmode > .panel-insp{display:none;}
+/* the inspector's own width grip (.dock-wgrip look): in the 8px gap on the side facing the view */
+.dock .insp-wgrip{display:none;}
+.workspace[data-insp="right"] .insp-wgrip{right:auto;left:-7px;}
 
 /* the content well is darker than the panel frame (like the window header:
    light rail, dark content); radius 6 = panel 8 minus its 2px padding.

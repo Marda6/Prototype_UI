@@ -2689,45 +2689,68 @@
     });
   }
 
-  /* ---------- Panel width: the grip on the dock's right edge sets --dock-w — the tree panel and
-     the inspector (under the tree, next to it or at the right edge) widen and narrow together;
-     their columns are shares of the width, so they stretch with them. Kept across sessions ---------- */
-  var dockWidth = document.getElementById('dockWidth'), wsEl = document.querySelector('.workspace');
+  /* ---------- Panel width: the grip on the dock's right edge sets --dock-w — the tree panel, and
+     the inspector while it sits under the tree. Out of the dock (next to the tree or at the right
+     edge) the inspector has its own width, --insp-w, set by its own grip on the edge facing the
+     view; the two never move each other. Columns are shares of the width, so they stretch with
+     the panel. Both kept across sessions ---------- */
+  var dockWidth = document.getElementById('dockWidth'), inspWidth = document.getElementById('inspWidth');
+  var wsEl = document.querySelector('.workspace');
   var DOCK_W_MIN = 300, DOCK_W_MAX = 600;
+  function inspOut(){ return wsEl.dataset.insp === 'side' || wsEl.dataset.insp === 'right'; }
+  function px(name){ return parseFloat(getComputedStyle(wsEl).getPropertyValue(name)) || DOCK_W_MIN; }
+  // each panel keeps the 3D view at least 240px wide next to whatever else is across
   function dockW(w){
-    var vw = wsEl.clientWidth, side = wsEl.dataset.insp === 'side' || wsEl.dataset.insp === 'right';
-    // two panels across: each keeps the 3D view at least 240px wide
-    var max = Math.min(DOCK_W_MAX, side ? (vw - 240 - 24) / 2 : vw - 240 - 16);
+    var vw = wsEl.clientWidth;
+    var max = Math.min(DOCK_W_MAX, inspOut() ? vw - px('--insp-w') - 240 - 24 : vw - 240 - 16);
     w = Math.round(Math.max(DOCK_W_MIN, Math.min(max, w)));
     wsEl.style.setProperty('--dock-w', w + 'px');
     return w;
   }
-  try { var savedW = +localStorage.getItem('ency.dockW'); if(savedW) dockW(savedW); } catch(e){}
-  if(dockWidth && wsEl){
-    var dockWRaf = 0;
-    dockWidth.addEventListener('mousedown', function(e){
+  function inspW(w){
+    var max = Math.min(DOCK_W_MAX, wsEl.clientWidth - px('--dock-w') - 240 - 24);
+    w = Math.round(Math.max(DOCK_W_MIN, Math.min(max, w)));
+    wsEl.style.setProperty('--insp-w', w + 'px');
+    return w;
+  }
+  try {
+    var savedW = +localStorage.getItem('ency.dockW'); if(savedW) dockW(savedW);
+    // no inspector width yet: it starts as wide as the tree, as before
+    wsEl.style.setProperty('--insp-w', Math.round(+localStorage.getItem('ency.inspW') || px('--dock-w')) + 'px');
+  } catch(e){}
+  // one drag for both grips: dir +1 grows with the pointer going right, -1 going left
+  var panelWRaf = 0;
+  function widthGrip(grip, set, key, cur, dir){
+    if(!grip) return;
+    grip.addEventListener('mousedown', function(e){
       e.preventDefault();
-      dockWidth.classList.add('dragging');
+      grip.classList.add('dragging');
       document.body.style.userSelect = 'none';
       document.body.style.cursor = 'col-resize';
-      var x0 = e.clientX, w0 = dockEl.offsetWidth, w = w0;
+      var x0 = e.clientX, w0 = cur(), w = w0, d = dir();
       function onMove(ev){
-        w = dockW(w0 + ev.clientX - x0);
+        w = set(w0 + d * (ev.clientX - x0));
         // what is placed by script (the calc bar, the toolpath view, open panels) follows once a frame
-        if(!dockWRaf) dockWRaf = requestAnimationFrame(function(){ dockWRaf = 0; window.dispatchEvent(new Event('resize')); });
+        if(!panelWRaf) panelWRaf = requestAnimationFrame(function(){ panelWRaf = 0; window.dispatchEvent(new Event('resize')); });
       }
       function onUp(){
-        dockWidth.classList.remove('dragging');
+        grip.classList.remove('dragging');
         document.body.style.userSelect = '';
         document.body.style.cursor = '';
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
-        try { localStorage.setItem('ency.dockW', w); } catch(err){}
+        try { localStorage.setItem(key, w); } catch(err){}
         window.dispatchEvent(new Event('resize'));
       }
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
     });
+  }
+  if(wsEl){
+    widthGrip(dockWidth, dockW, 'ency.dockW', function(){ return dockEl.offsetWidth; }, function(){ return 1; });
+    // at the window's right edge the grip is on the inspector's left edge: dragging left widens it
+    widthGrip(inspWidth, inspW, 'ency.inspW', function(){ return px('--insp-w'); },
+      function(){ return wsEl.dataset.insp === 'right' ? -1 : 1; });
   }
 
   /* ---------- Simulate tab: code tree + the simulation bar on the 3D view ---------- */
@@ -3798,8 +3821,8 @@
   /* ---------- Inspector placement: the three dots on top of the rail (Core 300:728) pick where the
      inspector sits — under the tree (in the dock), right of the tree or at the window's right edge;
      the current place is the long dot. Out of
-     the dock it is a full-height panel of the workspace and the tree takes the dock's height;
-     what is laid out after the dock (filters, view cube, view tools, status panels) or before
+     the dock it is a full-height panel of the workspace with its own width and grip ("Panel width")
+     and the tree takes the dock's height; what is laid out after the dock (filters, view cube, view tools, status panels) or before
      the right edge (the system bar) moves aside through --free-l / --free-r (app.css). The
      Simulation tab hides it wherever it is, as before. Kept across sessions ---------- */
   var panelInsp = document.querySelector('.panel-insp'), workspace = document.querySelector('.workspace');
@@ -3810,7 +3833,9 @@
     if(out) workspace.appendChild(panelInsp); else dockEl.appendChild(panelInsp);
     dockEl.classList.toggle('insp-collapsed', out);
     workspace.dataset.insp = id;
-    dockW(dockEl.offsetWidth);                      // two panels across must still leave the view room
+    // two panels across must still leave the view room: the inspector gives way first, then the tree
+    if(out) inspW(px('--insp-w'));
+    dockW(dockEl.offsetWidth);
     if(railPlaceEl) railPlaceEl.querySelectorAll('.rp-dot').forEach(function(d){ d.classList.toggle('on', d.dataset.place === id); });
     try { localStorage.setItem('ency.inspPlace', id); } catch(e){}
     // the calc bar, the toolpath view and open panels follow the new free view

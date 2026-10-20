@@ -21,9 +21,9 @@
   <div class="workspace">
 
     <aside class="dock">
-      <!-- width grip on the dock's right edge: the tree and the inspector widen and narrow together
-           ("Panel width" in app.js) -->
-      <div class="dock-wgrip" id="dockWidth" title="Drag to resize the panels"></div>
+      <!-- width grip on the dock's right edge: the tree (and the inspector while it sits under the tree);
+           out of the dock the inspector has its own grip ("Panel width" in app.js) -->
+      <div class="dock-wgrip" id="dockWidth" title="Drag to resize the panel"></div>
 
       <!-- ===== Tree panel ===== -->
       <section class="panel16 panel-tree">
@@ -252,6 +252,9 @@
 
       <!-- ===== Inspector panel ===== -->
       <section class="panel16 panel-insp">
+        <!-- the inspector's own width grip, out of the dock only: right edge next to the tree, left edge
+             at the window's right edge ("Panel width" in app.js) -->
+        <div class="dock-wgrip insp-wgrip" id="inspWidth" title="Drag to resize the inspector"></div>
         <!-- the tabs depend on the node selected in the tree (filled by "Inspector tabs" in app.js);
              More opens the overlay with the optional tabs and the ones the rail has no room for -->
         <div class="rail">
