@@ -241,6 +241,19 @@
     });
   });
   if(fhead) fhead.addEventListener('click', fsClose);   // folding the panel takes its settings along
+
+  /* ---------- Floating panels look: Filters, Draw and the function bar as glass (the status window's)
+     or as the old plate; a right-click on the Filters title switches, kept across reloads ---------- */
+  var vpEl = document.querySelector('.viewport');
+  function vpGlass(on){
+    vpEl.classList.toggle('vp-glass', on);
+    try { localStorage.setItem('ency.vpGlass', on ? '1' : '0'); } catch(e){}
+  }
+  try { vpGlass(localStorage.getItem('ency.vpGlass') !== '0'); } catch(e){ vpGlass(true); }
+  if(fhead) fhead.addEventListener('contextmenu', function(e){
+    e.preventDefault(); e.stopPropagation(); fsClose();
+    vpGlass(!vpEl.classList.contains('vp-glass'));
+  });
   document.addEventListener('click', fsClose);
   document.addEventListener('keydown', function(e){ if(e.key === 'Escape') fsClose(); });
   function fsRowOf(el){ var row = el.closest('.fs-row'); return row ? FS[fsCells.indexOf(fsCell)].rows[+row.dataset.i] : null; }
@@ -2599,6 +2612,123 @@
       }), addBtn, 160);
     });
   }
+
+  /* ---------- Tree: a group's menu (right-click on the row or its sticky head; Del, Ctrl+Shift+G) —
+     Ungroup: the operations stay where they are and move one level up, to the group's own parent
+     (the part); Delete: the group with all its operations, after a warning (an empty group goes
+     at once) ---------- */
+  function treeInside(g){ return rows.filter(function(r){ return isUnder(r, g); }); }
+  function treeName(r){ var n = r.querySelector('.rlabel span'); return n ? (n.dataset.txt || n.textContent) : ''; }
+  // one level less of indent: .tlayer i3 → i2
+  function treeOutdent(r){
+    var t = r.querySelector('.tlayer'), m = t && /\bi(\d)\b/.exec(t.className);
+    if(!m) return;
+    t.classList.remove('i' + m[1]);
+    if(+m[1] > 1) t.classList.add('i' + (m[1] - 1));
+  }
+  // rows leave the tree: folds, search and the status panel follow
+  function treeDrop(list){
+    list.forEach(function(r){ r.remove(); delete collapsed[r.dataset.id]; if(tSearch) delete tSearch.fold[r.dataset.id]; });
+    rows = rows.filter(function(r){ return list.indexOf(r) < 0; });
+    reindex();
+    if(tSearch){ tSearch.hits = tSearch.hits.filter(function(r){ return list.indexOf(r) < 0; }); tSearch.cur = -1; ttCountSync(); }
+    renderTree();
+    if(stpRow && list.indexOf(stpRow) >= 0) closeStatus();
+    else if(stpRow && statusPanel.classList.contains('open')){ stpShow(stpRow); stpFit(); }
+  }
+  function treeUngroup(g){
+    var kids = treeInside(g), name = treeName(g), wasSel = g.classList.contains('tsel');
+    kids.forEach(function(r){
+      if(r.dataset.parent === g.dataset.id) r.dataset.parent = g.dataset.parent;
+      treeOutdent(r);
+    });
+    treeDrop([g]);
+    if(wasSel) (kids[0] || byId[g.dataset.parent]).click();
+    emitAction('Ungroup', name, 'GROUP.UNGROUP "' + name + '"');
+  }
+  function treeDeleteGroup(g){
+    var inside = treeInside(g), name = treeName(g);
+    var n = inside.filter(function(r){ return r.dataset.type === 'operation'; }).length;
+    function go(){
+      // the selection moves to the next row of the same level, else the previous one, else the parent
+      var sibs = rows.filter(function(r){ return r.dataset.parent === g.dataset.parent; }), i = sibs.indexOf(g);
+      var next = sibs[i + 1] || sibs[i - 1] || byId[g.dataset.parent];
+      var wasSel = [g].concat(inside).some(function(r){ return r.classList.contains('tsel'); });
+      treeDrop([g].concat(inside));
+      if(wasSel && next) next.click();
+      emitAction('Delete group', name, 'GROUP.DELETE "' + name + '"');
+    }
+    if(!n){ go(); return; }
+    treeConfirm({
+      title:'Delete group “' + name + '”?',
+      text:n === 1 ? 'The operation in this group will be deleted with it.' : 'All ' + n + ' operations in this group will be deleted with it.',
+      ok:'Delete', onOk:go
+    });
+  }
+  // a small alert window over everything: Esc / the veil cancel, Enter takes the focused button
+  // (the action), Tab stays inside
+  function treeConfirm(o){
+    closeMenu();
+    var scrim = document.createElement('div'); scrim.className = 'tconf-scrim';
+    scrim.innerHTML = '<div class="tconf" role="alertdialog" aria-modal="true" aria-labelledby="tconfT" aria-describedby="tconfD">' +
+      '<div class="tconf-t" id="tconfT"></div><div class="tconf-d" id="tconfD"></div>' +
+      '<div class="tconf-foot"><button class="tconf-btn" data-a="no">Cancel</button>' +
+      '<button class="tconf-btn danger" data-a="ok"></button></div></div>';
+    scrim.querySelector('.tconf-t').textContent = o.title;
+    scrim.querySelector('.tconf-d').textContent = o.text;
+    var ok = scrim.querySelector('[data-a="ok"]'), no = scrim.querySelector('[data-a="no"]');
+    ok.textContent = o.ok;
+    function close(yes){
+      scrim.remove();
+      window.removeEventListener('keydown', key, true);
+      if(yes) o.onOk();
+    }
+    // while it is open no shortcut of the page reacts
+    function key(e){
+      e.stopPropagation();
+      if(e.key === 'Escape'){ e.preventDefault(); close(false); }
+      else if(e.key === 'Tab'){ e.preventDefault(); (document.activeElement === ok ? no : ok).focus(); }
+    }
+    scrim.addEventListener('click', function(e){
+      e.stopPropagation();
+      var b = e.target.closest('[data-a]');
+      if(b) close(b.dataset.a === 'ok'); else if(e.target === scrim) close(false);
+    });
+    window.addEventListener('keydown', key, true);
+    document.body.appendChild(scrim);
+    ok.focus();
+  }
+  function groupMenu(g, x, y){
+    showMenu({left:x, top:y, bottom:y}, [
+      {label:'Ungroup', kbd:'Ctrl+Shift+G', onPick:function(){ treeUngroup(g); }},
+      {sep:true},
+      {label:'Delete', kbd:'Del', danger:true, onPick:function(){ treeDeleteGroup(g); }}
+    ], null, 180);
+  }
+  tree.addEventListener('contextmenu', function(e){
+    var r = e.target.closest('.trow');
+    if(!r || r.dataset.type !== 'group') return;
+    e.preventDefault();
+    if(!r.classList.contains('tsel')) r.click();
+    groupMenu(r, e.clientX, e.clientY);
+  });
+  tSticky.addEventListener('contextmenu', function(e){
+    var c = e.target.closest('.tclone'), r = c && byId[c.dataset.for];
+    if(!r || r.dataset.type !== 'group') return;
+    e.preventDefault();
+    if(!r.classList.contains('tsel')) r.click();
+    groupMenu(r, e.clientX, e.clientY);
+  });
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if(t && (t.isContentEditable || (t.closest && t.closest('input, textarea, select, .su-scrim')))) return;
+    var pt = document.querySelector('.panel-tree');
+    if(pt.classList.contains('sim') || pt.classList.contains('single')) return;
+    var g = tree.querySelector('.trow.tsel');
+    if(!g || g.dataset.type !== 'group') return;
+    if(e.key === 'Delete' && !e.ctrlKey && !e.altKey && !e.metaKey){ e.preventDefault(); treeDeleteGroup(g); }
+    else if((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'g'){ e.preventDefault(); treeUngroup(g); }
+  });
 
   /* ---------- Toolbar: the left button toggles the Sort row ---------- */
   var arrangeBtn = document.querySelector('.b24.arrange');
