@@ -168,35 +168,135 @@
   .suser-mail{font:400 11px/14px var(--ec-font);color:var(--st-text-60);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
-  /* utilities window: drops down from the title-bar "list" button —
-     search · Recent/All · "+" on top, the list of utilities below */
+  /* ===== Utilities (the title bar's "list" button): ENCY's utility search and New utility window =====
+     The list drops from the button like the logo menu (+4, left edges aligned): the overlay surface
+     (--pop-bg, fg 12 % border, the menu shadow), radius 8 with 4px padding, so what is inside takes
+     radius 4. On top a 28px row like the tree's search row: the field (fg 4 → hover fg 8 → typing fg 8 +
+     the green inset), Sort (quiet text button with the current order) and "+" (28×28, the tree toolbar's
+     icon button); a hairline; then 24px rows — ENCY's icon 20 (its own sprites), the name 12/16 fg 80.
+     A custom utility has the icon placeholder (.opic), its type quiet at the end, and Edit / Delete in
+     place of the type on the lit row. The lit row (pointer or ↑ ↓) is fg 8 %; matches marked as in the tree.
+     Only the list scrolls (12 rows), its thin bar in the right padding. */
   .hbtn.open{background:var(--ec-fg-16);}
-  .ut-pop{position:fixed;z-index:80;width:300px;padding:8px;border-radius:8px;
-    background:var(--ec-popover, #1e2223);border:1px solid var(--ec-fg-12);
-    box-shadow:0 12px 40px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:8px;}
-  .ut-bar{display:flex;align-items:center;gap:6px;}
-  .ut-search{flex:1 1 0;min-width:0;height:28px;padding:0 8px;border-radius:4px;border:0;outline:0;
-    background:var(--ec-fg-8);color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);}
-  .ut-search::placeholder{color:var(--ec-fg-48);}
-  .ut-search:focus{background:var(--ec-fg-12);}
-  .ut-sel{flex:0 0 auto;height:28px;display:flex;align-items:center;gap:8px;padding:0 8px;border-radius:4px;
-    background:var(--ec-fg-8);color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);cursor:pointer;}
-  .ut-sel:hover{background:var(--ec-fg-12);}
-  .ut-sel svg{width:8px;height:5px;color:var(--ec-fg-72);}
-  .ut-plus{width:28px;height:28px;flex:0 0 28px;display:flex;align-items:center;justify-content:center;
+  .ut-pop{position:fixed;z-index:80;width:280px;box-sizing:border-box;padding:4px;border-radius:8px;
+    display:flex;flex-direction:column;gap:4px;
+    background:var(--pop-bg, var(--ec-popover, #1e2223));border:1px solid var(--ec-fg-12);
+    box-shadow:0 6px 20px var(--th-shadow, rgba(0,0,0,.5));
+    color:var(--ec-fg-80);font:400 12px/16px var(--ec-font);user-select:none;
+    --ut-spr:url(assets/ency/menu-dark.svg);--ut-spr2:url(assets/ency/other-dark.svg);}
+  [data-theme$="-light"] .ut-pop{--ut-spr:url(assets/ency/menu.svg);--ut-spr2:url(assets/ency/other.svg);}
+  .ut-bar{display:flex;align-items:center;gap:4px;height:28px;flex:0 0 28px;}
+  .ut-search{flex:1 1 0;min-width:0;height:28px;display:flex;align-items:center;padding:0 6px 0 4px;
+    border-radius:4px;background:var(--ec-fg-4);cursor:text;}
+  .ut-search:hover{background:var(--ec-fg-8);}
+  .ut-search:focus-within{background:var(--ec-fg-8);box-shadow:inset 0 0 0 1px var(--ec-green);}
+  .ut-sic{width:20px;height:20px;flex:0 0 20px;}
+  .ut-search input{flex:1 1 0;min-width:0;height:28px;padding:0 2px;border:0;outline:0;background:transparent;
+    color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);}
+  .ut-search input::placeholder{color:var(--ec-fg-48);}
+  .ut-clr{width:16px;height:16px;flex:0 0 16px;display:none;align-items:center;justify-content:center;
+    border-radius:2px;color:var(--ec-fg-56);cursor:pointer;}
+  .ut-search.has-q .ut-clr{display:flex;}
+  .ut-clr:hover{background:var(--ec-fg-12);color:var(--ec-fg-96);}
+  .ut-clr svg{width:12px;height:12px;}
+  /* one width for every order (the widest, Recent), so the field never jumps */
+  .ut-sort{width:72px;height:28px;flex:0 0 72px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;
+    gap:2px;padding:0 4px 0 8px;border-radius:4px;
+    color:var(--ec-fg-72);cursor:pointer;white-space:nowrap;}
+  .ut-sort svg{width:16px;height:16px;color:var(--ec-fg-48);}
+  .ut-ib{width:28px;height:28px;flex:0 0 28px;display:flex;align-items:center;justify-content:center;
     border-radius:4px;color:var(--ec-fg-72);cursor:pointer;}
-  .ut-plus:hover{background:var(--ec-fg-12);color:var(--ec-fg-96);}
-  .ut-plus svg{width:16px;height:16px;}
-  .ut-list{display:flex;flex-direction:column;gap:2px;max-height:360px;overflow-y:auto;scrollbar-gutter:stable;}
-  .ut-row{display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;border-radius:4px;
-    cursor:pointer;color:var(--ec-fg-72);}
-  .ut-row .icn16{flex:0 0 16px;width:16px;height:16px;display:flex;align-items:center;justify-content:center;
-    color:var(--ec-fg-96);}
-  .ut-row .icn16 svg{width:16px;height:16px;}
-  .ut-row:hover{background:var(--ec-fg-8);}
-  .ut-row.active{background:var(--ec-fg-12);}
-  .ut-name{font:400 12px/16px var(--ec-font);color:var(--ec-fg-96);
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ut-ib svg{width:16px;height:16px;}
+  .ut-sort:hover,.ut-ib:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+  .ut-sort.open{background:var(--ec-fg-8);box-shadow:inset 0 0 0 1px var(--ec-fg-16);color:var(--ec-fg-96);}
+  .ut-sep{height:1px;flex:0 0 1px;background:var(--ec-fg-8);}
+  .ut-list{display:flex;flex-direction:column;gap:2px;max-height:310px;overflow-y:auto;overscroll-behavior:contain;
+    margin-right:-4px;scrollbar-gutter:stable;}
+  .ut-list::-webkit-scrollbar{width:4px;}
+  .ut-list::-webkit-scrollbar-track{background:transparent;}
+  .ut-list::-webkit-scrollbar-thumb{background-color:var(--ec-fg-24);border-radius:2px;
+    border:1px solid transparent;background-clip:padding-box;}
+  .ut-list:hover::-webkit-scrollbar-thumb{background-color:var(--ec-fg-48);border-width:0;}
+  .ut-row{display:flex;align-items:center;gap:6px;height:24px;flex:0 0 24px;padding:0 2px;border-radius:4px;cursor:pointer;}
+  .ut-row.act{background:var(--ec-fg-8);}
+  .ut-ic{width:20px;height:20px;flex:0 0 20px;background:var(--ut-spr) no-repeat;background-size:200px 140px;opacity:.9;}
+  .ut-ic[data-spr="other"]{background-image:var(--ut-spr2);background-size:200px 120px;}
+  .ut-row.act .ut-ic{opacity:1;}
+  .ut-ic.ut-ph{background:none;display:flex;align-items:center;justify-content:center;opacity:1;}
+  .ut-ic.ut-ph::before{content:"";width:16px;height:16px;border-radius:4px;background:var(--ec-fg-8);}
+  .ut-name{flex:1 1 0;min-width:0;color:var(--ec-fg-80);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ut-row.act .ut-name{color:var(--ec-fg-96);}
+  mark.ut-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color:var(--ec-fg-100);border-radius:2px;}
+  .ut-type{flex:0 0 auto;padding:0 4px;color:var(--ec-fg-48);}
+  /* row 4 − 2 → the buttons in it take radius 2 */
+  .ut-rb{width:20px;height:20px;flex:0 0 20px;display:none;align-items:center;justify-content:center;
+    border-radius:2px;color:var(--ec-fg-56);}
+  .ut-rb svg{width:16px;height:16px;}
+  .ut-row.act .ut-rb{display:flex;}
+  .ut-row.act .ut-type{display:none;}
+  .ut-rb:hover{background:var(--ec-fg-12);color:var(--ec-fg-96);}
+  .ut-rb.danger:hover{background:var(--tpe-danger-bg, rgba(255,112,114,.12));color:var(--th-red-text, #ff8384);}
+  .ut-empty{padding:4px 6px;color:var(--ec-fg-56);}
+  .ut-sortmenu,.ut-typemenu{z-index:1000;}
+
+  /* New utility / Utility parameters (ENCY's TUtilityEditForm) and the delete warning: the group warning's
+     window (.tconf in project/app.css) — the System setup veil, the overlay surface, radius 10, padding
+     16, the title 600 13/18 — with System setup's controls (24px, fg 4 %, a 16 % ring on hover / focus;
+     a red ring and a line under it when a value is wrong). Names | controls in two columns; Cancel and
+     the action at the bottom right, 24px: Add / Save green, Delete red-tinted */
+  /* the window keeps its top edge, so an error line or a hidden row never moves it */
+  .ut-scrim{position:fixed;inset:0;z-index:900;display:grid;place-items:start center;padding-top:16vh;
+    background:rgba(0,0,0,.5);}
+  [data-theme$="-light"] .ut-scrim{background:rgba(14,16,16,.24);}
+  .ut-dlg{width:400px;max-width:calc(100vw - 32px);box-sizing:border-box;padding:16px;border-radius:10px;
+    background:var(--pop-bg, var(--ec-popover, #1e2223));border:1px solid var(--ec-fg-12);
+    box-shadow:0 8px 28px var(--th-shadow, rgba(0,0,0,.5));color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);}
+  .ut-dlg.sm{width:360px;user-select:none;}
+  .ut-dlg [hidden]{display:none !important;}
+  .ut-dh{display:flex;align-items:center;gap:8px;height:24px;margin:-3px -4px 12px 0;}
+  .ut-dt{flex:1 1 auto;min-width:0;color:var(--ec-fg-100);font:600 13px/18px var(--ec-font);overflow-wrap:anywhere;}
+  .ut-dd2{margin-top:4px;}
+  .ut-x{width:24px;height:24px;flex:0 0 24px;display:grid;place-items:center;border-radius:4px;color:var(--ec-fg-64);cursor:pointer;}
+  .ut-x:hover{background:var(--ec-fg-8);color:var(--ec-fg-100);}
+  .ut-x svg{width:16px;height:16px;}
+  .ut-form{display:grid;grid-template-columns:72px minmax(0,1fr);column-gap:12px;row-gap:8px;align-items:start;}
+  .ut-l{line-height:24px;color:var(--ec-fg-80);white-space:nowrap;user-select:none;}
+  .ut-c{display:flex;flex-direction:column;gap:4px;min-width:0;}
+  .ut-in{display:flex;align-items:center;height:24px;padding:0 8px;border-radius:4px;background:var(--ec-fg-4);
+    box-shadow:inset 0 0 0 1px transparent;cursor:text;transition:box-shadow .12s;}
+  .ut-in:hover,.ut-in:focus-within{box-shadow:inset 0 0 0 1px var(--ec-fg-16);}
+  .ut-in input,.ut-in textarea{flex:1 1 0;min-width:0;padding:0;border:0;outline:0;background:transparent;
+    color:var(--ec-fg-100);font:400 12px/16px var(--ec-font);}
+  .ut-in.ta{height:auto;padding:4px 8px;align-items:stretch;}
+  .ut-in textarea{height:48px;resize:none;}
+  .ut-in input::placeholder,.ut-in textarea::placeholder{color:var(--ec-fg-48);}
+  .ut-in.bad,.ut-in.bad:hover,.ut-in.bad:focus-within{box-shadow:inset 0 0 0 1px var(--th-red-text, #ff8384);}
+  .ut-err{color:var(--th-red-text, #ff8384);font:400 11px/14px var(--ec-font);}
+  .ut-err:empty{display:none;}
+  .ut-dd{display:flex;align-items:center;justify-content:space-between;gap:8px;height:24px;padding:0 4px 0 8px;
+    border-radius:4px;background:var(--ec-fg-4);box-shadow:inset 0 0 0 1px transparent;color:var(--ec-fg-100);
+    cursor:pointer;outline:none;transition:box-shadow .12s;}
+  .ut-dd:hover,.ut-dd:focus-visible{box-shadow:inset 0 0 0 1px var(--ec-fg-16);}
+  .ut-dd.open{background:var(--ec-fg-8);box-shadow:inset 0 0 0 1px var(--ec-fg-16);}
+  .ut-dd .v{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ut-dd svg{width:16px;height:16px;flex:0 0 16px;color:var(--ec-fg-48);}
+  .ut-path{display:flex;gap:4px;}
+  .ut-path .ut-in{flex:1 1 0;min-width:0;}
+  .ut-bb{width:24px;height:24px;flex:0 0 24px;display:grid;place-items:center;border-radius:4px;color:var(--ec-fg-64);cursor:pointer;}
+  .ut-bb:hover{background:var(--ec-fg-8);color:var(--ec-fg-100);}
+  .ut-bb svg{width:16px;height:16px;}
+  .ut-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+  .ut-btn{height:24px;min-width:72px;padding:0 10px;border:0;border-radius:4px;cursor:pointer;
+    background:var(--ec-fg-12);box-shadow:inset 0 0 0 1px var(--ec-fg-16);color:var(--ec-fg-100);
+    font:400 12px/16px var(--ec-font);transition:background-color .12s;}
+  .ut-btn:hover{background:var(--ec-fg-16);}
+  .ut-btn.pri{background:var(--ec-green);box-shadow:none;color:var(--th-on-green, #04150e);font-weight:500;}
+  .ut-btn.pri:hover{background:var(--th-green-hover, #00b578);}
+  .ut-btn.danger{background:var(--tpe-danger-bg, rgba(255,112,114,.12));box-shadow:none;color:var(--th-red-text, #ff8384);font-weight:500;}
+  .ut-btn.danger:hover{background:color-mix(in srgb, var(--th-red-text, #ff8384) 20%, transparent);}
+  .ut-btn:focus{outline:none;}
+  .ut-btn:focus-visible{box-shadow:inset 0 0 0 1px var(--ec-fg-48);}
+  .ut-btn.danger:focus-visible{box-shadow:inset 0 0 0 1px var(--th-red-text, #ff8384);}
 
   /* ===== Content ===== */
   .content{flex:1 1 0;min-width:0;min-height:0;background:var(--ec-fg-4);border-radius:8px;

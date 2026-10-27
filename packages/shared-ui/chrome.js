@@ -405,87 +405,390 @@
     document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closePop(); });
   })();
 
-  // ——— Utilities window (the "list" button in the title bar) ———
-  // Search · Recent / All filter · "+" (new utility) · the list of utilities.
-  // Entries with `app` open a section of the prototype; the rest are inert stubs.
-  // Icons are 16×16 inline glyphs (currentColor) — one glyph per utility type.
-  var UTIL_ICON = {
-    macro:  '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 13V3.5l5.5 6 5.5-6V13"/></svg>',
-    post:   '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 8.5h6M5 11h3.5"/></svg>',
-    interp: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 2.5v4.5M5.5 10v3.5M10.5 2.5v6M10.5 12v1.5"/><circle cx="5.5" cy="8.5" r="1.5"/><circle cx="10.5" cy="10.5" r="1.5"/></svg>',
-    machine:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 13.5 13.5 2.5M2.5 2.5l11 11"/><path d="M2.5 2.5h4v4M13.5 13.5h-4v-4"/></svg>',
-    cldata: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2.5h5.5L13 6v7.5H4z"/><path d="M9.5 2.5V6H13"/><path d="M6 9.5c1.5-1 3 1 4.5 0"/></svg>',
-    nccld:  '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5v7M6.5 4.5v7M2.5 4.5l4 7M9.5 4.5v7M9.5 11.5h4"/></svg>',
-    addin:  '<svg viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="4" height="4" rx=".8"/><rect x="10" y="2" width="4" height="4" rx=".8"/><rect x="2" y="10" width="4" height="4" rx=".8"/><path d="M12 9.5v5M9.5 12h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
-    calc:   '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><rect x="3" y="2" width="10" height="12" rx="1.5"/><path d="M5.5 5h5M5.5 8.5h1M8 8.5h1M10.5 8.5h1M5.5 11h1M8 11h1M10.5 11h1"/></svg>'
-  };
-  var UTILITIES = [
-    {title:'Macro',                    icon:'macro',   app:'macro'},
-    {title:'Postprocessors generator', icon:'post'},
-    {title:'Interpreter configurator', icon:'interp'},
-    {title:'MachineMaker',             icon:'machine'},
-    {title:'CLData viewer',            icon:'cldata'},
-    {title:'Create interpreter',       icon:'nccld'},
-    {title:'Addin manager',            icon:'addin'},
-    {title:'Calculator',               icon:'calc'}
+  // ——— Utilities (the "list" button in the title bar): ENCY's utility search and its New utility window ———
+  // As in ENCY (TUtilitySearchForm / TUtilityEditForm in SCKernel.dll, strings in CAM_Eng.lng):
+  // search · Sort (Recent / A - Z / Z - A) · "+" new utility, then the built-in and the custom utilities
+  // in one list. Built-in ones are ENCY's internal utilities ($PostprocessorsGenerator, $MacrosForm, …)
+  // with ENCY's own icons: its menu sprite (assets/ency/menu(-dark).svg = Dark_Menu.svg, 28px cells drawn
+  // at 20) and, for Open macros, Other_28_28.svg (assets/ency/other(-dark).svg). Interpreter configurator
+  // has no SVG in ENCY (its list uses a PNG) — the sprite's ConfigUtils glyph stands in.
+  // Custom utilities (.exe / .dll / .spr) are added, edited and deleted here and kept in
+  // localStorage['ency.utilities']; Recent = how often each one was run (ENCY's
+  // Config/utilitysearch/utility_usage.json), kept in localStorage['ency.utilities.usage'].
+  // Open macros opens the Automation panel of the project (window.ENCY_MACRO); the rest are not built.
+  var UT_BUILTIN = [
+    {uid:'PostprocessorsGenerator', t:'Postprocessors generator', ic:'-120px -20px'},
+    {uid:'MacrosForm',              t:'Open macros',              ic:'0 -40px', spr:'other', app:'macro'},
+    {uid:'InterpreterConfigurator', t:'Interpreter configurator', ic:'-160px -20px'},
+    {uid:'MachineMaker',            t:'MachineMaker',             ic:'-60px -20px'},
+    {uid:'CLDViewer',               t:'CLData viewer',            ic:'-100px -20px'},
+    {uid:'CreateInterpreter',       t:'Create interpreter',       ic:'-180px -20px'},
+    {uid:'AddinManager',            t:'Addin manager',            ic:'-140px -20px'},
+    {uid:'Calculator',              t:'Calculator',               ic:'-80px -20px'},
+    {uid:'OperationsManager',       t:'Operations manager',       ic:'0 -20px'},
+    {uid:'CreateScriptOperation',   t:'Create script operation',  ic:'-20px -20px'},
+    {uid:'ScriptsIDE',              t:'Scripts IDE',              ic:'-160px 0'},
+    {uid:'LogsWin',                 t:'Logs',                     ic:'-40px -20px'}
   ];
+  // ENCY's types (rsTypeExe / Dll / Spr); a script may also be .sx
+  var UT_TYPES = [
+    {id:'exe', t:'Executable file (.exe)', ext:['exe']},
+    {id:'dll', t:'Library (.dll)',         ext:['dll']},
+    {id:'spr', t:'Script (.spr)',          ext:['spr', 'sx']}
+  ];
+  var UT_SORTS = [{id:'recent', t:'Recent'}, {id:'az', t:'A - Z'}, {id:'za', t:'Z - A'}];
+  var UT_SVG = {
+    plus:   '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>',
+    chev:   '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6.5l3 3 3-3"/></svg>',
+    x:      '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>',
+    edit:   '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"><path d="M10.4 3.1l2.5 2.5M2.7 11.2l7.7-7.7 2.5 2.5-7.7 7.7-3 .5.5-3z"/></svg>',
+    del:    '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"><path d="M2.5 4.5h11M6.5 4.5V2.5h3v2M4 4.5l.7 9h6.6l.7-9M6.7 7v4M9.3 7v4"/></svg>',
+    folder: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7A1.5 1.5 0 0 1 5 5.5h4L11 8h8a1.5 1.5 0 0 1 1.5 1.5V18a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 18z"/></svg>'
+  };
+  function utGet(k, def){ try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? def : v; } catch(e){ return def; } }
+  function utPut(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+  function utEsc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'}[c]; }); }
+  // one custom utility as a sample; the counts are ENCY's utility_usage.json on this machine
+  var UT_CUSTOM = utGet('ency.utilities', [
+    {id:'c1', t:'Probe data import', type:'exe', path:'D:\\ENCY\\Utils\\ProbeImport.exe', params:'/silent'}
+  ]);
+  var UT_USAGE = utGet('ency.utilities.usage', {PostprocessorsGenerator:5, MacrosForm:3, InterpreterConfigurator:1});
+  var UT_SORT = utGet('ency.utilities.sort', 'recent');
+  function utType(id){ return UT_TYPES.filter(function(o){ return o.id === id; })[0] || UT_TYPES[0]; }
+  function utTypeOf(path){
+    var ext = (String(path).match(/\.([^.\\\/]+)$/) || [])[1];
+    ext = ext ? ext.toLowerCase() : '';
+    return UT_TYPES.filter(function(o){ return o.ext.indexOf(ext) >= 0; })[0] || null;
+  }
+  // built-in and custom in one list: Recent = most run first (ties keep ENCY's order), else by name
+  function utAll(){
+    var a = UT_BUILTIN.map(function(b, i){ return {key:b.uid, t:b.t, b:b, i:i}; }).concat(
+      UT_CUSTOM.map(function(c, i){ return {key:c.id, t:c.t, c:c, i:UT_BUILTIN.length + i}; }));
+    return a.sort(function(x, y){
+      if (UT_SORT === 'az') return x.t.localeCompare(y.t);
+      if (UT_SORT === 'za') return y.t.localeCompare(x.t);
+      return (UT_USAGE[y.key] || 0) - (UT_USAGE[x.key] || 0) || x.i - y.i;
+    });
+  }
+
   (function(){
     var btn = document.getElementById('hdrExt');
     if (!btn) return;
-    var pop = null;
-    function closePop(){ if (pop){ pop.remove(); pop = null; btn.classList.remove('open'); } }
-    // utility windows live inside a project: in the project area the row opens the
-    // panel in place (window.ENCY_<UTIL>.open), elsewhere it opens the project with ?utility=<id>
-    function row(x){
-      return '<div class="ut-row" data-title="' + x.title.toLowerCase() + '"' +
-        (x.app ? ' data-util="' + x.app + '"' : '') + '>' +
-        '<span class="icn16">' + UTIL_ICON[x.icon] + '</span>' +
-        '<span class="ut-name">' + x.title + '</span></div>';
+    var pop = null, list = null, q = null, sortMenu = null, dlg = null, act = -1;
+
+    function closeSort(){
+      if (sortMenu){ sortMenu.remove(); sortMenu = null; pop && pop.querySelector('.ut-sort').classList.remove('open'); }
     }
-    function runUtil(id){
-      var api = window['ENCY_' + id.toUpperCase()];
-      if (AREA === 'project' && api && api.open) { api.open(); return; }
-      location.href = '../project/?utility=' + id;
+    function closePop(){
+      if (dlg) return;   // the window over it closes first
+      closeSort();
+      if (pop){ pop.remove(); pop = null; btn.classList.remove('open'); }
     }
+    function mark(t, s){
+      var i = s ? t.toLowerCase().indexOf(s) : -1;
+      if (i < 0) return utEsc(t);
+      return utEsc(t.slice(0, i)) + '<mark class="ut-hl">' + utEsc(t.slice(i, i + s.length)) + '</mark>' + utEsc(t.slice(i + s.length));
+    }
+    function row(x, s){
+      var ic = x.b
+        ? '<span class="ut-ic" style="background-position:' + x.b.ic + '"' + (x.b.spr ? ' data-spr="' + x.b.spr + '"' : '') + '></span>'
+        : '<span class="ut-ic ut-ph"></span>';
+      return '<div class="ut-row" data-key="' + x.key + '">' + ic +
+        '<span class="ut-name">' + mark(x.t, s) + '</span>' +
+        (x.c ? '<span class="ut-type">' + x.c.type + '</span>' +
+          '<span class="ut-rb" data-act="edit" title="Edit">' + UT_SVG.edit + '</span>' +
+          '<span class="ut-rb danger" data-act="del" title="Delete">' + UT_SVG.del + '</span>' : '') +
+        '</div>';
+    }
+    // keep: the row to light after the list is redrawn (a new or edited utility)
+    function render(keep){
+      if (!pop) return;
+      var s = q.value.trim().toLowerCase();
+      var a = utAll().filter(function(x){ return !s || x.t.toLowerCase().indexOf(s) >= 0; });
+      pop.querySelector('.ut-search').classList.toggle('has-q', !!q.value);
+      list.innerHTML = a.length ? a.map(function(x){ return row(x, s); }).join('')
+        : '<div class="ut-empty">No utilities match “' + utEsc(q.value.trim()) + '”</div>';
+      var rows = list.querySelectorAll('.ut-row');
+      act = -1;
+      if (keep) rows.forEach(function(r, i){ if (r.dataset.key === keep) act = i; });
+      else if (s && rows.length) act = 0;
+      light(true);
+    }
+    function light(scroll){
+      var rows = list.querySelectorAll('.ut-row');
+      rows.forEach(function(r, i){ r.classList.toggle('act', i === act); });
+      if (scroll && rows[act]) rows[act].scrollIntoView({block:'nearest'});
+    }
+    function find(key){
+      return utAll().filter(function(x){ return x.key === key; })[0];
+    }
+    function run(key){
+      var x = find(key); if (!x) return;
+      UT_USAGE[key] = (UT_USAGE[key] || 0) + 1;
+      utPut('ency.utilities.usage', UT_USAGE);
+      closePop();
+      if (x.b && x.b.app){
+        var api = window['ENCY_' + x.b.app.toUpperCase()];
+        if (AREA === 'project' && api && api.open) api.open();
+        else location.href = '../project/?utility=' + x.b.app;
+      }
+    }
+
+    // ——— Sort: ENCY's three orders, in the logo menu's look, under its button (+2) ———
+    function openSort(b){
+      if (sortMenu){ closeSort(); return; }
+      sortMenu = document.createElement('div');
+      sortMenu.className = 'hmenu ut-sortmenu';
+      sortMenu.innerHTML = '<div class="hm-head">Sort</div>' + UT_SORTS.map(function(o){
+        return '<div class="hm-opt' + (o.id === UT_SORT ? ' cur' : '') + '" data-sort="' + o.id + '">' +
+          '<span class="hm-ck">' + (o.id === UT_SORT ? '✓' : '') + '</span>' + o.t + '</div>';
+      }).join('');
+      sortMenu.addEventListener('click', function(e){
+        e.stopPropagation();
+        var o = e.target.closest('[data-sort]'); if (!o) return;
+        UT_SORT = o.dataset.sort; utPut('ency.utilities.sort', UT_SORT);
+        b.querySelector('.ut-sort-t').textContent = UT_SORTS.filter(function(x){ return x.id === UT_SORT; })[0].t;
+        closeSort(); render(); q.focus();
+      });
+      document.body.appendChild(sortMenu);
+      // right edges aligned, so the list stays over the popover
+      var r = b.getBoundingClientRect();
+      sortMenu.style.left = Math.max(8, r.right - sortMenu.offsetWidth) + 'px';
+      sortMenu.style.top = (r.bottom + 2) + 'px';
+      b.classList.add('open');
+    }
+
     function openPop(){
+      var cur = UT_SORTS.filter(function(x){ return x.id === UT_SORT; })[0] || UT_SORTS[0];
       pop = document.createElement('div');
       pop.className = 'ut-pop';
       pop.innerHTML =
         '<div class="ut-bar">' +
-          '<input class="ut-search" type="text" placeholder="Search…">' +
-          '<div class="ut-sel" data-mode="recent"><span class="ut-sel-t">Recent</span>' +
-            '<svg viewBox="0 0 8 5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l3 3 3-3"/></svg></div>' +
-          '<div class="ut-plus" title="New utility">' +
-            '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg></div>' +
+          '<label class="ut-search"><img class="ut-sic" src="' + BASE + 'st-search.svg" alt="">' +
+            '<input type="text" placeholder="Search…" spellcheck="false" autocomplete="off">' +
+            '<span class="ut-clr" title="Clear · Esc">' + UT_SVG.x + '</span></label>' +
+          '<span class="ut-sort" title="Sort"><span class="ut-sort-t">' + cur.t + '</span>' + UT_SVG.chev + '</span>' +
+          '<span class="ut-ib" data-act="new" title="New utility">' + UT_SVG.plus + '</span>' +
         '</div>' +
-        '<div class="ut-list">' + UTILITIES.map(row).join('') + '</div>';
+        '<div class="ut-sep"></div>' +
+        '<div class="ut-list" role="listbox"></div>';
       document.body.appendChild(pop);
+      list = pop.querySelector('.ut-list');
+      q = pop.querySelector('input');
+      render();
       var r = btn.getBoundingClientRect();
       pop.style.left = r.left + 'px';
       pop.style.top = (r.bottom + 4) + 'px';
       btn.classList.add('open');
-      // search filters the list by title
-      var q = pop.querySelector('.ut-search');
-      q.addEventListener('input', function(){
-        var s = q.value.trim().toLowerCase();
-        pop.querySelectorAll('.ut-row').forEach(function(x){
-          x.hidden = !!s && x.dataset.title.indexOf(s) < 0;
-        });
+      q.addEventListener('input', function(){ render(); });
+      // ↑ ↓ walk the list, Enter runs, Esc clears the search first, then closes
+      q.addEventListener('keydown', function(e){
+        var n = list.querySelectorAll('.ut-row').length;
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+          e.preventDefault();
+          if (!n) return;
+          act = act < 0 ? (e.key === 'ArrowDown' ? 0 : n - 1) : (act + (e.key === 'ArrowDown' ? 1 : n - 1)) % n;
+          light(true);
+        } else if (e.key === 'Enter'){
+          var r = list.querySelectorAll('.ut-row')[act];
+          if (r) run(r.dataset.key);
+        } else if (e.key === 'Escape' && q.value){
+          e.stopPropagation(); q.value = ''; render();
+        }
       });
-      // Recent / All — a two-state toggle in the prototype
-      var sel = pop.querySelector('.ut-sel');
-      sel.addEventListener('click', function(){
-        var m = sel.dataset.mode === 'recent' ? 'all' : 'recent';
-        sel.dataset.mode = m;
-        sel.querySelector('.ut-sel-t').textContent = m === 'recent' ? 'Recent' : 'All';
+      list.addEventListener('mousemove', function(e){
+        var r = e.target.closest('.ut-row'); if (!r) return;
+        var i = Array.prototype.indexOf.call(list.querySelectorAll('.ut-row'), r);
+        if (i !== act){ act = i; light(false); }
       });
       pop.addEventListener('click', function(e){
         e.stopPropagation();
-        var t = e.target.closest('[data-util]');
-        if (t) { closePop(); runUtil(t.dataset.util); }
+        if (!e.target.closest('.ut-sort')) closeSort();
+        var t;
+        if (e.target.closest('.ut-clr')){ q.value = ''; render(); q.focus(); return; }
+        if ((t = e.target.closest('.ut-sort'))){ openSort(t); return; }
+        if (e.target.closest('[data-act="new"]')){ editWin(null); return; }
+        var r = e.target.closest('.ut-row'); if (!r) return;
+        var x = find(r.dataset.key);
+        if ((t = e.target.closest('[data-act]'))){
+          if (t.dataset.act === 'edit') editWin(x.c);
+          else if (t.dataset.act === 'del') delWin(x.c);
+          return;
+        }
+        run(r.dataset.key);
       });
       setTimeout(function(){ q.focus(); }, 0);
     }
+
+    // ——— the windows: the group warning's (.tconf) over the System setup veil; the list stays open
+    //     beneath and shows the result. While one is open no shortcut of the page reacts ———
+    // onKey sees every key first; Esc closes the window unless onKey took it (preventDefault)
+    function modal(html, onKey){
+      var scrim = document.createElement('div');
+      scrim.className = 'ut-scrim';
+      scrim.innerHTML = html;
+      var m = {el:scrim};
+      function key(e){
+        e.stopPropagation();
+        onKey(e);
+        if (e.key === 'Escape' && !e.defaultPrevented){ e.preventDefault(); m.close(); }
+      }
+      m.close = function(){
+        scrim.remove(); dlg = null;
+        window.removeEventListener('keydown', key, true);
+        if (pop) q.focus();
+      };
+      scrim.addEventListener('click', function(e){ e.stopPropagation(); });
+      window.addEventListener('keydown', key, true);
+      document.body.appendChild(scrim);
+      return (dlg = m);
+    }
+
+    // New utility / Utility parameters: ENCY's fields — name, type, path (+ browse), the exe's parameters
+    function editWin(c){
+      closeSort();
+      var edit = !!c, d = {t:c ? c.t : '', type:c ? c.type : 'exe', path:c ? c.path : '', params:c ? c.params : ''};
+      var m = modal(
+        '<div class="ut-dlg" role="dialog" aria-modal="true" aria-labelledby="utDt">' +
+          '<div class="ut-dh"><span class="ut-dt" id="utDt">' + (edit ? 'Utility parameters' : 'New utility') + '</span>' +
+            '<span class="ut-x" data-act="x" title="Close · Esc">' + UT_SVG.x + '</span></div>' +
+          '<div class="ut-form">' +
+            '<label class="ut-l" for="utName">Name</label>' +
+            '<div class="ut-c"><div class="ut-in" data-f="t"><input id="utName" type="text" placeholder="Example name" spellcheck="false" autocomplete="off"></div>' +
+              '<div class="ut-err" data-err="t"></div></div>' +
+            '<span class="ut-l">Type</span>' +
+            '<div class="ut-c"><div class="ut-dd" data-act="type" tabindex="0"><span class="v"></span>' + UT_SVG.chev + '</div></div>' +
+            '<label class="ut-l" for="utPath">Path</label>' +
+            '<div class="ut-c"><div class="ut-path"><div class="ut-in" data-f="path"><input id="utPath" type="text" placeholder="File to run" spellcheck="false" autocomplete="off"></div>' +
+              '<span class="ut-bb" data-act="browse" title="Browse…">' + UT_SVG.folder + '</span></div>' +
+              '<div class="ut-err" data-err="path"></div></div>' +
+            '<label class="ut-l ut-exe" for="utParams">Parameters</label>' +
+            '<div class="ut-c ut-exe"><div class="ut-in ta"><textarea id="utParams" placeholder="Command-line parameters" spellcheck="false"></textarea></div></div>' +
+          '</div>' +
+          '<input type="file" hidden>' +
+          '<div class="ut-foot"><button class="ut-btn" data-act="x">Cancel</button>' +
+            '<button class="ut-btn pri" data-act="ok">' + (edit ? 'Save' : 'Add') + '</button></div>' +
+        '</div>', function(e){
+          // Esc closes the type list first; Enter adds (a new line in Parameters, a press on a button)
+          var dd = e.target.closest && e.target.closest('.ut-dd');
+          if (e.key === 'Escape' && menu){ e.preventDefault(); closeMenu(); }
+          else if (dd && /^( |Enter|ArrowDown)$/.test(e.key)){ e.preventDefault(); openMenu(dd); }
+          else if (e.key === 'Enter' && !/^(TEXTAREA|BUTTON)$/.test(e.target.tagName) && !e.target.closest('.ut-dd')){
+            e.preventDefault(); save();
+          }
+        });
+      var w = m.el, name = w.querySelector('#utName'), path = w.querySelector('#utPath'),
+          params = w.querySelector('#utParams'), file = w.querySelector('input[type=file]'), menu = null;
+      name.value = d.t; path.value = d.path; params.value = d.params;
+      function setType(id){
+        d.type = id;
+        w.querySelector('.ut-dd .v').textContent = utType(id).t;
+        w.querySelectorAll('.ut-exe').forEach(function(el){ el.hidden = id !== 'exe'; });
+        file.accept = utType(id).ext.map(function(x){ return '.' + x; }).join(',');
+      }
+      setType(d.type);
+      function err(f, text){
+        w.querySelector('[data-err="' + f + '"]').textContent = text || '';
+        w.querySelector('[data-f="' + f + '"]').classList.toggle('bad', !!text);
+      }
+      function closeMenu(){ if (menu){ menu.remove(); menu = null; w.querySelector('.ut-dd').classList.remove('open'); } }
+      function openMenu(dd){
+        if (menu){ closeMenu(); return; }
+        menu = document.createElement('div');
+        menu.className = 'hmenu ut-typemenu';
+        menu.innerHTML = UT_TYPES.map(function(o){
+          return '<div class="hm-opt' + (o.id === d.type ? ' cur' : '') + '" data-type="' + o.id + '">' +
+            '<span class="hm-ck">' + (o.id === d.type ? '✓' : '') + '</span>' + o.t + '</div>';
+        }).join('');
+        menu.addEventListener('click', function(e){
+          e.stopPropagation();
+          var o = e.target.closest('[data-type]'); if (!o) return;
+          setType(o.dataset.type); closeMenu();
+          // a path of another type no longer fits
+          var t = path.value.trim() && utTypeOf(path.value.trim());
+          if (t && t.id !== d.type) path.value = '';
+          dd.focus();
+        });
+        document.body.appendChild(menu);
+        var r = dd.getBoundingClientRect();
+        menu.style.left = r.left + 'px';
+        menu.style.top = (r.bottom + 2) + 'px';
+        menu.style.minWidth = r.width + 'px';
+        dd.classList.add('open');
+      }
+      // the type follows the file's extension; the name comes from the file when it is still empty
+      function fromPath(p){
+        var t = utTypeOf(p);
+        if (t) setType(t.id);
+        if (!name.value.trim() && p){
+          name.value = p.split(/[\\\/]/).pop().replace(/\.[^.]+$/, '');
+          err('t');
+        }
+      }
+      function save(){
+        var t = name.value.trim(), p = path.value.trim(), ok = true;
+        if (!t){ err('t', 'Utility name cannot be empty.'); ok = false; }
+        if (!p){ err('path', 'Path cannot be empty.'); ok = false; }
+        else if (!utTypeOf(p)){ err('path', 'Unsupported file type. Use .exe, .dll, .spr or .sx.'); ok = false; }
+        if (!ok){ (t ? path : name).focus(); return; }
+        var o = c || {id:'c' + Date.now()};
+        o.t = t; o.type = d.type; o.path = p; o.params = d.type === 'exe' ? params.value.trim() : '';
+        if (!c) UT_CUSTOM.push(o);
+        utPut('ency.utilities', UT_CUSTOM);
+        closeMenu(); m.close();
+        if (pop){ q.value = ''; render(o.id); }
+      }
+      name.addEventListener('input', function(){ err('t'); });
+      path.addEventListener('input', function(){ err('path'); });
+      path.addEventListener('change', function(){ fromPath(path.value.trim()); });
+      // the browser hands over only the file's name, not its folder
+      file.addEventListener('change', function(){
+        if (!file.files[0]) return;
+        path.value = file.files[0].name; err('path');
+        fromPath(path.value);
+        file.value = '';
+      });
+      w.addEventListener('click', function(e){
+        var t = e.target.closest('[data-act]');
+        if (!t || t.dataset.act !== 'type') closeMenu();
+        if (!t) return;
+        if (t.dataset.act === 'x'){ m.close(); }
+        else if (t.dataset.act === 'ok') save();
+        else if (t.dataset.act === 'type') openMenu(t);
+        else if (t.dataset.act === 'browse') file.click();
+      });
+      var close0 = m.close;
+      m.close = function(){ closeMenu(); close0(); };
+      name.focus();
+    }
+
+    // ENCY asks before it deletes ("Delete utility "%s"?"); the file itself stays where it is
+    function delWin(c){
+      closeSort();
+      var m = modal(
+        '<div class="ut-dlg sm" role="alertdialog" aria-modal="true">' +
+          '<div class="ut-dt">Delete utility “' + utEsc(c.t) + '”?</div>' +
+          '<div class="ut-dd2">It is removed from the list; the file stays on disk.</div>' +
+          '<div class="ut-foot"><button class="ut-btn" data-act="x">Cancel</button>' +
+            '<button class="ut-btn danger" data-act="ok">Delete</button></div>' +
+        '</div>', function(e){
+          if (e.key === 'Tab'){ e.preventDefault(); (document.activeElement === ok ? no : ok).focus(); }
+          else if (e.key === 'Enter' && document.activeElement === ok){ e.preventDefault(); yes(); }
+        });
+      var ok = m.el.querySelector('[data-act="ok"]'), no = m.el.querySelector('[data-act="x"]');
+      function yes(){
+        UT_CUSTOM = UT_CUSTOM.filter(function(o){ return o !== c; });
+        delete UT_USAGE[c.id];
+        utPut('ency.utilities', UT_CUSTOM); utPut('ency.utilities.usage', UT_USAGE);
+        m.close(); render();
+      }
+      ok.addEventListener('click', yes);
+      no.addEventListener('click', m.close);
+      // the veil cancels, as in the group warning
+      m.el.addEventListener('click', function(e){ if (e.target === m.el) m.close(); });
+      ok.focus();
+    }
+
     btn.addEventListener('click', function(e){
       e.stopPropagation();
       if (pop) closePop(); else openPop();

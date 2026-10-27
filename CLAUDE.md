@@ -42,11 +42,19 @@ each marked with the same comment title.
 Icon placeholders: `.opic` is the 20×20 slot with a faint rounded square used for Setup / Part /
 operation icons in both trees and in the NC block panel.
 
-### `packages/shared-ui` — logo menu and System setup (every section)
+### `packages/shared-ui` — logo menu, Utilities and System setup (every section)
 
 - **Logo menu** (`#logoBtn` → `.hmenu.hm-main`), as in ENCY: Settings · Theme › · About · Version · License manager.
   Icons from ENCY's own sprite `assets/ency/menu(-dark).svg` (`Supplement/GUI/SVG/Dark_Menu.svg`, cells in
   `BtnsDarkIconPack.ini`). About and Version are not built. chrome.js: "logo menu".
+- **Utilities** (the header's list button `#hdrExt` → `.ut-pop`), ENCY's `TUtilitySearchForm` / `TUtilityEditForm`:
+  search (28px, the tree search field) · Sort ▾ (Recent = most run / A - Z / Z - A, ENCY's own) · "+", then 24px
+  rows with ENCY's icons (menu sprite + `assets/ency/other(-dark).svg` for Open macros); custom utilities
+  (placeholder icon, type at the end, Edit / Delete on the lit row) in `localStorage['ency.utilities']`, run counts
+  in `['ency.utilities.usage']`. "+" / Edit open the New utility / Utility parameters window (Name, Type .exe /
+  .dll / .spr, Path + browse, Parameters for .exe; ENCY's error lines), Delete asks first (the `.tconf` look).
+  Open macros opens the project's Automation panel; the rest are not built. chrome.js: "Utilities", `UT_BUILTIN`;
+  chrome.css `.ut-*`.
 - **System setup** (Settings): ENCY's `TASetupFrm` (in `Bin64/SCKernel.dll`), drawn in the v2 settings style — the
   status panel's surface (radius 10), page list with icons on the left, the page half a step darker; sections
   without plates divided by hairlines; two columns names | controls on one line (`--su-lw` 200px, a draggable
