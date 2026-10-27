@@ -257,6 +257,9 @@
   /* page-level actions: a license can always be added, not just within a group */
   .ph-actions{position:relative;margin-left:auto;display:flex;align-items:center;gap:4px;flex:0 0 auto;}
   .app.offline .ph-actions{margin-left:0;}
+  /* the prototype's Online / Offline switch (moved here from the title bar): the header's segments, 24px */
+  .ph-actions .cseg{flex:0 0 auto;margin-right:4px;}
+  .ph-actions .cseg .ci{flex:0 0 auto;padding:0 10px;}
   .ph-actions .mbtn .mi{margin-left:2px;}
   /* licenses that can't be verified without a network dim and get their own chip */
   .xoff{display:none;color:var(--ec-fg-56);white-space:nowrap;}

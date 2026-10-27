@@ -39,7 +39,7 @@ var LICENSES = {
      maint:'2027-04-02', status:'valid',
      items:['Planar slicing','Spraying/Painting','Welding']},
     {id:'#421520', name:'ENCY 5x Mill Advanced', remaining:412, term:'2 years', type:'Commercial', prot:'dongle',
-     maint:'2026-09-05', status:'valid',
+     maint:'2026-08-21', status:'valid',
      items:['Robot+','Robotic turning','Multichannel']},
     {id:'#421533', name:'ENCY Wire EDM', remaining:96, term:'1 year', type:'Commercial', prot:'account',
      maint:'2027-02-10', status:'signin',
@@ -188,7 +188,8 @@ var LICENSES = {
     // "expired" refers to the license's own term; exactly these rows are hidden by default
     var filter = l.remaining === 0 && !l.expired ? 'expired'
                : (l.remaining !== null && l.remaining <= SOON && l.remaining > 0 ? 'expiring' : 'active');
-    return '<div class="lgrid xrow' + (l.status === 'active' ? ' inuse' : '') + '"' +
+    // id: lic-<number> — notifications link to the row (#lic-421520)
+    return '<div class="lgrid xrow' + (l.status === 'active' ? ' inuse' : '') + '" id="lic-' + l.id.slice(1) + '"' +
       ' data-prot="' + l.prot + '" data-status="' + filter + '"' + (l.expired ? ' data-expired="1"' : '') +
       ' data-kind="' + (l.type || '').toLowerCase() + '">' +
       '<span class="xnum">' + l.id + '</span>' +
@@ -213,6 +214,17 @@ var LICENSES = {
     var box = document.getElementById(id);
     if (box) box.insertAdjacentHTML('beforeend', LICENSES[id].map(row).join(''));
   });
+
+  // maintenance running out within a week goes to the notifications (shared-ui/chrome.js), once per
+  // license; the sample list already holds #421520's
+  if (window.ENCY_NOTIFY) Object.keys(LICENSES).forEach(function(id){ LICENSES[id].forEach(function(l){
+    var n = maintDays(l.maint);
+    if (n === null || n <= 0 || n > 7) return;
+    window.ENCY_NOTIFY.pushOnce({key:'maint:' + l.id, src:'license', kind:'warn',
+      t:'Maintenance ends in ' + n + (n === 1 ? ' day' : ' days'),
+      d:l.id + ' ' + l.name + ' · renew it to keep getting updates',
+      href:'../license-manager/#lic-' + l.id.slice(1), act:'Renew'});
+  }); });
 
   // the current license card: the same Duration and Maintenance as its row, on one line
   var cur = LICENSES.tblTonini.filter(function(l){ return l.status === 'active'; })[0],

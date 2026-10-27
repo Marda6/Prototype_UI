@@ -1568,7 +1568,26 @@
     var openProj = new URLSearchParams(location.search).get('project');
     var openTab = openProj && htabs.filter(function(t){ return t.dataset.proj === openProj; })[0];
     if(openTab) setTimeout(function(){ openTab.click(); }, 0);
+    // a notification from another section: &op=<row id> or &status=machine (the whole project)
+    var openQ = new URLSearchParams(location.search), openOp = openQ.get('op');
+    if(openOp || openQ.get('status')) setTimeout(function(){ notifyShow({proj:openProj, op:openOp}); }, 0);
   } catch(e){}
+  // a notification about a project (shared-ui/chrome.js "Notifications") lands here: its project tab,
+  // the Machining tab, the operation — or the machine, whose Status panel sums up the whole project's
+  // errors by type — selected, revealed and its Status panel open
+  function notifyShow(go){
+    var tab = go.proj ? htabs.filter(function(t){ return t.dataset.proj === go.proj; })[0] : htabs[0];
+    if(tab && !tab.classList.contains('active')) tab.click();
+    var mt = Array.prototype.filter.call(document.querySelectorAll('.tabs .seg'),
+      function(b){ return b.textContent.trim() === 'Machining'; })[0];
+    if(mt && !mt.classList.contains('active')) mt.click();
+    var r = go.op ? byId[go.op] : tree.querySelector('.trow[data-type="machine"]');
+    if(!r) return;
+    if(!r.classList.contains('tsel')) r.click();
+    treeReveal(r);
+    stpOpen(r);
+  }
+  window.ENCY_PROJECT = {show:notifyShow};
 
   /* ---------- Calculate ---------- */
   var EMPTY = A['status-empty'], P1 = A['status-prog1'], P2 = A['status-prog2'], CALC = A['status-calc'];
@@ -2213,7 +2232,9 @@
     var st = calcState; if(!st) return;
     var now = performance.now(), cur = st.plan[st.i], el = now - st.opT0;
     if(el >= cur.ms){
-      cur.row.querySelector('.st').src = CALC;
+      // the checks of the calculation find the project's known problems again
+      var sid = cur.row.dataset.id;
+      cur.row.querySelector('.st').src = STP_ERRS[sid] ? A['status-error'] : STP_WARNS[sid] ? A['status-warn'] : CALC;
       st.i++;
       if(st.i >= st.plan.length){ calcFinish(true); return; }
       st.opT0 = now; cur = st.plan[st.i]; el = 0;
@@ -2251,6 +2272,7 @@
       document.getElementById('cbTime').textContent = fmtT(performance.now() - st.t0);
       document.getElementById('cbFill').style.width = '100%'; calcBar.style.setProperty('--p', 100);
       document.getElementById('cbPct').textContent = '100%';
+      calcNotify(st.plan);
       setTimeout(function(){
         calcBar.hidden = true; calcBar.classList.remove('done');
         document.getElementById('cbTitle').innerHTML = 'Calculating <b id="cbName"></b>';
@@ -2260,6 +2282,25 @@
       st.plan.slice(st.i).forEach(function(p){ p.row.querySelector('.st').src = EMPTY; });
       calcBar.hidden = true;
     }
+  }
+  // errors the calculation found go to the notifications (the user may be in another project or
+  // section by then): how many operations, the problems by type; one operation → it, several → the
+  // project's summary (the machine's Status panel). A new run of the same project replaces the old one
+  function calcNotify(plan){
+    var bad = plan.filter(function(p){ return p.row.querySelector('.st').src === A['status-error']; });
+    if(!bad.length || !window.ENCY_NOTIFY) return;
+    var cnt = {}, order = [];
+    bad.forEach(function(p){ stpErrsOf(p.row).forEach(function(e){
+      if(!cnt[e.t]){ cnt[e.t] = 0; order.push(e.t); } cnt[e.t]++;
+    }); });
+    var one = bad.length === 1 ? bad[0].row.dataset.id : null;
+    var name = document.querySelector('.htabs .htab.active .htab-t');
+    window.ENCY_NOTIFY.push({key:'calc:' + curProj, src:'project', kind:'error',
+      where:name ? name.textContent : 'Project', t:'Calculation found errors',
+      d:(one ? rowName(bad[0].row) + ': ' : bad.length + ' operations: ') +
+        order.map(function(t){ return t + (one ? '' : ' (' + cnt[t] + ')'); }).join(', '),
+      href:'../project/' + (curProj !== 'demo' ? '?project=' + curProj + '&' : '?') + (one ? 'op=' + one : 'status=machine'),
+      go:{proj:curProj !== 'demo' ? curProj : null, op:one}, act:'Show'});
   }
   document.getElementById('cbCancel').addEventListener('click', function(){ calcFinish(false); });
 

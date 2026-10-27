@@ -298,6 +298,87 @@
   .ut-btn:focus-visible{box-shadow:inset 0 0 0 1px var(--ec-fg-48);}
   .ut-btn.danger:focus-visible{box-shadow:inset 0 0 0 1px var(--th-red-text, #ff8384);}
 
+  /* ===== Notifications (the bell left of More; chrome.js "Notifications") =====
+     The bell is a title-bar button; its dot is the Figma bell's (hdr-bell: 5px at the glyph's top right,
+     ringed in the bar's colour): green (--st-green) while something is unread, red when an unread one is
+     an error. The list drops from the bell like the other title-bar lists (+4, right edges aligned) on
+     the Utilities surface (radius 8, padding 4). On top the source tabs (All · Projects · Clouds ·
+     License, the unread count after each) — the header's Online / Offline segments — and Mark all as
+     read; a hairline; the cards. A card: padding 8, radius 4 (8 − 4); a 20px lead — the status glyph
+     (error, warning), the person's initials, or the source's icon; title 12/16 fg 96 (unread: 500,
+     fg 100), text 12/16 fg 64 in up to two lines, "where · when" 11/14 fg 48, its buttons 24 (the main
+     one the Calculate tint); unread = a green dot on the right, which the pointer turns into ✕.
+     Only the list scrolls. A new one arriving while the list is closed shows as one card (.nt-toast). */
+  .nt-bell{position:relative;}
+  .nt-badge{position:absolute;top:6.5px;left:18.5px;width:5px;height:5px;border-radius:50%;pointer-events:none;
+    background:var(--st-green);
+    box-shadow:0 0 0 1px color-mix(in srgb, var(--th-ink, #f5f5f5) var(--th-k8, 8%), var(--ec-bg));}
+  .nt-badge.err{background:var(--th-red, #ff5c5e);}
+  .nt-pop,.nt-toast{position:fixed;z-index:80;width:360px;max-width:calc(100vw - 16px);box-sizing:border-box;
+    padding:4px;border-radius:8px;display:flex;flex-direction:column;gap:4px;
+    background:var(--pop-bg, var(--ec-popover, #1e2223));border:1px solid var(--ec-fg-12);
+    box-shadow:0 6px 20px var(--th-shadow, rgba(0,0,0,.5));
+    color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);user-select:none;}
+  .nt-toast{z-index:85;animation:nt-in .16s ease-out;}
+  @keyframes nt-in{from{opacity:0;transform:translateY(-4px);}}
+  .nt-bar{display:flex;align-items:center;gap:4px;height:28px;flex:0 0 28px;}
+  .nt-tabs{display:flex;gap:2px;padding:2px;border-radius:4px;background:var(--ec-fg-4);}
+  .nt-tab{height:24px;display:flex;align-items:center;gap:4px;padding:0 8px;border-radius:2px;cursor:pointer;
+    color:var(--ec-fg-56);white-space:nowrap;}
+  .nt-tab:hover{color:var(--ec-fg-96);}
+  .nt-tab.on{background:var(--ec-fg-16);color:var(--ec-fg-100);}
+  .nt-tab b{font-weight:400;color:var(--ec-fg-48);font-variant-numeric:tabular-nums;}
+  .nt-tab.on b{color:var(--ec-fg-72);}
+  .nt-all{width:28px;height:28px;flex:0 0 28px;margin-left:auto;display:flex;align-items:center;justify-content:center;
+    border-radius:4px;color:var(--ec-fg-72);cursor:pointer;}
+  .nt-all:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+  .nt-all.dis{opacity:.4;pointer-events:none;}
+  .nt-all svg{width:16px;height:16px;}
+  .nt-sep{height:1px;flex:0 0 1px;background:var(--ec-fg-8);}
+  .nt-list{display:flex;flex-direction:column;gap:2px;max-height:min(480px, calc(100vh - 140px));overflow-y:auto;
+    overscroll-behavior:contain;margin-right:-4px;scrollbar-gutter:stable;}
+  .nt-list::-webkit-scrollbar{width:4px;}
+  .nt-list::-webkit-scrollbar-track{background:transparent;}
+  .nt-list::-webkit-scrollbar-thumb{background-color:var(--ec-fg-24);border-radius:2px;
+    border:1px solid transparent;background-clip:padding-box;}
+  .nt-list:hover::-webkit-scrollbar-thumb{background-color:var(--ec-fg-48);border-width:0;}
+  .nt-item{display:flex;align-items:flex-start;gap:8px;padding:8px;border-radius:4px;cursor:pointer;}
+  .nt-item:hover{background:var(--ec-fg-6);}
+  .nt-ic{width:20px;height:20px;flex:0 0 20px;padding:2px;box-sizing:border-box;}
+  .nt-glyph{display:flex;align-items:center;justify-content:center;color:var(--ec-fg-72);}
+  .nt-glyph svg{width:16px;height:16px;}
+  .nt-av{width:20px;height:20px;flex:0 0 20px;border-radius:50%;display:grid;place-items:center;
+    background:var(--ec-fg-12);color:var(--ec-fg-96);font:600 9px/1 var(--ec-font);letter-spacing:.02em;}
+  .nt-body{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:2px;}
+  .nt-t{color:var(--ec-fg-96);overflow-wrap:anywhere;}
+  .nt-item.unread .nt-t{color:var(--ec-fg-100);font-weight:500;}
+  .nt-d{color:var(--ec-fg-64);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .nt-meta{color:var(--ec-fg-48);font:400 11px/14px var(--ec-font);}
+  .nt-acts{display:flex;gap:4px;margin-top:4px;}
+  .nt-btn{height:24px;padding:0 10px;border:0;border-radius:4px;cursor:pointer;
+    background:var(--ec-fg-8);color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);}
+  .nt-btn:hover{background:var(--ec-fg-12);}
+  .nt-btn.pri{background:color-mix(in srgb, var(--ec-green) 10%, transparent);
+    box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--ec-green) 25%, transparent);color:var(--ec-fg-100);}
+  .nt-btn.pri:hover{background:color-mix(in srgb, var(--ec-green) 16%, transparent);}
+  .nt-side{width:16px;height:16px;flex:0 0 16px;display:grid;place-items:center;}
+  .nt-dot{width:6px;height:6px;border-radius:50%;background:var(--st-green);visibility:hidden;}
+  .nt-item.unread .nt-dot{visibility:visible;}
+  .nt-x{display:none;width:16px;height:16px;place-items:center;border-radius:2px;color:var(--ec-fg-56);}
+  .nt-x svg{width:12px;height:12px;}
+  .nt-x:hover{background:var(--ec-fg-12);color:var(--ec-fg-96);}
+  .nt-item:hover .nt-dot{display:none;}
+  .nt-item:hover .nt-x{display:grid;}
+  .nt-empty{padding:16px 8px;text-align:center;color:var(--ec-fg-56);}
+  /* offline: an amber dot and a quiet line over the list, as the sidebar's connection status */
+  .nt-off{display:flex;align-items:baseline;gap:6px;padding:4px 8px;color:var(--ec-fg-56);font:400 11px/14px var(--ec-font);}
+  .nt-off[hidden]{display:none;}
+  .nt-off i{width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:var(--ec-amber, #ebc14a);transform:translateY(-1px);}
+  .nt-toast .nt-item:hover{background:none;}
+  /* where a notification (or any #link) lands: its element lights up once */
+  .nt-flash{animation:nt-flash 1.6s ease-out;}
+  @keyframes nt-flash{0%,30%{box-shadow:inset 0 0 0 1px var(--st-green);background-color:color-mix(in srgb, var(--st-green) 12%, transparent);}}
+
   /* ===== Content ===== */
   .content{flex:1 1 0;min-width:0;min-height:0;background:var(--ec-fg-4);border-radius:8px;
     border:1px solid var(--ec-fg-12);padding:0;overflow:hidden;display:flex;flex-direction:column;}
@@ -342,9 +423,7 @@
   .dd:hover{background:var(--ec-fg-12);}
   .dd img{width:10px;height:5px;}
 
-  /* prototype online/offline toggle — lives in the title bar */
-  .hgroup-right .cseg{flex:0 0 auto;}
-  .hgroup-right .cseg .ci{flex:0 0 auto;height:20px;padding:0 10px;font:400 11px/16px var(--ec-font);}
+  /* prototype online/offline switch (#connSeg) — License manager puts it in its page header */
   .sconn{padding:8px 10px;display:flex;flex-direction:column;gap:6px;
     opacity:0;max-height:0;padding-top:0;padding-bottom:0;overflow:hidden;
     transition:opacity .12s ease, max-height .16s ease;}

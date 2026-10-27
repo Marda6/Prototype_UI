@@ -90,13 +90,12 @@
         '<div class="hbtn" title="New tab"><img class="hicn-plus" src="' + BASE + 'hdr-plus.svg" alt=""></div>' +
       '</div>' +
       '<div class="hgroup-right">' +
-        // (license state is not shown here: the top bar is reserved for global notifications)
-        // temporary prototype toggle: shows the sections online and without network
-        '<div class="cseg" id="connSeg">' +
-          '<span class="ci on" data-net="online">Online</span>' +
-          '<span class="ci" data-net="offline">Offline</span>' +
-        '</div>' +
+        // (license state is not shown here: the top bar is reserved for global notifications — the bell;
+        // the prototype's Online / Offline switch moved to License manager's page header)
         '<div class="hdiv"></div>' +
+        // global notifications (projects · Clouds · License manager), see "Notifications" below
+        '<div class="hbtn nt-bell" id="hdrNotify" title="Notifications"><img class="hicn32" src="' + BASE + 'hdr-notify.svg" alt="">' +
+          '<i class="nt-badge" hidden></i></div>' +
         '<div class="hbtn" title="More"><img class="hicn32" src="' + BASE + 'hdr-chevron.svg" alt=""></div>' +
         '<div class="hbtn" title="Minimize"><img class="hicn32" src="' + BASE + 'hdr-min.svg" alt=""></div>' +
         '<div class="hbtn" title="Maximize"><img class="hicn32" src="' + BASE + 'hdr-max.svg" alt=""></div>' +
@@ -221,12 +220,14 @@
     r.addEventListener('click', function(){ location.href = r.dataset.app; });
   });
 
-  // temporary prototype toggle: online / offline
-  (function(){
+  // prototype switch: the application online / without internet (.app.offline), kept in
+  // localStorage['ency.net'] so every section opens in the same state. The switch itself (#connSeg,
+  // [data-net] segments) is License manager's, in its page header; other sections only follow it
+  var setNet = (function(){
     var seg = document.getElementById('connSeg');
     function apply(net){
       app.classList.toggle('offline', net === 'offline');
-      seg.querySelectorAll('.ci').forEach(function(x){
+      if (seg) seg.querySelectorAll('.ci').forEach(function(x){
         x.classList.toggle('on', x.dataset.net === net);
       });
       try { localStorage.setItem('ency.net', net); } catch(e){}
@@ -234,9 +235,10 @@
     var saved = 'online';
     try { saved = localStorage.getItem('ency.net') || 'online'; } catch(e){}
     apply(saved);
-    seg.querySelectorAll('.ci').forEach(function(x){
+    if (seg) seg.querySelectorAll('.ci').forEach(function(x){
       x.addEventListener('click', function(){ apply(x.dataset.net); });
     });
+    return apply;
   })();
 
   // colour themes; set as data-theme on <html>, kept across sections like online/offline
@@ -797,6 +799,232 @@
     document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closePop(); });
   })();
 
+  // ——— Notifications (the bell left of More): one inbox for the whole application ———
+  // Projects (errors a calculation found), Clouds (invites to collaborate, chat messages) and
+  // License manager (maintenance running out, a new license to activate) push here through
+  // window.ENCY_NOTIFY.push(n). The list lives in localStorage['ency.notify'], so it follows the user
+  // from section to section and between browser tabs; ?notify=reset brings the sample set back.
+  // n: {src:'project'|'clouds'|'license', kind:'error'|'warn'|'invite'|'chat'|'license',
+  //     t: title, d: text, where: the project / collection it is about, who: the person (invite, chat),
+  //     href: where it leads, go: what an open project does with it in place ({proj, op}),
+  //     act / act2: its buttons, key: a repeat of the same thing replaces the earlier one}
+  // A click opens what it is about and marks it read; ✕ removes it. A new one arriving while the list
+  // is closed shows for 6 s as a card under the bell.
+  var NT_KEY = 'ency.notify';
+  var NT_SRC = {project:'Project', clouds:'Clouds', license:'License manager'};
+  var NT_TABS = [{id:'', t:'All'}, {id:'project', t:'Projects'}, {id:'clouds', t:'Clouds'}, {id:'license', t:'License'}];
+  var NT_SVG = {
+    x:     '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>',
+    read:  '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 8.5l3 3 6.5-7M7.5 11.5l6.5-7"/></svg>',
+    lic:   SECTIONS.filter(function(s){ return s.id === 'license-manager'; })[0].svg
+  };
+  // the sample set: one of each source, consistent with the sections' own data
+  // (ENCY393's errors, the Clouds invite "From Drawing", License manager's #421520 and #462785)
+  function ntSeed(){
+    var now = Date.now(), m = 60e3, h = 60 * m, d = 24 * h;
+    return [
+      {id:'n1', key:'calc:ency393', src:'project', kind:'error', at:now - 12 * m, where:'ENCY393',
+       t:'Calculation found errors',
+       d:'4 operations: Gouge of the part (2), Tool holder collision (2), Machine collision (1)',
+       href:'../project/?project=ency393&status=machine', go:{proj:'ency393'}, act:'Show'},
+      {id:'n2', key:'invite:from-drawing', src:'clouds', kind:'invite', at:now - 47 * m, who:'Andrew Smith', where:'From Drawing',
+       t:'Andrew Smith added you to “From Drawing”', d:'Collaboration project · you can view and edit it',
+       href:'../clouds/#sect-invites', act:'Accept', act2:'Decline'},
+      {id:'n3', src:'clouds', kind:'chat', at:now - 2 * h, who:'Andrew Smith', where:'From Drawing',
+       t:'Andrew Smith in “From Drawing”', d:'Updated the fixture — please check the clearance on Setup 2 before you post.',
+       href:'../clouds/#sect-invites'},
+      {id:'n4', key:'maint:#421520', src:'license', kind:'warn', at:now - 5 * h,
+       t:'Maintenance ends in 7 days', d:'#421520 ENCY 5x Mill Advanced · renew it to keep getting updates',
+       href:'../license-manager/#lic-421520', act:'Renew'},
+      {id:'n5', key:'lic:#462785', src:'license', kind:'license', at:now - 26 * h, read:true,
+       t:'New license available', d:'#462785 ENCY 5x Mill Advanced from ENCY Software Ltd is ready to activate',
+       href:'../license-manager/#lic-462785', act:'Activate'},
+      {id:'n6', src:'clouds', kind:'chat', at:now - 3 * d, read:true, who:'Andrew Smith', where:'Milling boats',
+       t:'Andrew Smith in “Milling boats”', d:'Added two hull projects to the collection.',
+       href:'../clouds/#sect-coll'}
+    ];
+  }
+  var NT = null;
+  function ntLoad(){
+    try {
+      if (new URLSearchParams(location.search).get('notify') === 'reset') localStorage.removeItem(NT_KEY);
+      NT = JSON.parse(localStorage.getItem(NT_KEY));
+    } catch(e){ NT = null; }
+    if (!Array.isArray(NT)){ NT = ntSeed(); ntSave(); }
+  }
+  function ntSave(){ try { localStorage.setItem(NT_KEY, JSON.stringify(NT)); } catch(e){} }
+  function ntAgo(at){
+    var s = (Date.now() - at) / 1000;
+    if (s < 60) return 'Just now';
+    if (s < 3600) return Math.floor(s / 60) + ' min ago';
+    if (s < 86400) return Math.floor(s / 3600) + ' h ago';
+    if (s < 172800) return 'Yesterday';
+    return Math.floor(s / 86400) + ' days ago';
+  }
+  function ntLead(n){
+    if (n.who) return '<span class="nt-av">' + n.who.split(/\s+/).map(function(w){ return w[0]; }).join('').slice(0, 2) + '</span>';
+    if (n.kind === 'error') return '<img class="nt-ic" src="' + BASE + 'nt-error.svg" alt="">';
+    if (n.kind === 'warn') return '<img class="nt-ic" src="' + BASE + 'nt-warn.svg" alt="">';
+    return '<span class="nt-ic nt-glyph">' + NT_SVG.lic + '</span>';
+  }
+  function ntItem(n){
+    var where = n.src === 'project' ? n.where : NT_SRC[n.src];
+    return '<div class="nt-item' + (n.read ? '' : ' unread') + '" data-id="' + n.id + '">' +
+      ntLead(n) +
+      '<div class="nt-body">' +
+        '<div class="nt-t">' + utEsc(n.t) + '</div>' +
+        (n.d ? '<div class="nt-d">' + utEsc(n.d) + '</div>' : '') +
+        '<div class="nt-meta">' + utEsc(where) + ' · ' + ntAgo(n.at) + '</div>' +
+        (n.act ? '<div class="nt-acts"><button class="nt-btn pri" data-nt="act">' + n.act + '</button>' +
+          (n.act2 ? '<button class="nt-btn" data-nt="act2">' + n.act2 + '</button>' : '') + '</div>' : '') +
+      '</div>' +
+      '<span class="nt-side"><i class="nt-dot"></i><span class="nt-x" data-nt="x" title="Remove">' + NT_SVG.x + '</span></span>' +
+    '</div>';
+  }
+
+  (function(){
+    var btn = document.getElementById('hdrNotify');
+    if (!btn) return;
+    ntLoad();
+    var badgeEl = btn.querySelector('.nt-badge'), pop = null, tab = '', toast = null, toastT = 0;
+    // the dot of the bell: green while something is unread, red when an unread one is an error
+    function badge(){
+      var un = NT.filter(function(n){ return !n.read; });
+      badgeEl.hidden = !un.length;
+      badgeEl.classList.toggle('err', un.some(function(n){ return n.kind === 'error'; }));
+      btn.title = un.length ? 'Notifications · ' + un.length + ' unread' : 'Notifications';
+    }
+    function byId(id){ return NT.filter(function(n){ return n.id === id; })[0]; }
+    function render(){
+      if (!pop) return;
+      var list = NT.filter(function(n){ return !tab || n.src === tab; });
+      pop.querySelector('.nt-tabs').innerHTML = NT_TABS.map(function(o){
+        var c = NT.filter(function(n){ return !n.read && (!o.id || n.src === o.id); }).length;
+        return '<span class="nt-tab' + (o.id === tab ? ' on' : '') + '" data-tab="' + o.id + '">' + o.t +
+          (c ? '<b>' + c + '</b>' : '') + '</span>';
+      }).join('');
+      pop.querySelector('.nt-all').classList.toggle('dis', !NT.some(function(n){ return !n.read; }));
+      // without internet only the projects keep reporting; the rest waits for the connection
+      pop.querySelector('.nt-off').hidden = !app.classList.contains('offline');
+      pop.querySelector('.nt-list').innerHTML = list.length ? list.map(ntItem).join('')
+        : '<div class="nt-empty">' + (tab ? 'No notifications from ' + NT_SRC[tab] : 'No notifications') + '</div>';
+    }
+    function changed(){ ntSave(); badge(); render(); }
+    function closePop(){ if (pop){ pop.remove(); pop = null; btn.classList.remove('open'); } }
+    function openPop(){
+      closeToast();
+      pop = document.createElement('div');
+      pop.className = 'nt-pop';
+      pop.innerHTML =
+        '<div class="nt-bar"><div class="nt-tabs"></div>' +
+          '<span class="nt-all" data-nt="all" title="Mark all as read">' + NT_SVG.read + '</span></div>' +
+        '<div class="nt-sep"></div>' +
+        '<div class="nt-off" hidden><i></i>Offline · Clouds and License manager notifications arrive when you are back online</div>' +
+        '<div class="nt-list"></div>';
+      document.body.appendChild(pop);
+      render();
+      // right edges aligned with the bell, 4px under the bar like the other title-bar lists
+      var r = btn.getBoundingClientRect();
+      pop.style.left = Math.max(8, r.right - pop.offsetWidth) + 'px';
+      pop.style.top = (r.bottom + 4) + 'px';
+      btn.classList.add('open');
+      pop.addEventListener('click', function(e){
+        e.stopPropagation();
+        var t = e.target.closest('[data-tab]');
+        if (t){ tab = t.dataset.tab; render(); return; }
+        if (e.target.closest('[data-nt="all"]')){ NT.forEach(function(n){ n.read = true; }); changed(); return; }
+        click(e, e.target.closest('.nt-item'));
+      });
+    }
+    // what a notification leads to: an open project shows it in place, the rest navigate
+    function go(n){
+      var proj = window.ENCY_PROJECT;
+      if (n.go && AREA === 'project' && proj && proj.show){ proj.show(n.go); return; }
+      var here = n.href && n.href.split('#')[0].split('?')[0].replace(/\/$/, '').split('/').pop() === APP.id;
+      var hash = n.href && n.href.split('#')[1];
+      if (here && hash){ ntReveal(hash); return; }
+      if (n.href) location.href = n.href;
+    }
+    // a click on a card: its buttons, ✕, or the card itself (opens it)
+    function click(e, it){
+      if (!it) return;
+      var n = byId(it.dataset.id); if (!n) return;
+      var b = e.target.closest('[data-nt]'), a = b && b.dataset.nt;
+      if (a === 'x'){ NT = NT.filter(function(x){ return x !== n; }); changed(); closeToast(); return; }
+      n.read = true;
+      // an invite is answered right here
+      if (n.kind === 'invite' && (a === 'act' || a === 'act2')){
+        var yes = a === 'act';
+        n.t = yes ? 'You joined “' + n.where + '”' : 'Invite to “' + n.where + '” declined';
+        n.d = yes ? 'Collaboration project by ' + n.who : n.who + ' can invite you again';
+        delete n.act; delete n.act2;
+        changed(); closeToast();
+        return;
+      }
+      changed();
+      closePop(); closeToast();
+      go(n);
+    }
+
+    // ——— the card under the bell for a new one ———
+    function closeToast(){ if (toast){ toast.remove(); toast = null; clearTimeout(toastT); } }
+    function showToast(n){
+      closeToast();
+      toast = document.createElement('div');
+      toast.className = 'nt-toast';
+      toast.innerHTML = ntItem(n);
+      document.body.appendChild(toast);
+      var r = btn.getBoundingClientRect();
+      toast.style.left = Math.max(8, r.right - toast.offsetWidth) + 'px';
+      toast.style.top = (r.bottom + 4) + 'px';
+      var hold = function(){ clearTimeout(toastT); toastT = setTimeout(closeToast, 6000); };
+      toast.addEventListener('mouseenter', function(){ clearTimeout(toastT); });
+      toast.addEventListener('mouseleave', hold);
+      toast.addEventListener('click', function(e){ e.stopPropagation(); click(e, e.target.closest('.nt-item')); });
+      hold();
+    }
+
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      if (pop) closePop(); else openPop();
+    });
+    document.addEventListener('click', closePop);
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape'){ closePop(); closeToast(); } });
+    // another browser tab changed the list
+    window.addEventListener('storage', function(e){ if (e.key === NT_KEY){ ntLoad(); badge(); render(); } });
+    badge();
+
+    window.ENCY_NOTIFY = {
+      push:function(n){
+        var o = {}; for (var k in n) o[k] = n[k];
+        o.at = Date.now(); o.read = false;
+        o.id = 'n' + o.at.toString(36) + Math.random().toString(36).slice(2, 5);
+        if (o.key) NT = NT.filter(function(x){ return x.key !== o.key; });
+        NT.unshift(o);
+        if (NT.length > 50) NT.length = 50;
+        changed();
+        if (!pop) showToast(o);
+        return o.id;
+      },
+      // once per key: a state the section finds on every visit (maintenance running out) comes once
+      pushOnce:function(n){
+        if (n.key && NT.some(function(x){ return x.key === n.key; })) return null;
+        return this.push(n);
+      },
+      list:function(){ return NT.slice(); }
+    };
+  })();
+
+  // a link with #id (a notification's, or any) lands on its element and flashes it once
+  function ntReveal(id){
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({block:'center', behavior:'smooth'});
+    el.classList.remove('nt-flash'); void el.offsetWidth; el.classList.add('nt-flash');
+    setTimeout(function(){ el.classList.remove('nt-flash'); }, 1800);
+  }
+  if (location.hash) setTimeout(function(){ ntReveal(location.hash.slice(1)); }, 300);
+
   // license state, switchable at runtime (License manager activates an expired license)
   function setLicense(state){
     var bad = state === 'expired';
@@ -807,5 +1035,5 @@
   setLicense(LIC);
 
   // sections sometimes need the registry — e.g. to build their own list of links
-  window.ENCY_CHROME = {sections: SECTIONS.slice(), setLicense: setLicense};
+  window.ENCY_CHROME = {sections: SECTIONS.slice(), setLicense: setLicense, setNet: setNet};
 })();

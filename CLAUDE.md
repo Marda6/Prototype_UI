@@ -42,7 +42,7 @@ each marked with the same comment title.
 Icon placeholders: `.opic` is the 20×20 slot with a faint rounded square used for Setup / Part /
 operation icons in both trees and in the NC block panel.
 
-### `packages/shared-ui` — logo menu, Utilities and System setup (every section)
+### `packages/shared-ui` — logo menu, Utilities, Notifications and System setup (every section)
 
 - **Logo menu** (`#logoBtn` → `.hmenu.hm-main`), as in ENCY: Settings · Theme › · About · Version · License manager.
   Icons from ENCY's own sprite `assets/ency/menu(-dark).svg` (`Supplement/GUI/SVG/Dark_Menu.svg`, cells in
@@ -55,6 +55,17 @@ operation icons in both trees and in the NC block panel.
   .dll / .spr, Path + browse, Parameters for .exe; ENCY's error lines), Delete asks first (the `.tconf` look).
   Open macros opens the project's Automation panel; the rest are not built. chrome.js: "Utilities", `UT_BUILTIN`;
   chrome.css `.ut-*`.
+- **Notifications** (the bell `#hdrNotify` left of More → `.nt-pop`): one inbox for the whole app. Sections push
+  through `window.ENCY_NOTIFY.push(n)` / `pushOnce(n)` (`n` = src project|clouds|license, kind error|warn|invite|chat|
+  license, t, d, where, who, href, go, act/act2, key — a repeat of a key replaces the old one); kept in
+  `localStorage['ency.notify']`, `?notify=reset` restores the sample set. Bell dot green = unread, red = an unread error;
+  tabs All · Projects · Clouds · License with unread counts, Mark all as read; a card opens what it is about (project:
+  `window.ENCY_PROJECT.show({proj, op})` in place, else `?project=…&op=…|&status=machine`; other sections: `href`,
+  `#id` lands and flashes, `.nt-flash`); invites are answered in the card; a new one shows 6 s as a card under the bell
+  (`.nt-toast`). Sources: project `calcNotify` (errors a Calculate found), License manager (maintenance ≤ 7 days,
+  rows `#lic-<n>`), plus samples for Clouds. chrome.js "Notifications"; chrome.css `.nt-*`.
+- **Online / Offline** (prototype switch, `#connSeg`): in License manager's page header; the state (`.app.offline`,
+  `localStorage['ency.net']`) applies to every section — chrome.js `setNet`, `ENCY_CHROME.setNet`.
 - **System setup** (Settings): ENCY's `TASetupFrm` (in `Bin64/SCKernel.dll`), drawn in the v2 settings style — the
   status panel's surface (radius 10), page list with icons on the left, the page half a step darker; sections
   without plates divided by hairlines; two columns names | controls on one line (`--su-lw` 200px, a draggable

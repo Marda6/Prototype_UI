@@ -112,10 +112,13 @@
 :root[data-theme$="-light"] img[src$="/hdr-logo.svg"]{content:url(../shared-ui/assets/light/hdr-logo.svg);}
 :root[data-theme$="-light"] img[src$="/hdr-max.svg"]{content:url(../shared-ui/assets/light/hdr-max.svg);}
 :root[data-theme$="-light"] img[src$="/hdr-min.svg"]{content:url(../shared-ui/assets/light/hdr-min.svg);}
+:root[data-theme$="-light"] img[src$="/hdr-notify.svg"]{content:url(../shared-ui/assets/light/hdr-notify.svg);}
 :root[data-theme$="-light"] img[src$="/hdr-plus.svg"]{content:url(../shared-ui/assets/light/hdr-plus.svg);}
 :root[data-theme$="-light"] img[src$="/hdr-save.svg"]{content:url(../shared-ui/assets/light/hdr-save.svg);}
 :root[data-theme$="-light"] img[src$="/hdr-tabclose.svg"]{content:url(../shared-ui/assets/light/hdr-tabclose.svg);}
 :root[data-theme$="-light"] img[src$="/hdr-tabicn.svg"]{content:url(../shared-ui/assets/light/hdr-tabicn.svg);}
+:root[data-theme$="-light"] img[src$="/nt-error.svg"]{content:url(../shared-ui/assets/light/nt-error.svg);}
+:root[data-theme$="-light"] img[src$="/nt-warn.svg"]{content:url(../shared-ui/assets/light/nt-warn.svg);}
 :root[data-theme$="-light"] img[src$="/sb-account.svg"]{content:url(../shared-ui/assets/light/sb-account.svg);}
 :root[data-theme$="-light"] img[src$="/sb-clouds-dot.svg"]{content:url(../shared-ui/assets/light/sb-clouds-dot.svg);}
 :root[data-theme$="-light"] img[src$="/sb-clouds.svg"]{content:url(../shared-ui/assets/light/sb-clouds.svg);}
