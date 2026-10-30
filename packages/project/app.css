@@ -170,12 +170,12 @@
    the inset edge; 4px under the pointer */
 #tree,#simTree,#irows{margin-right:-6px;}
 /* the same thin bar for the problem lists of the Status panel (.stp-probs) */
-:is(#tree,#simTree,#irows,#stpProbs)::-webkit-scrollbar{width:6px;}
+:is(#tree,#simTree,#irows,#stpProbs,#eqList)::-webkit-scrollbar{width:6px;}
 /* background-color, not the shorthand: `background` would reset background-clip and paint
    under the transparent side borders, i.e. across the whole lane */
-:is(#tree,#simTree,#irows,#stpProbs)::-webkit-scrollbar-thumb{border-width:0 2px;border-radius:3px;
+:is(#tree,#simTree,#irows,#stpProbs,#eqList)::-webkit-scrollbar-thumb{border-width:0 2px;border-radius:3px;
   background-color:var(--ec-fg-24);background-clip:content-box;}
-:is(#tree,#simTree,#irows,#stpProbs)::-webkit-scrollbar-thumb:hover{border-width:0 1px;
+:is(#tree,#simTree,#irows,#stpProbs,#eqList)::-webkit-scrollbar-thumb:hover{border-width:0 1px;
   background-color:var(--ec-fg-48);background-clip:content-box;}
 
 /* ===== Simulate tab: code tree + the simulation bar on the 3D view ===== */
@@ -1087,7 +1087,7 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 }
 [data-theme="graphite-light"]{--th-base:#f3f6f6;}
 [data-theme="steel-light"]{--th-base:#f0f5fd;}
-:is(.topbar, .dock, .panel-insp, .filters, .ency-draw, .simbar, .tpe-bar){--ec-bg:var(--th-panel);}
+:is(.topbar, .dock, .panel-insp, .filters, .ency-draw, .eq-tab, .equip, .simbar, .tpe-bar){--ec-bg:var(--th-panel);}
 .vp-hint{position:absolute;inset:0;pointer-events:none;display:grid;place-items:center;color:var(--ec-fg-8);font-size:13px;letter-spacing:.04em;}
 
 /* filters float next to the dock */
@@ -1134,7 +1134,7 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
    fg 12 % border, its shadow. The geometry stays (radius 8, 2px padding: the cells' nested radii).
    A right-click on the Filters title switches it back to the plate (25 % + 2px blur) and over again;
    kept in localStorage['ency.vpGlass'] ("Floating panels look" in app.js) */
-.viewport.vp-glass :is(.filters, .ency-draw, .etb){background:color-mix(in srgb, var(--pop-bg) 60%, transparent);
+.viewport.vp-glass :is(.filters, .ency-draw, .eq-tab, .equip, .etb){background:color-mix(in srgb, var(--pop-bg) 60%, transparent);
   border-color:var(--ec-fg-12);box-shadow:0 8px 28px var(--th-shadow);
   -webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5);}
 
@@ -1190,6 +1190,148 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 #filters.list ~ .ency-draw .ency-draw__t{display:none;}
 #filters.list ~ .ency-draw .ency-draw__grid{grid-template-columns:1fr;}
 #filters.list ~ .ency-draw .ency-draw__c{height:32px;}
+
+/* ===== Equipment (equip.js): the machine's setup as in ENCY — a tab "Equipment" right of the Filters
+   column (8px off it, as the floating panels keep off the dock; right of the cube while the cube sits
+   top-left) opens the panel 4px under it. The Filters' look: plate or glass, radius 8, 2px padding; the
+   tab is their folded title. The panel: a simple title with ✕, Machine · Delete unused, then the tree —
+   Axis S and Turret (T), the turret's positions in order, 1…12. A slot's "+" (on hover and on the
+   selected row) opens what fits it — blocks from the machine library, then collets, then tools — two-line
+   items with a preview right of the list; picked, the slot reads "T#n name" and opens the next slot.
+   Rows: the tree's (padding 2, radius 6, hover fg-4, selected fg-8, 8px per level), but 32px tall: a 28px
+   copy of the part's model where the tree has a 20px icon */
+.eq-col{position:absolute;top:8px;left:calc(var(--free-l) + var(--vpl-w, 67px) + 8px);z-index:20;
+  display:flex;flex-direction:column;align-items:flex-start;gap:4px;pointer-events:none;}
+.eq-col > *{pointer-events:auto;}
+.viewport[data-cube="tl"] .eq-col{left:calc(var(--free-l) + var(--vpl-w, 67px) + 112px);}   /* cube 96 + 8 */
+.workspace.simmode .eq-col,.eq-col[hidden]{display:none;}
+.eq-tab,.equip{box-sizing:border-box;padding:2px;border-radius:8px;border:1px solid transparent;
+  background:var(--th-float);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);}
+.eq-head{border:0;cursor:pointer;padding:4px 8px;border-radius:6px;background:var(--ec-fg-6);
+  color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);}
+.eq-head:hover{background:var(--ec-fg-12);}
+.eq-col.open .eq-head{background:var(--ec-fg-12);}
+/* one grid, as in the dock's inset: 6px padding, the list's scrollbar lane in the right one (the tree's
+   margin-right:-6px, a 2px bar 2px from the rows and from the edge); the rows 6px in on both sides: the tree starts
+   12px in (with the title and Machine), the 20px "+" sits 6px off the row's top, bottom and right and ends 12px in,
+   with the ✕ */
+.equip{width:356px;display:none;flex-direction:column;gap:2px;min-height:0;padding:6px;}
+.eq-col.open .equip{display:flex;}
+.eq-title{display:flex;align-items:center;gap:8px;height:24px;padding:0 6px;}
+.eq-title span{flex:1;min-width:0;color:var(--ec-fg-96);font:600 14px/20px var(--ec-font);}
+/* the tabs: Core's Mode tabs (.seg) at 28px — equal segments across the panel, gap 2, radius 6; hover fg-4,
+   selected the panel's well (--ec-bg) with 600 text; 4px of air above and below */
+.eq-segs{display:flex;gap:2px;margin:4px 0;}
+.eq-seg{flex:1 0 0;min-width:0;height:28px;display:flex;align-items:center;justify-content:center;padding:0 8px;border:0;
+  border-radius:6px;background:transparent;cursor:pointer;color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.eq-seg:hover{color:var(--ec-fg-96);background:var(--ec-fg-4);}
+.eq-seg.on{background:var(--ec-bg);color:var(--ec-fg-100);font-weight:600;}
+.eq-none{padding:12px 6px;color:var(--ec-fg-48);font:400 12px/16px var(--ec-font);}
+.eq-list{flex:1 1 auto;min-height:0;margin-right:-6px;overflow:auto;scrollbar-gutter:stable;display:flex;flex-direction:column;gap:1px;}
+.eq-list[hidden]{display:none;}
+/* 32px: ENCY shows each part as a small copy of its 3D model (28px) where the tree has a 20px icon */
+.eq-row{position:relative;flex:0 0 auto;display:flex;user-select:none;align-items:center;min-height:32px;padding:2px 6px;border-radius:6px;cursor:pointer;box-sizing:border-box;}
+.eq-thumb{width:28px;height:28px;flex:0 0 28px;}
+.eq-thumb svg{display:block;width:28px;height:28px;}
+.eq-thumb svg *{vector-effect:non-scaling-stroke;}
+.eq-row:hover{background:var(--ec-fg-4);}
+.eq-row.sel{background:var(--ec-fg-8);}
+.eq-sp{width:12px;flex:0 0 12px;}
+/* the number column, right of the tree before the "+" / "×" (60px — "120.0 mm" fits): a place's tool number — T#n in
+   the tree's green — on its first row, the overhang on its tool's row; left-aligned (the values share one edge).
+   The number is an input at rest; its well fills the column (the number 4px off its left end) — on row hover
+   fg-4, fg-8 under the pointer, editing: fg-8 + green ring */
+.eq-no{width:60px;flex:0 0 60px;height:20px;margin-left:4px;
+  display:flex;align-items:center;color:var(--st-green);font:400 12px/16px var(--ec-font);
+  font-variant-numeric:tabular-nums;white-space:nowrap;}
+.eq-nv{flex:1 1 auto;display:flex;align-items:center;justify-content:flex-start;height:20px;padding:0 4px;border-radius:4px;box-sizing:border-box;}
+.eq-no.ed{cursor:text;}
+/* the tool's overhang in the same column: the row text's tone, its unit quiet (the inspector's units) */
+.eq-no.ov{color:var(--ec-fg-72);}
+/* Tools tab: the overhang in a column of its own left of the number (the same 60px field), the position quiet after
+   the tool's name;
+   a section without tools says so, quiet and inert */
+.eq-lbl .eq-sub{margin-left:6px;color:var(--ec-fg-48);font-weight:400;}
+/* Tools: a tool's parts, unfolded under it — quieter than the tool */
+.eq-row.eq-part .eq-lbl{color:var(--ec-fg-72);}
+/* an assembly with a part taken out: the tool's name in amber (the status window's warning tone); the gap's row
+   outlined by a quiet dashed line (the amber at 40 %), saying what to do in the row's quiet tone */
+.eq-row.warn .eq-lbl{color:var(--ec-amber,#ebc14a);}
+.eq-row.gap{outline:1px dashed color-mix(in srgb, var(--ec-amber,#ebc14a) 40%, transparent);outline-offset:-1px;}
+.eq-row.gap .eq-lbl{color:var(--ec-fg-56);}
+.eq-row.gap.trying .eq-lbl{color:var(--ec-fg-72);}
+.eq-pick-head{padding:5px 6px 2px;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);}
+.eq-row.eq-empty{cursor:default;color:var(--ec-fg-48);}
+.eq-row.eq-empty:hover{background:transparent;}
+.eq-row.eq-empty .eq-lbl{color:var(--ec-fg-48);}
+.eq-nv em.u{margin-left:3px;font:normal 400 11px/14px var(--ec-font);color:var(--ec-fg-48);}
+/* the assembly's line: 1px of the number's green at 40 %, under the T of "T#n" (the column starts 6 + 20 + 4 + 60 =
+   90px off the row's right edge, the number 4px in, the T's stem 3px on), from under the number down through the 1px row gaps to 6px above the last row's end */
+.eq-row:is(.ln-first, .ln-mid, .ln-last)::after{content:'';position:absolute;right:82px;width:1px;pointer-events:none;
+  background:color-mix(in srgb, var(--st-green) 40%, transparent);}
+.eq-row.ln-first::after{top:26px;bottom:-1px;}
+.eq-row.ln-mid::after{top:0;bottom:-1px;}
+.eq-row.ln-last::after{top:0;bottom:6px;}
+.eq-row.ln-last.has-ov::after{bottom:27px;}     /* a tool's row: the line stops above its overhang field */
+.eq-row:hover .eq-no.ed .eq-nv{background:var(--ec-fg-4);}
+.eq-row .eq-no.ed .eq-nv:hover{background:var(--ec-fg-8);}
+/* a turret assembly's number: a plain number at rest, like the others; on row hover Core's dropdown — fg-4 and its
+   chevron, fg-8 under the pointer, open: fg-8 and an fg-16 ring — listing the positions to move it to */
+.eq-no.pos{cursor:pointer;}
+.eq-row .eq-no.pos .eq-nv{padding:0 2px 0 4px;justify-content:space-between;}
+.eq-dd{width:16px;height:16px;flex:0 0 16px;visibility:hidden;}
+.eq-row:hover .eq-no.pos .eq-dd,.eq-no.pos.dd-open .eq-dd{visibility:visible;}
+.eq-row .eq-no.pos .eq-nv:hover{background:var(--ec-fg-8);}
+.eq-row .eq-no.pos.dd-open .eq-nv{background:var(--ec-fg-8);box-shadow:inset 0 0 0 1px var(--ec-fg-16);}
+.eq-row .eq-no.editing .eq-nv{background:var(--ec-fg-8);box-shadow:inset 0 0 0 1px var(--ec-green);}
+.eq-no em{font-style:normal;}
+.eq-no input{width:1ch;flex:0 0 auto;min-width:0;max-width:28px;padding:0;border:0;outline:none;background:transparent;
+  color:var(--ec-fg-96);font:inherit;font-variant-numeric:tabular-nums;text-align:left;}
+.eq-row.shut .shev{transform:rotate(-90deg);}
+.eq-lbl{flex:1;min-width:0;padding:0 2px 0 4px;color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.eq-grp .eq-lbl{font-weight:600;}
+/* an empty slot (Position n, Axis S, Socket): the seat a step fainter; while an item of its list is hovered,
+   it reads as that item */
+.eq-slot .eq-thumb{opacity:.4;}
+.eq-slot.trying .eq-thumb{opacity:1;}
+.eq-slot.trying .eq-lbl{color:var(--ec-fg-72);}
+/* the slot's "+": 20×20, on row hover and on the selected row; the open one keeps showing */
+.eq-bs{width:20px;flex:0 0 20px;margin-left:4px;}   /* the "+" / "×" place, kept where neither is */
+.eq-add{margin-left:4px;width:20px;height:20px;flex:0 0 20px;display:grid;place-items:center;padding:0;border:0;border-radius:4px;
+  background:var(--ec-fg-12);color:var(--ec-fg-96);cursor:pointer;visibility:hidden;}
+.eq-add svg{width:12px;height:12px;}
+.eq-add:hover{background:var(--ec-fg-16);}
+.eq-row:hover .eq-add,.eq-row.sel .eq-add,.eq-add.dd-open{visibility:visible;}
+.eq-add.dd-open{box-shadow:inset 0 0 0 1px var(--ec-fg-24);}
+/* a filled slot's × — the danger button of the system (the group delete warning's): red tint, red cross */
+.eq-add.eq-del{background:var(--tpe-danger-bg);color:var(--tpe-danger);}
+.eq-add.eq-del:hover{background:color-mix(in srgb, var(--tpe-danger) 20%, transparent);}
+/* the picker: a menu (pop surface, radius 4) of two-line items — name, then its library — from the "+",
+   its left edge under the button; hovering an item shows its preview right of the list */
+.eq-pick{position:fixed;z-index:1000;width:300px;max-height:min(360px, calc(100vh - 16px));box-sizing:border-box;
+  display:flex;flex-direction:column;gap:2px;padding:2px;border-radius:4px;border:1px solid var(--ec-fg-12);
+  background:var(--pop-bg);box-shadow:0 6px 20px var(--th-shadow);}
+/* only the list scrolls; the search field (the tree's, .tt-search) stays on top */
+.eq-pick-list{flex:1 1 auto;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:1px;}
+.eq-pick .tt-search{flex:0 0 auto;}
+.eq-pick-none{padding:6px;color:var(--ec-fg-48);font:400 12px/16px var(--ec-font);}
+.eq-it{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:3px;cursor:pointer;}
+.eq-it:hover,.eq-it.act{background:var(--ec-fg-8);}
+.eq-it .opic{flex:0 0 16px;width:16px;height:16px;}
+.eq-it .opic::before{width:12px;height:14px;border-radius:3px;}
+.eq-it-t{flex:1;min-width:0;display:flex;flex-direction:column;}
+.eq-it-t span{color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.eq-it-t em{font:normal 400 11px/14px var(--ec-font);color:var(--ec-fg-48);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.eq-pv{position:fixed;z-index:1000;width:200px;height:200px;box-sizing:border-box;border-radius:4px;
+  border:1px solid var(--ec-fg-12);background:var(--pop-bg);box-shadow:0 6px 20px var(--th-shadow);
+  display:grid;place-items:center;pointer-events:none;}
+.eq-pv svg{width:176px;height:176px;}
+.eq-pv .pv-body,.eq-thumb .pv-body{fill:var(--ec-fg-12);stroke:var(--ec-fg-32);stroke-width:1;}
+.eq-pv .pv-dark,.eq-thumb .pv-dark{fill:var(--ec-fg-8);stroke:var(--ec-fg-24);stroke-width:1;}
+.eq-pv .pv-line,.eq-thumb .pv-line{fill:none;stroke:var(--ec-fg-24);stroke-width:1;}
+.eq-pv .pv-cut,.eq-thumb .pv-cut{fill:color-mix(in srgb, var(--th-op) 72%, transparent);}
 
 /* Status panel — opens on a status-circle click in the tree */
 .stpanel{position:absolute;top:8px;left:var(--free-l);display:none;flex-direction:column;gap:8px;width:300px;

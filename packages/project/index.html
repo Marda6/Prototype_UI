@@ -327,6 +327,22 @@
           <svg viewBox="0 0 20 20" fill="none"><path d="M9.86 1.04A14.75 14.75 0 0 1 1.04 9.86" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         </div>
       </div>
+
+      <!-- Equipment (equip.js): the machine's setup as in ENCY — the tab right of the Filters opens the
+           panel under it: Axis S and the turret's positions, each slot filled through its "+" -->
+      <div class="eq-col" id="equipCol">
+        <div class="eq-tab"><button class="eq-head" id="equipBtn" title="Equipment">Equipment</button></div>
+        <div class="equip" id="equip">
+          <div class="eq-title"><span>Equipment</span><button class="stp-close" id="equipX" title="Close"><svg viewBox="0 0 14 14" fill="none"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg></button></div>
+          <div class="eq-segs" id="eqTabs" role="tablist">
+            <button class="eq-seg on" data-tab="machine" role="tab">Machine</button>
+            <button class="eq-seg" data-tab="tools" role="tab" title="The tools in, by number (name to be decided)">Tools</button>
+            <button class="eq-seg" data-tab="unused" role="tab">Delete unused</button>
+          </div>
+          <div class="eq-list" id="eqList"></div>
+          <div class="eq-none" id="eqNone" hidden>Not built yet</div>
+        </div>
+      </div>
       <div class="vp-hint">3D viewport</div>
 
       <!-- view cube: drag to orbit, click a face to snap, double-click to reset;
@@ -845,6 +861,8 @@
 <script src="../shared-ui/drawbar.js"></script>
 <!-- Toolpath edits: the Edits inspector tab, the toolpath on the 3D view and its edit bar -->
 <script src="tpedit.js"></script>
+<!-- Equipment: tool assemblies of the magazine and the turret, their T numbers and overhangs -->
+<script src="equip.js"></script>
 <!-- 3D robot preview for the Approach / Return window (Canvas 2D, no deps) -->
 <script src="lib/robot-preview/robot-preview.global.js"></script>
 <script src="rules.js"></script>

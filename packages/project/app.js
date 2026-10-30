@@ -1556,6 +1556,10 @@
         if(m) m.classList.add('tsel');
       }
       app.classList.toggle('proj-empty', empty);
+      // other blocks keep state per project (equip.js: the Equipment); a blank project has no tools; the tab's title
+      // too (the Equipment is tried out on New project 2 only)
+      var tt = t.querySelector('.htab-t');
+      document.dispatchEvent(new CustomEvent('ency:project', {detail:{proj:empty ? 'new' : curProj, title:tt ? tt.textContent.trim() : ''}}));
       renderTree();
       var s = tree.querySelector('.trow.tsel');
       document.dispatchEvent(new CustomEvent('ency:treesel', {detail:{id:s ? s.dataset.id : null, type:s ? s.dataset.type : null}}));
@@ -1566,7 +1570,10 @@
   // deferred so every script of the page is listening by then
   try {
     var openProj = new URLSearchParams(location.search).get('project');
-    var openTab = openProj && htabs.filter(function(t){ return t.dataset.proj === openProj; })[0];
+    // ?project=new — the first blank project ("New project 2"), e.g. to set up its Equipment from scratch
+    var openTab = openProj && htabs.filter(function(t, i){
+      return openProj === 'new' ? i > 0 && !t.dataset.proj : t.dataset.proj === openProj;
+    })[0];
     if(openTab) setTimeout(function(){ openTab.click(); }, 0);
     // a notification from another section: &op=<row id> or &status=machine (the whole project)
     var openQ = new URLSearchParams(location.search), openOp = openQ.get('op');
