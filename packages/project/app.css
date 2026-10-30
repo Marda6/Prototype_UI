@@ -1305,9 +1305,7 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 .eq-add:hover{background:var(--ec-fg-16);}
 .eq-row:hover .eq-add,.eq-row.sel .eq-add,.eq-add.dd-open{visibility:visible;}
 .eq-add.dd-open{box-shadow:inset 0 0 0 1px var(--ec-fg-24);}
-/* a filled slot's × — the danger button of the system (the group delete warning's): red tint, red cross */
-.eq-add.eq-del{background:var(--tpe-danger-bg);color:var(--tpe-danger);}
-.eq-add.eq-del:hover{background:color-mix(in srgb, var(--tpe-danger) 20%, transparent);}
+/* a filled slot's "⋯": the same 20px button as the "+", its menu (Save to library, Delete) from Core's menu */
 /* the picker: a menu (pop surface, radius 4) of two-line items — name, then its library — from the "+",
    its left edge under the button; hovering an item shows its preview right of the list */
 .eq-pick{position:fixed;z-index:1000;width:300px;max-height:min(360px, calc(100vh - 16px));box-sizing:border-box;

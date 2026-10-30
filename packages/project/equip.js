@@ -4,8 +4,10 @@
    Every slot has a "+" (on hover and on the selected row): it lists what fits the slot — blocks from the
    machine library for a position, holders for the spindle, then collets, then the tools the collet takes —
    name and library on two lines; hovering an item previews it right of the list and the slot reads as it.
-   Picked, the next slot opens under it, until a tool ends the assembly. A filled slot has a × instead of the
-   "+": it removes the part and what is under it (right-click → Remove does the same).
+   Picked, the next slot opens under it, until a tool ends the assembly. A filled slot has a "⋯" instead of the
+   "+" (right-click opens the same): Save to library — on a tool, greyed until it is changed here (its overhang is not the library's;
+   it reads "modified"), it goes to My_tools.mKit as it is and the assembly takes the saved one — and Delete
+   (Machine: the part and what is under it; Tools: that part only).
    Tool numbers: a column left of the tree, one per place — on its first row, the empty seat too; a line under
    the number runs down the assembly's rows, so it holds them together. No two tools of a unit share a number
    (the spindle and the turret count apart). In the turret the number is the position and is not typed in: the
@@ -31,7 +33,7 @@
   var TUR = 12, ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
   var SHEV = '<img class="shev" src="assets/t-shev-open.svg" alt="">';
   var PLUS = '<svg viewBox="0 0 12 12" fill="none"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>';
-  var CROSS = '<svg viewBox="0 0 12 12" fill="none"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>';
+  var DOTS = '<svg viewBox="0 0 12 12" fill="currentColor"><circle cx="2.5" cy="6" r="1"/><circle cx="6" cy="6" r="1"/><circle cx="9.5" cy="6" r="1"/></svg>';
   function esc(s){ return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
 
   /* ---------- what fits where: an item names the list of its own slot (next) ---------- */
@@ -59,13 +61,16 @@
       it('SCD 080-044-080 AP5', KIT + 'Drills_D1-20.mKit', 'drill', null, 48)]},
     face:{items:[it('FM D50 R390-050', KIT + 'Facemills.mKit', 'face', null, 40), it('FM D63 R245-063', KIT + 'Facemills.mKit', 'face', null, 40)]}
   };
-  // the tools a collet / chuck of Ø n takes: drills, and end / ball mills from Ø 2 / 3
+  // tools saved to the library from here (Save to library), by the list they came from; kept for the session
+  var SAVED = {}, MY = KIT + 'My_tools.mKit';
+  // the tools a collet / chuck of Ø n takes: drills, and end / ball mills from Ø 2 / 3 — then what was saved there
   function lib(key){
-    if(LIBS[key]) return LIBS[key];
+    var mine = SAVED[key] || [];
+    if(LIBS[key]) return mine.length ? {items:LIBS[key].items.concat(mine)} : LIBS[key];
     var n = +key.slice(1), items = [it(n + 'mm Drill', KIT + 'Drills_D1-20.mKit', 'drill', null, Math.max(12, 6 * n + 4))];
     if(n >= 2) items.push(it('EM D' + n + ' L' + 3 * n, KIT + 'Endmills_D2-20.mKit', 'mill', null, 3 * n + Math.max(2, Math.round(n / 2))));
     if(n >= 3) items.push(it('BM D' + n + ' L' + 4 * n, KIT + 'Endmills_D2-20.mKit', 'mill', null, 4 * n + 2));
-    return {items:items};
+    return {items:items.concat(mine)};
   }
 
   /* ---------- the setup, per project tab: a chain of items per place — a turret position (1…12) or a socket of
@@ -128,7 +133,7 @@
       (o.end ? field(o.end, true) : '') + field(o.cell) +
       // an empty slot: "+" (what fits); a filled one: × (remove it and what is under it); the place kept on every row
       (o.add ? '<button class="eq-add" title="' + o.add + '">' + PLUS + '</button>'
-        : o.place == null || o.bare ? '<span class="eq-bs"></span>' : o.filled ? '<button class="eq-add eq-del" title="Remove">' + CROSS + '</button>'
+        : o.place == null || o.bare ? '<span class="eq-bs"></span>' : o.filled ? '<button class="eq-add eq-more" title="More">' + DOTS + '</button>'
         : '<button class="eq-add" title="Add">' + PLUS + '</button>') + '</div>';
   }
   function chainRows(place, h){
@@ -149,7 +154,7 @@
       }
       var kids = !!item.next, shut = !!st.shut[key];
       rows.push({key:key, place:place, d:d, ind:1 + d, chev:kids, pv:item.pv, filled:true, cls:(shut ? 'shut' : '') + (st.sel === key ? ' sel' : ''),
-        label:esc(item.name),
+        label:esc(item.name) + (!kids && changed(place) ? '<span class="eq-sub">modified</span>' : ''),
         cell:kids ? null : ovCell(place)});            // the tool (it ends the assembly): its overhang
       if(!kids) rows[rows.length - 1].cls += ' has-ov';
       if(shut) break;
@@ -191,7 +196,7 @@
       tools.forEach(function(p){
         var ch = st.chains[p], d = ch.length - 1, key = p + ':' + d, open = !!st.texp[p];
         var rows = [{key:key, place:p, d:d, ind:1, chev:true, pv:ch[d].pv, filled:true, cls:(open ? '' : 'shut') + (st.sel === key ? ' sel' : '') + (hasGap(p) ? ' warn' : ''),
-          label:esc(ch[d].name) + (isSp(p) ? '' : '<span class="eq-sub">Position ' + p + '</span>'), cell:noCell(p), end:ovCell(p)}];
+          label:esc(ch[d].name) + (changed(p) ? '<span class="eq-sub">modified</span>' : '') + (isSp(p) ? '' : '<span class="eq-sub">Position ' + p + '</span>'), cell:noCell(p), end:ovCell(p)}];
         // unfolded: the parts between the tool and the machine, from the tool up, each a step deeper — what holds it,
         // then what holds that (the tree of Machine read the other way);
         // the assembly's line runs down them from the number, as in the tree
@@ -236,9 +241,11 @@
     var cell = e.target.closest('.eq-no.ed');
     if(cell && cell.dataset.c === 'pos'){ pickClose(); posMenu(cell, +r.dataset.place); return; }
     if(cell){ pickClose(); select(r.dataset.key); cellEdit(r.dataset.key, cell.dataset.c); return; }
-    if(e.target.closest('.eq-del')){
+    var more = e.target.closest('.eq-more');
+    if(more){
       pickClose(); select(r.dataset.key);
-      if(tab === 'tools') takeOut(r.dataset.place, +r.dataset.d); else remove(r.dataset.place, +r.dataset.d);
+      r = rowOf(r.dataset.key) || r; more = r.querySelector('.eq-more') || more;
+      rowMenu(r.dataset.place, +r.dataset.d, more.getBoundingClientRect(), more);
       return;
     }
     var add = e.target.closest('.eq-add');
@@ -264,9 +271,9 @@
   });
   list.addEventListener('dblclick', function(e){
     var r = e.target.closest('.eq-row');
-    if(r && r.querySelector('.shev') && !e.target.closest('.eq-add, .shev')) toggle(r);
+    if(r && r.querySelector('.shev') && !e.target.closest('.eq-add, .shev')) toggle(r);   // (.eq-more is an .eq-add)
   });
-  // right-click on a filled slot: Remove (it and what is under it); on an empty socket of the magazine: Remove socket
+  // right-click on a filled slot: its "⋯" menu; on an empty socket of the magazine: Remove socket
   list.addEventListener('contextmenu', function(e){
     var r = e.target.closest('.eq-row[data-place]');
     if(!r) return;
@@ -274,13 +281,39 @@
     if(!st.chains[place][d] && !sock) return;
     e.preventDefault(); e.stopPropagation(); pickClose();
     var key = r.dataset.key; select(key);
-    if(window.ENCY_MENU) window.ENCY_MENU.show({left:e.clientX, top:e.clientY, bottom:e.clientY}, [sock
-      ? {label:'Remove socket', danger:true, onPick:function(){
-          var n = numOf(place); spDrop(place); if(S().sel === key) S().sel = null; render();
-          emit('Remove socket', 'T#' + n, 'EQUIP.SOCKET_REMOVE S T=' + n);
-        }}
-      : {label:'Remove', danger:true, onPick:function(){ remove(place, d); }}], null, 160);
+    var at = {left:e.clientX, top:e.clientY, bottom:e.clientY};
+    if(!sock){ rowMenu(place, d, at, null); return; }
+    if(window.ENCY_MENU) window.ENCY_MENU.show(at, [{label:'Remove socket', danger:true, onPick:function(){
+      var n = numOf(place); spDrop(place); if(S().sel === key) S().sel = null; render();
+      emit('Remove socket', 'T#' + n, 'EQUIP.SOCKET_REMOVE S T=' + n);
+    }}], null, 160);
   });
+  // a part's menu: Save to library (a tool: greyed until changed here), Delete
+  function rowMenu(place, d, at, owner){
+    if(!window.ENCY_MENU) return;
+    var ch = S().chains[place], items = [];
+    // a tool always lists Save to library, greyed while it is the library's own
+    if(!ch[d].next) items.push({label:'Save to library', dis:!changed(place), onPick:function(){ saveTool(place); }}, {sep:true});
+    items.push({label:'Delete', danger:true, onPick:function(){ if(tab === 'tools') takeOut(place, d); else remove(place, d); }});
+    window.ENCY_MENU.show(at, items, owner, 180);
+  }
+  // a tool changed here: its overhang is not the library's
+  function changed(place){
+    var st = S(), ch = st.chains[place], t = ch[ch.length - 1];
+    return !!t && !t.next && st.ov[place] != null && st.ov[place] !== t.ov;
+  }
+  // Save to library: the tool as it is now goes to My_tools.mKit, into the list it was taken from (the collet's,
+  // the holder's…), and the assembly takes the saved one — no longer "modified"
+  function saveTool(place){
+    var st = S(), ch = st.chains[place], d = ch.length - 1, t = ch[d], up = ch[d - 1];
+    var key = d === 0 ? null : up && up.next;
+    var name = t.name + ' · ' + f1(st.ov[place]) + ' mm', mine = SAVED[key] = SAVED[key] || [];
+    var saved = mine.filter(function(x){ return x.name === name; })[0];
+    if(!saved){ saved = it(name, MY, t.pv, null, st.ov[place]); if(key) mine.push(saved); }
+    ch[d] = saved; delete st.ov[place];
+    render();
+    emit('Save to library', name, 'EQUIP.SAVE_TOOL "' + name + '" → My_tools.mKit');
+  }
   function remove(place, d){
     var st = S(), name = st.chains[place][d].name;
     var ch = st.chains[place].slice(0, d);
@@ -701,7 +734,9 @@
   var open0 = true;                                // open until closed once
   try { open0 = localStorage.getItem('ency.equipOpen') !== '0'; } catch(e){}
   col.classList.toggle('open', open0);
-  show('demo');
-  only('');                                        // the page opens on the demo project
+  // start on the project open now: ?project=… may have switched the tab before this script came in
+  var act = document.querySelector('.htabs .htab.active'), actT = act && act.querySelector('.htab-t');
+  show(document.getElementById('app').classList.contains('proj-empty') ? 'new' : (act && act.dataset.proj) || 'demo');
+  only(actT ? actT.textContent.trim() : '');
   requestAnimationFrame(fit);                      // the view cube and the bars are built by app.js
 })();
