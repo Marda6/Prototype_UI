@@ -1227,7 +1227,14 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .eq-seg:hover{color:var(--ec-fg-96);background:var(--ec-fg-4);}
 .eq-seg.on{background:var(--ec-bg);color:var(--ec-fg-100);font-weight:600;}
-.eq-none{padding:12px 6px;color:var(--ec-fg-48);font:400 12px/16px var(--ec-font);}
+/* after the tabs, past the header's divider (1px, fading out at both ends, 4px off its neighbours): Delete unused — an
+   action, not a tab: as tall as the tabs, as wide as its word, quiet (fg-32) while there is nothing to delete */
+.eq-div{width:1px;flex:0 0 1px;align-self:stretch;margin:0 2px;
+  background:linear-gradient(180deg, transparent 0%, var(--ec-fg-8) 50%, transparent 100%);}
+.eq-act{flex:0 0 auto;height:28px;padding:0 10px;border:0;border-radius:6px;background:transparent;cursor:pointer;
+  color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);white-space:nowrap;}
+.eq-act:hover{color:var(--ec-fg-96);background:var(--ec-fg-4);}
+.eq-act.is-off,.eq-act.is-off:hover{color:var(--ec-fg-32);background:transparent;cursor:default;}
 .eq-list{flex:1 1 auto;min-height:0;margin-right:-6px;overflow:auto;scrollbar-gutter:stable;display:flex;flex-direction:column;gap:1px;}
 .eq-list[hidden]{display:none;}
 /* 32px: ENCY shows each part as a small copy of its 3D model (28px) where the tree has a 20px icon */

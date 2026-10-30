@@ -218,6 +218,7 @@
     var top = list.scrollTop;
     list.innerHTML = h.join('');
     list.scrollTop = top;
+    if(unusedBtn) unusedSync();                    // Delete unused: quiet while there is nothing to delete
     fit();
   }
   function select(key){
@@ -682,17 +683,54 @@
   }
   document.getElementById('equipBtn').addEventListener('click', function(e){ e.stopPropagation(); setOpen(!col.classList.contains('open')); });
   document.getElementById('equipX').addEventListener('click', function(e){ e.stopPropagation(); setOpen(false); });
-  // the tabs: Machine (the tree) and Tools (the list) draw into the same list; Delete unused is not built yet
-  var tabs = document.getElementById('eqTabs'), none = document.getElementById('eqNone');
+  // the tabs: Machine (the tree) and Tools (the list) draw into the same list
+  var tabs = document.getElementById('eqTabs');
   tabs.addEventListener('click', function(e){
     e.stopPropagation();
     var b = e.target.closest('.eq-seg'); if(!b || b.classList.contains('on')) return;
     pickClose();
-    Array.prototype.forEach.call(tabs.children, function(x){ x.classList.toggle('on', x === b); });
+    Array.prototype.forEach.call(tabs.querySelectorAll('.eq-seg'), function(x){ x.classList.toggle('on', x === b); });
     tab = b.dataset.tab;
-    var built = tab !== 'unused';
-    list.hidden = !built; none.hidden = built;
-    if(built){ list.scrollTop = 0; render(); }
+    list.scrollTop = 0; render();
+  });
+
+  /* ---------- Delete unused: an action after the tabs — takes out every assembly whose tool no operation of the
+     project uses (an assembly without a tool too); the sockets and positions stay. Asks first ---------- */
+  var unusedBtn = document.getElementById('eqUnused');
+  // the tools the project's operations use, by name (a blank project has none)
+  function usedTools(){
+    var u = {};
+    if(document.getElementById('app').classList.contains('proj-empty')) return u;
+    Array.prototype.forEach.call(document.querySelectorAll('#tree .trow[data-type="operation"] .tlink span'), function(t){ u[t.textContent.trim()] = 1; });
+    return u;
+  }
+  function unused(){
+    var st = S(), used = usedTools();
+    return st.spin.concat(ORDER).filter(function(p){
+      var ch = st.chains[p], t = ch && ch[ch.length - 1];
+      return ch && ch.length && !(t && !t.next && used[t.name]);
+    });
+  }
+  function unusedSync(){
+    var n = unused().length;
+    unusedBtn.classList.toggle('is-off', !n);
+    unusedBtn.title = n ? 'Delete ' + n + ' assembl' + (n > 1 ? 'ies' : 'y') + ' no operation uses' : 'Every assembly here is used in operations';
+  }
+  unusedBtn.addEventListener('click', function(e){
+    e.stopPropagation(); pickClose();
+    var gone = unused(); if(!gone.length || !window.ENCY_CONFIRM) return;
+    window.ENCY_CONFIRM({
+      title:gone.length === 1 ? 'Delete the unused assembly?' : 'Delete ' + gone.length + ' unused assemblies?',
+      text:'No operation of this project uses ' + (gone.length === 1 ? 'its tool' : 'their tools') + '. The sockets and positions stay.',
+      ok:'Delete',
+      onOk:function(){
+        var st = S();
+        gone.forEach(function(p){ st.chains[p] = []; delete st.ov[p]; delete st.texp[p]; });
+        st.sel = null;
+        render();
+        emit('Delete unused', String(gone.length), 'EQUIP.DELETE_UNUSED');
+      }
+    });
   });
   // the panel ends above the view cube and the view bars under it (only the tree scrolls), never below the view
   function fit(){

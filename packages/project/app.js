@@ -2746,6 +2746,7 @@
     document.body.appendChild(scrim);
     ok.focus();
   }
+  window.ENCY_CONFIRM = treeConfirm;               // equip.js: Delete unused
   function groupMenu(g, x, y){
     showMenu({left:x, top:y, bottom:y}, [
       {label:'Ungroup', kbd:'Ctrl+Shift+G', onPick:function(){ treeUngroup(g); }},
