@@ -980,6 +980,10 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 .dd-menu{position:fixed;z-index:1000;background:var(--pop-bg);border:1px solid var(--ec-fg-12);
   border-radius:4px;padding:2px;display:flex;flex-direction:column;gap:1px;
   box-shadow:0 6px 20px var(--th-shadow);}
+/* a menu over an overlay window (Automation, status… — themselves on --pop-bg): a step lighter, so it
+   stands off the window as overlays stand off the panels; on the light themes plain white */
+.dd-menu.dd-lift{background:color-mix(in srgb, var(--th-ink) 8%, var(--pop-bg));}
+[data-theme$="-light"] .dd-menu.dd-lift{background:#fff;}
 .dd-opt{padding:4px 6px;border-radius:3px;color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);
   cursor:pointer;white-space:nowrap;}
 .dd-opt:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
@@ -1503,7 +1507,13 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 .mc-saved-box{margin-bottom:12px;}
 .mc-saved-box[hidden]{display:none;}
 .mc-editor{display:grid;grid-template-columns:1fr;border:1px solid var(--mc-line);border-radius:6px;overflow:hidden;}
-#mcCmds{max-height:264px;overflow-y:auto;} /* no reserved gutter: the row highlight must reach the frame edge */
+/* the step list: room for 5 steps by default (5 × 24 + 4), the window's bottom grip makes it taller */
+#mcCmds{height:var(--mc-list-h, 124px);overflow-y:auto;scrollbar-gutter:stable;}
+#mcCmds > .mc-empty{height:100%;display:flex;align-items:center;justify-content:center;padding:0 12px;}
+/* the window's bottom edge resizes it, as any window's does: no mark, only the resize cursor on a 6px edge */
+.mc-vgrip{position:absolute;left:0;right:0;bottom:0;z-index:5;height:6px;cursor:ns-resize;touch-action:none;}
+.mcpanel:has(#mcPageMacro[hidden]) .mc-vgrip{display:none;}
+body.mc-resizing,body.mc-resizing *{cursor:ns-resize !important;user-select:none;} /* the cursor holds while dragging off the edge */
 .mc-command-val{flex:none;max-width:40%;color:var(--mc-dim);font:400 12px/16px var(--ec-font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mc-command[aria-pressed="true"] .mc-command-val{color:color-mix(in srgb, var(--mc-acc) 70%, var(--mc-dim));}
 .mc-command-cmd{display:block;margin-top:2px;color:var(--mc-dim);font:400 11px/14px ui-monospace,Consolas,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -1599,6 +1609,131 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 .mc-runstep__pick .mc-button{height:22px;padding:0 8px;}
 .mc-runstep__dd{border-color:var(--mc-warn);}
 .mc-runstep__in::placeholder{color:var(--mc-dim);}
+/* ——— the step list as an outline (IIPOLIT-478 · CAM-1723) ———
+   Read like the operation tree: 24px rows, hover fg-4, selected fg-8; a breakpoint gutter and the
+   numbers in one column on the left (fg-48, tabular); 16px per level (chevron 12 + 4). A step: its
+   command's Core icon, name, value on the right (one right edge). A block: a header row — chevron,
+   the block's icon and keyword in its hue, its fields as a phrase in 20px inspector controls — and a
+   1px line in the hue down its steps that ends with a short tick on the block's last row (the End).
+   Else: a keyword row on the If's level, the If's line runs past it. Hues from Core's operation
+   colours: loops Corall (op-corall), conditions Blue (op-blue), mixed toward the ink for text so they
+   read on the light themes too. Selected block / Else: its rows get a fg-4 band, its line full hue;
+   armed for deletion: red. */
+:root{--mc-loop:#ff9b70;--mc-cond:#70cfff;}
+.mcpanel{--mc-kl:color-mix(in oklab, var(--mc-loop) 72%, var(--ec-fg-96));--mc-kc:color-mix(in oklab, var(--mc-cond) 72%, var(--ec-fg-96));}
+#mcCmds{padding:2px 0;}
+.mc-step{position:relative;display:flex;align-items:center;gap:4px;height:24px;padding:0 6px 0 2px;border-radius:4px;
+  color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);cursor:pointer;user-select:none;}
+.mc-step:hover{background:var(--ec-fg-4);}
+.mc-step[aria-pressed="true"]{background:var(--ec-fg-8);}
+.mc-step.inblk{background:var(--ec-fg-4);border-radius:0;}
+.mc-step.inblk:hover{background:var(--ec-fg-8);}
+.mc-step.arm{background:color-mix(in srgb, var(--th-red) 8%, transparent);border-radius:0;}
+.mc-head.arm,.mc-else.arm{background:color-mix(in srgb, var(--th-red) 16%, transparent);border-radius:4px 4px 0 0;}
+.mc-num{width:18px;flex:0 0 18px;text-align:right;color:var(--ec-fg-48);font:400 11px/16px var(--ec-font);font-variant-numeric:tabular-nums;}
+.mc-step .mc-bp{width:12px;flex:0 0 12px;height:16px;margin:0;}
+.mc-step:hover .mc-bp::before{opacity:1;}
+.mc-step.bp .mc-bp::before{opacity:1;border-color:var(--mc-warn);background:var(--mc-warn);}
+.mc-slot .mc-bp::before,.mc-else .mc-bp::before{display:none;}
+.mc-chev{width:12px;height:20px;flex:0 0 12px;margin-left:calc(var(--d, 0) * 16px);display:flex;align-items:center;justify-content:center;
+  border-radius:3px;color:var(--ec-fg-56);}
+.mc-fold{cursor:pointer;}
+.mc-fold:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+.mc-fold svg{width:8px;height:5px;transition:transform .12s ease;}
+.mc-head.fold .mc-fold svg{transform:rotate(-90deg);}
+/* a step's icon: a 20px cell of ENCY's menu sprites (the Utilities list's), light copies on the light themes */
+.mcpanel{--mc-spr-m:url(../shared-ui/assets/ency/menu-dark.svg);--mc-spr-o:url(../shared-ui/assets/ency/other-dark.svg);}
+[data-theme$="-light"] .mcpanel{--mc-spr-m:url(../shared-ui/assets/ency/menu.svg);--mc-spr-o:url(../shared-ui/assets/ency/other.svg);}
+.mc-ico{width:20px;height:20px;flex:0 0 20px;}
+.mc-spr{background-image:var(--mc-spr-m);background-repeat:no-repeat;background-size:200px 140px;opacity:.9;}
+.mc-spr[data-spr="o"]{background-image:var(--mc-spr-o);background-size:200px 120px;}
+.mc-step .mc-command-label{flex:1 1 auto;}
+.mc-sub{color:var(--ec-fg-56);}
+.mc-step .mc-command-val{color:var(--ec-fg-56);}
+/* a step's editable value: Core's 20px inspector control; empty = ask when run (amber frame) */
+.mc-step .mc-command-input,.mc-step .mc-command-dd{width:112px;height:20px;padding:2px 2px 2px 4px;border:0;border-radius:4px;
+  background:var(--ec-fg-4);color:var(--ec-fg-72);}
+.mc-step .mc-command-input:hover,.mc-step .mc-command-dd:hover{background:var(--ec-fg-8);}
+.mc-step .mc-command-input:focus{background:var(--ec-fg-8);box-shadow:inset 0 0 0 1px var(--ec-green);color:var(--ec-fg-96);}
+.mc-step.ask .mc-command-input,.mc-step .mc-command-ctl.ask .mc-command-dd{box-shadow:inset 0 0 0 1px var(--mc-warn);}
+.mc-step:hover .mc-ask-btn{opacity:1;}
+.mc-step .mc-ask-btn{width:16px;height:16px;flex:0 0 16px;}
+/* a prompt step (Ask CAM Agent): its request on the right, cut; selected, a field under the row from the
+   names' column to the right edge — Core's input look, 2–8 lines (grows with the text, then scrolls) */
+.mc-prompt-prev{max-width:55%;}
+.mc-prompt-prev.ask{color:var(--mc-warn);}
+.mc-step.has-ed{height:auto;flex-wrap:wrap;padding-bottom:6px;}
+.mc-step.has-ed .mc-command-label{line-height:24px;}
+.mc-ed{flex:0 0 100%;padding-left:calc(78px + var(--d, 0) * 16px);box-sizing:border-box;}
+.mc-prompt{display:block;width:100%;min-height:40px;max-height:136px;resize:none;box-sizing:border-box;padding:4px 6px;
+  border:0;border-radius:4px;outline:0;background:var(--ec-fg-4);color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);overflow-y:auto;}
+.mc-prompt:hover{background:var(--ec-fg-8);}
+.mc-prompt:focus{background:var(--ec-fg-8);box-shadow:inset 0 0 0 1px var(--ec-green);}
+.mc-prompt::placeholder{color:var(--ec-fg-48);}
+.mc-step.ask .mc-prompt:not(:focus){box-shadow:inset 0 0 0 1px var(--mc-warn);}
+/* a block's header: chevron · icon · keyword · the phrase of its fields */
+.mc-bicn{width:20px;height:20px;flex:0 0 20px;display:flex;align-items:center;justify-content:center;}
+.mc-bicn svg{display:block;width:16px;height:16px;}
+.mc-kw{flex:none;font:600 12px/16px var(--ec-font);white-space:nowrap;}
+.mc-bicn.k-loop,.mc-kw.k-loop{color:var(--mc-kl);}
+.mc-bicn.k-if,.mc-kw.k-if{color:var(--mc-kc);}
+.mc-hctl{flex:0 1 auto;min-width:0;display:flex;align-items:center;gap:4px;overflow:hidden;}
+.mc-hw{flex:none;color:var(--ec-fg-56);white-space:nowrap;}
+.mc-chip{flex:none;display:inline-flex;align-items:center;height:20px;box-sizing:border-box;padding:2px 2px 2px 4px;border:0;border-radius:4px;
+  background:var(--ec-fg-4);color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);white-space:nowrap;}
+.mc-chip-dd{cursor:pointer;}
+.mc-chip-dd:hover{background:var(--ec-fg-8);}
+.mc-chip-dd.dd-open{background:var(--ec-fg-8);box-shadow:inset 0 0 0 1px var(--ec-fg-16);}
+.mc-chip-dd svg{width:8px;height:5px;flex:0 0 8px;margin:0 4px 0 6px;color:var(--ec-fg-56);}
+.mc-chip-in{min-width:0;padding:2px 4px;outline:0;}
+.mc-chip-in:hover{background:var(--ec-fg-8);}
+.mc-chip-in:focus{background:var(--ec-fg-8);box-shadow:inset 0 0 0 1px var(--ec-green);color:var(--ec-fg-96);}
+.mc-chip-in:placeholder-shown{box-shadow:inset 0 0 0 1px var(--mc-warn);}
+.mc-chip-in::placeholder{color:var(--mc-warn);opacity:.8;}
+.mc-chip-in.opt:placeholder-shown{box-shadow:none;}
+.mc-chip-in.opt::placeholder{color:var(--ec-fg-48);opacity:1;}
+.mc-bcount{flex:none;color:var(--ec-fg-56);white-space:nowrap;}
+.mc-bmeta{flex:0 1 auto;min-width:24px;margin-left:auto;color:var(--ec-fg-56);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* "+ Else" at the end of an If's header without one: under the pointer and while selected */
+.mc-addelse{flex:none;margin-left:auto;height:20px;padding:0 6px;border:0;border-radius:4px;background:transparent;
+  color:var(--mc-kc);font:400 12px/16px var(--ec-font);cursor:pointer;visibility:hidden;}
+.mc-head:hover .mc-addelse,.mc-head[aria-pressed="true"] .mc-addelse,.mc-addelse:focus-visible{visibility:visible;}
+.mc-addelse:hover{background:var(--ec-fg-8);}
+/* the line of a block down its steps, under the header's chevron; it ends with a tick on the last row */
+.mc-g{--k:var(--mc-loop);position:absolute;top:0;bottom:0;left:calc(46px + var(--x) * 16px);width:1px;pointer-events:none;
+  background:color-mix(in srgb, var(--k) 45%, transparent);}
+.mc-g.k-if{--k:var(--mc-cond);}
+.mc-g.end{bottom:50%;}
+.mc-g.end::after{content:'';position:absolute;left:0;bottom:0;width:6px;height:1px;background:inherit;}
+.mc-g.on{background:var(--k);}
+.mc-g.armed{background:var(--th-red);}
+/* an empty branch */
+/* an empty branch: "+" in the icon column and a hint of what goes in; a click opens the Command menu under it */
+.mc-slot-i{display:flex;align-items:center;justify-content:center;color:var(--ec-fg-48);}
+.mc-slot-i svg{width:16px;height:16px;}
+.mc-slot-t{flex:1 1 auto;min-width:0;color:var(--ec-fg-48);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mc-slot:hover .mc-slot-t,.mc-slot:hover .mc-slot-i{color:var(--mc-acc);}
+.mc-slot[aria-pressed="true"] .mc-slot-t{color:var(--ec-fg-96);}
+/* while "+ Command" / "From project" is open, what the new step goes after is lit: the accent at 12 % on
+   the whole row — or on every row of a block the step goes after; it wins over hover, selection and band */
+.mc-step.ins-on,.mc-step.ins-on:hover,.mc-step.ins-on[aria-pressed="true"]{background:var(--mc-acc-bg);}
+.mc-step.ins-blk{border-radius:0;}
+/* "+ Command" → BLOCKS: the block's icon in its hue, a short hint on the right */
+.mc-addmenu .dd-kbd{font-size:11px;}
+.mc-micn{display:flex;width:16px;height:16px;}
+.mc-micn svg{width:16px;height:16px;}
+.mc-micn.k-loop{color:color-mix(in oklab, var(--mc-loop) 72%, var(--ec-fg-96));}
+.mc-micn.k-if{color:color-mix(in oklab, var(--mc-cond) 72%, var(--ec-fg-96));}
+/* recording strip: rows inside a block step in 12px; the header and Else show the block's hue, End is a thin edge */
+.mc-reclist .mc-recrow{padding-left:calc(8px + var(--d, 0) * 12px);}
+.mc-reclist .mc-recins{padding-left:calc(8px + var(--d, 0) * 12px);}
+.mc-recblk.k-loop{--k:var(--mc-loop);} .mc-recblk.k-if,.mc-recend.k-if{--k:var(--mc-cond);} .mc-recend.k-loop{--k:var(--mc-loop);}
+.mc-recblk{color:color-mix(in oklab, var(--k) 72%, var(--mc-ink));background:color-mix(in srgb, var(--k) 10%, transparent);}
+.mc-recblk .mc-recrow__i{display:flex;width:14px;height:14px;flex:0 0 14px;}
+.mc-recblk .mc-recrow__i svg{width:14px;height:14px;}
+.mc-reclist .mc-recend{height:6px;flex:0 0 6px;margin-left:calc(4px + var(--d, 0) * 12px);padding:0;background:color-mix(in srgb, var(--k) 22%, transparent);border-radius:0 0 2px 2px;}
+.mcpanel.recpaused .mc-recend:hover{background:color-mix(in srgb, var(--k) 40%, transparent);}
+.mc-recend.last{box-shadow:0 0 0 1px var(--mc-acc);}
 .mc-inspector{min-width:0;padding:12px;border-left:1px solid var(--mc-line);background:var(--mc-panel);}
 .mc-inspector h3{margin:0 0 14px;color:var(--mc-ink);font:600 12px/16px var(--ec-font);}
 .mc-inspector .mc-field{margin-bottom:12px;}
@@ -1625,6 +1760,7 @@ mark.tt-hl{background:color-mix(in srgb, var(--ec-green) 32%, transparent);color
 .mc-foot-note.ok{color:var(--mc-ok);}
 .mc-foot-note.warn{color:var(--mc-warn);}
 .mc-foot-note.hint{color:var(--mc-dim);}
+.mc-foot-note.danger{color:var(--mc-danger);} /* the trash's first click on a block / Else */
 .mc-status{min-height:16px;margin-top:8px;color:var(--mc-dim);font:400 11px/16px var(--ec-font);}
 .mc-picker{margin-top:8px;padding:10px;background:var(--mc-panel);border:1px solid var(--mc-line);border-radius:4px;}
 .mc-picker[hidden]{display:none;}
