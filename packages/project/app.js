@@ -4119,7 +4119,8 @@
   var recAt = -1; // where recording continues: index of the step new steps go after; -1 = the end
   var batchMacro = ''; // '' = the macro in the editor, otherwise a name from the library
   // parameter steps: recorded inspector changes — their value is editable; empty = ask when run
-  function isParam(st){ return st.type === 'event' && st.label !== 'New operation' && st.label !== 'Calculate'; }
+  // noval: a command with nothing to set (Deselect all, Add hole…) — its value, if any, is only read
+  function isParam(st){ return st.type === 'event' && !st.noval && st.label !== 'New operation' && st.label !== 'Calculate'; }
   function batchSteps(){ return batchMacro && saved[batchMacro] ? saved[batchMacro] : steps; }
   function batchName(){ return batchMacro || ($('mcName').value.trim() || 'Untitled'); }
   // library of recorded macros (kept for the session); two samples so Open has something to show
@@ -4134,6 +4135,23 @@
   var COOL = ['Flood', 'Mist', 'Through tool', 'Off'], DIR = ['Climb', 'Conventional', 'Mixed'], PAT = ['Parallel', 'Spiral', 'Radial', 'Zigzag'], TOL = ['Rough', 'Standard', 'Fine'];
   function with_(st, val){ st.val = val; return st; }
   var END = function(){ return {type:'end'}; }, ELSE = function(){ return {type:'else'}; };
+  // a command with nothing to set · a command with fields (its val = the fields' values, as setField keeps it)
+  function cmdS(label, val, ic){ return ev(label, val || '', 'CMD "' + label + '"', '', {noval:true, ic:ic}); }
+  function fldS(label, fields, ic){
+    return ev(label, fields.map(function(f){ return f.val; }).join(' · '), 'CMD "' + label + '" {fields}', '', {fields:fields, ic:ic});
+  }
+  // the hole sample in a language (t = its words): the commands of ENCY's own macro window
+  function holeSteps(t){
+    return [
+      cmdS(t.edit, '', 'hole'), cmdS(t.calc, t.op, 'calc'), cmdS(t.none, '', 'select'),
+      fldS(t.select, [{k:t.obj, ctl:'input', val:'Part\\Part1.igs\\Face11', btns:['pick'], pick:'Part\\Part1.igs\\Face12'}], 'select'),
+      cmdS(t.add, '', 'hole'),
+      fldS(t.conn, [{k:t.connK, ctl:'dropdown', val:'Workpiece1', opts:['Workpiece1', 'Workpiece2']}], 'stock'),
+      fldS(t.base, [{k:t.cs, ctl:'dropdown', val:t.csV, opts:t.csO, btns:['pick', 'clear'], pick:t.csO[2]}], 'cs'),
+      fldS(t.tool, [{k:t.toolK, ctl:'dropdown', val:'T12 · EM D12 R0.5', opts:['T5 · Drill D8.5', 'T12 · EM D12 R0.5', 'T14 · Spot drill D10']},
+                    {k:t.ovK, ctl:'input', val:'35 mm'}, {k:t.coolK, ctl:'dropdown', val:t.cool, opts:COOL.concat([t.cool])}], 'tool'),
+      cmdS(t.calc, t.op, 'calc'), cmdS(t.none, '', 'select')];
+  }
   var saved = {
     // the big demo (?utility=macro&macro=demo): a whole batch for one folder of housings — loops two deep,
     // If / Else on the material and the name, a numeric If inside a loop over operations, Repeat, every kind
@@ -4179,6 +4197,21 @@
         with_(base('export'), '{file.stem}.nc'),
         with_(base('save'), '{file.stem}'),
       END()],
+    // ENCY's own recorded commands (as its macro window lists them): long names, a value or several per step,
+    // fields with buttons — read as text in the row, edited under the selected step
+    'Hole machining · ENCY steps':holeSteps({
+      edit:'Edit hole', calc:'Calculate operation', none:'Deselect all', select:'Select', obj:'Object', add:'Add hole',
+      conn:'Set workpiece connector', connK:'Connector', base:'Set workpiece base setup', cs:'Coordinate system',
+      csV:'Global CS + (X819 Y783 Z4)', csO:['Global CS', 'Global CS + (X819 Y783 Z4)', 'Setup 1 CS'],
+      tool:'Set tool', toolK:'Tool', ovK:'Overhang', coolK:'Coolant', cool:'Through tool', op:'Hole machining 1'}),
+    // the same in German — the longest labels ENCY has to fit
+    'Bohrungsbearbeitung · DE':holeSteps({
+      edit:'Bohrung bearbeiten', calc:'Operation berechnen', none:'Alle Auswahlen aufheben', select:'Auswählen', obj:'Objekt',
+      add:'Bohrung hinzufügen', conn:'Werkstückanschluss festlegen', connK:'Werkstückanschluss',
+      base:'Basis-Aufspannung des Werkstücks festlegen', cs:'Koordinatensystem',
+      csV:'Globales KS + (X819 Y783 Z4)', csO:['Globales KS', 'Globales KS + (X819 Y783 Z4)', 'KS Aufspannung 1'],
+      tool:'Werkzeug festlegen', toolK:'Werkzeug', ovK:'Werkzeugausspannlänge', coolK:'Kühlschmierstoff', cool:'Innere Kühlmittelzufuhr',
+      op:'Bohrungsbearbeitung 1'}),
     // blocks: a loop over the model files with an If / Else inside (the IIPOLIT-478 sample)
     'Housings · rough and finish':[
       base('new'),
@@ -4299,7 +4332,7 @@
   // ——— Macro: the step list ———
   // the value control of a parameter step: toggle · dropdown (its recorded options) · text input.
   // Every kind has an "ask when run" state (empty value): the run pauses there and waits.
-  var ASK = '<span class="mc-ask-btn" title="Ask when the macro runs">?</span>';
+  var ASK = '<span class="mc-ask-btn" title="Ask for it when the macro runs"></span>';
   function valCtl(s, i){
     var ask = !s.val;
     if(s.ctl === 'toggle'){
@@ -4314,6 +4347,44 @@
     return '<input class="mc-command-input" data-i="' + i + '" value="' + esc(s.val) + '" placeholder="Ask when run" spellcheck="false" title="Edit the value \u00b7 leave empty to ask when the macro runs">';
   }
   function setVal(st, v){ st.val = v; revision++; st.cmd = st.cmd.replace(/("[^"]*"|TRUE|FALSE|\{ask\})\s*$/, st.ctl === 'toggle' ? (v === 'On' ? 'TRUE' : v === 'Off' ? 'FALSE' : '{ask}') : '"' + (v || '{ask}') + '"'); }
+
+  // ——— a step's fields: the row only reads them, the selected step edits them ———
+  // A step's values never sit in its row as controls: however long the label (German!) and however many
+  // fields and buttons, the row is one line — the name, then the values as text. Selected, a small
+  // inspector opens under it: a row per field — label | Core's 20px control | its buttons | "?" (ask when run).
+  // fields: [{k label, ctl input|dropdown|toggle, val, opts, btns:['pick','clear'], pick: value a pick gives}]
+  function fieldsOf(s){
+    if(s.fields) return s.fields;
+    if(isParam(s) && !isPrompt(s)) return [{k:s.label, ctl:s.ctl || 'input', val:s.val, opts:s.opts, single:true}];
+    return [];
+  }
+  function setField(s, j, v){
+    if(!s.fields){ setVal(s, v); return; }
+    s.fields[j].val = v; revision++;
+    // the step's value = its fields', empty while any of them asks (so a run stops there)
+    s.val = s.fields.every(function(f){ return f.val; }) ? s.fields.map(function(f){ return f.val; }).join(' · ') : '';
+  }
+  // the row's text: the values joined; an empty one reads "ask" in amber
+  function summaryHTML(fl){
+    return fl.map(function(f){ return f.val ? esc(f.val) : '<span class="mc-askval">' + (fl.length === 1 ? 'Ask when run' : 'ask') + '</span>'; }).join('<span class="mc-dot"> · </span>');
+  }
+  function summaryText(fl){ return fl.map(function(f){ return f.val || 'ask when run'; }).join(' · '); }
+  // a field's buttons: ENCY's own icons (other sprite) — pick it on the model · clear it
+  var FBTN = {pick:{t:'Pick on the model', c:'-20px -20px'}, clear:{t:'Clear', c:'-160px -40px'}};
+  function fieldsHTML(i, fl){
+    return '<span class="mc-ed"><span class="mc-fields">' + fl.map(function(f, j){
+      var at = ' data-i="' + i + '" data-j="' + j + '"';
+      var ctl = f.ctl === 'dropdown'
+        ? '<span class="mc-select mc-fdd' + (f.val ? '' : ' ask') + '"' + at + '><span class="dd-t">' + (f.val ? esc(f.val) : '<span class="mc-askval">Ask when run</span>') + '</span>' + CARET + '</span>'
+        : f.ctl === 'toggle'
+        ? (f.val ? '<img class="tgl mc-ftgl"' + at + ' src="assets/toggle-' + (f.val === 'On' ? 'on' : 'off') + '.svg" alt="">' : '<span class="mc-askval mc-ftgl"' + at + '>Ask when run</span>') + '<span class="mc-fill"></span>'
+        : '<input class="mc-fin"' + at + ' value="' + esc(f.val || '') + '" placeholder="Ask when run" spellcheck="false">';
+      return '<span class="mc-fld' + (f.val ? '' : ' ask') + '"><span class="mc-fld-l" title="' + esc(f.k) + '">' + esc(f.k) + '</span>' +
+        '<span class="mc-fld-c">' + ctl + (f.btns || []).map(function(b){
+          return '<button class="mc-fbtn" data-act="' + b + '"' + at + ' title="' + FBTN[b].t + '"><span class="mc-spr" data-spr="o" style="background-position:' + FBTN[b].c + '"></span></button>';
+        }).join('') + '<span class="mc-ask-btn" data-act="ask"' + at + ' title="' + (f.val ? 'Ask for it when the macro runs' : 'Asked when the macro runs · click to keep a value') + '"></span></span></span>';
+    }).join('') + '</span></span>';
+  }
   // what the selection is: a step · a block (its header) · an Else (its branch) · a block's bottom edge · an empty branch
   function selKind(){
     if(!sel || !steps[sel.i]) return '';
@@ -4353,13 +4424,13 @@
   var IC = {
     file:['m', 2, 0], save:['m', 4, 0], nc:['m', 6, 1], params:['m', 8, 4], agent:['m', 6, 3],
     part:['o', 4, 1], ops:['o', 3, 1], calc:['o', 5, 2], copy:['o', 7, 4], machine:['o', 5, 1], hole:['o', 6, 1],
-    setup:['o', 1, 1], stock:['o', 1, 2]
+    setup:['o', 1, 1], stock:['o', 1, 2], select:['o', 1, 1], cs:['o', 1, 3], tool:['o', 9, 4]
   };
   var SICN = {'new':'file', 'import':'part', operations:'ops', calculate:'calc', 'export':'nc', save:'save'};
   var EICN = {'New operation':'ops', 'Copy operation':'copy', 'Operation parameters':'params', 'Calculate':'calc', 'Machine setup':'machine',
     'Setup':'setup', 'Workpiece':'stock', 'Recognize features':'hole', 'Ask CAM Agent':'agent', 'Simulate':'machine'};
   function stepIcon(s){
-    var ic = IC[SICN[s.type] || EICN[s.label] || 'params'];
+    var ic = IC[s.ic || SICN[s.type] || EICN[s.label] || 'params'];
     return '<span class="mc-ico mc-spr" data-spr="' + ic[0] + '" style="background-position:-' + ic[1] * 20 + 'px -' + ic[2] * 20 + 'px"></span>';
   }
 
@@ -4396,8 +4467,10 @@
     branch(0, [], -1);
     return rows;
   }
-  function stepsHTML(){
-    var rows = outline(), on = sel && !sel.slot ? sel.i : -1;
+  // rec = the recording strip under the compact bar: the same outline, read-only — a block's fields read as a
+  // phrase, values as text; what recording goes on after is lit; paused, a row's ✕ deletes it (a block whole)
+  function stepsHTML(rec){
+    var rows = outline(), on = !rec && sel && !sel.slot ? sel.i : -1, arm = rec ? -1 : armed;
     // a block's line ends on its last row
     rows.forEach(function(r, n){
       var next = rows[n + 1];
@@ -4406,22 +4479,25 @@
     function guides(r){
       return r.anc.map(function(a, k){
         var cls = 'mc-g k-' + a.k + (r.last && r.last[k] ? ' end' : '') +
-          (on === a.i || (on === a.br && a.br !== a.i) ? ' on' : '') + (armed === a.i || (armed === a.br && a.br !== a.i) ? ' armed' : '');
+          (on === a.i || (on === a.br && a.br !== a.i) ? ' on' : '') + (arm === a.i || (arm === a.br && a.br !== a.i) ? ' armed' : '');
         return '<i class="' + cls + '" style="--x:' + k + '"></i>';
       }).join('');
     }
     // rows inside the selected block / Else get a band; inside the one the trash has armed, a red one
     function band(r){
-      var inArm = armed >= 0 && r.anc.some(function(a){ return a.i === armed || (a.br === armed && a.br !== a.i); });
+      var inArm = arm >= 0 && r.anc.some(function(a){ return a.i === arm || (a.br === arm && a.br !== a.i); });
       var inSel = on >= 0 && r.anc.some(function(a){ return a.i === on || (a.br === on && a.br !== a.i); });
       return inArm ? ' arm' : inSel ? ' inblk' : '';
     }
-    // While "+ Command" / "From project" is open, what the new step goes after is lit green: the selected
-    // row, the whole selected block, the Else (top of its branch), the empty branch's hint row;
-    // nothing selected — the macro's last row or block.
-    var anc = null;
-    if(showIns){
-      var k = selKind(), last = steps.length - 1;
+    // What the new step goes after is lit green — while "+ Command" / "From project" is open: the selected
+    // row, the whole selected block, the Else (top of its branch), the empty branch's hint row, nothing
+    // selected — the macro's last row or block; while recording: where recording goes on.
+    var anc = null, last = steps.length - 1;
+    if(rec){
+      var a = recAt >= 0 ? recAt : last;
+      anc = a < 0 ? null : steps[a].type === 'end' ? [startOf(a), a] : [a, a];
+    } else if(showIns){
+      var k = selKind();
       anc = k === 'slot' ? {slot:sel.i}
         : k === 'block' ? [sel.i, closeOf(sel.i)]
         : k === 'end' ? [startOf(sel.i), sel.i]
@@ -4434,53 +4510,68 @@
       var multi = anc[1] > anc[0];
       return r.i >= anc[0] && r.i <= anc[1] ? ' ins-on' + (multi ? ' ins-blk' : '') : '';
     }
-    var BP = function(s){ return '<span class="mc-bp" title="' + (s.bp ? 'Breakpoint: playback pauses here' : 'Set a breakpoint') + '"></span>'; };
+    var BP = function(s, asks){ return '<span class="mc-bp" title="' + (s.bp ? 'Breakpoint: playback pauses here' : asks ? 'Stops here to ask for a value · click to set a breakpoint too' : 'Set a breakpoint') + '"></span>'; };
     var NUM = function(no){ return '<span class="mc-num">' + (no || '') + '</span>'; };
     var SP = '<span class="mc-chev mc-sp"></span>';
     var PLUS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M8 4v8M4 8h8"/></svg>';
-    // an empty branch says what goes in it; a click on it opens the Command menu under it
+    var X = rec ? '<button class="mc-recx" title="Delete"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 2l6 6M8 2l-6 6"/></svg></button>' : '';
+    // an empty branch says what goes in it; a click on it opens the Command menu under it (recording: records into it)
     function slotHint(o){
-      return o.type === 'if' ? 'Steps to run if it holds — click to add'
-        : o.type === 'else' ? 'Steps to run otherwise — click to add'
-        : o.type === 'each' ? 'Steps to run for each ' + o.src + ' — click to add'
-        : 'Steps to repeat ' + (o.n || 'N') + ' times — click to add';
+      var tail = rec ? ' — click to record here' : ' — click to add';
+      return (o.type === 'if' ? 'Steps to run if it holds' : o.type === 'else' ? 'Steps to run otherwise'
+        : o.type === 'each' ? 'Steps to run for each ' + o.src : 'Steps to repeat ' + (o.n || 'N') + ' times') + tail;
+    }
+    // the strip reads a block's fields as a phrase: Name contains _thin · model file as file · 3 times
+    function phrase(b){
+      var q = function(v){ return v ? esc(v) : '<span class="mc-askval">?</span>'; };
+      if(b.type === 'if') return esc(b.subj) + ' ' + esc(b.op) + ' ' + q(b.v);
+      if(b.type === 'each') return esc(b.src) + ' as ' + q(b.as) + (b.src === 'operation' && b.name ? ' · name contains ' + esc(b.name) : '');
+      return q(b.n) + ' times';
     }
     return rows.map(function(r){
       var ins = lit(r), st = ' style="--d:' + r.depth + '"';
       if(r.t === 'slot'){
-        return '<div role="button" class="mc-step mc-slot' + ins + band(r) + '" data-slot="' + r.i + '" aria-pressed="' + (!!sel && !!sel.slot && sel.i === r.i) + '"' + st + '>' +
+        return '<div role="button" class="mc-step mc-slot' + ins + band(r) + '" data-slot="' + r.i + '" aria-pressed="' + (!rec && !!sel && !!sel.slot && sel.i === r.i) + '"' + st + '>' +
           guides(r) + '<span class="mc-bp"></span>' + NUM() + SP + '<span class="mc-ico mc-slot-i">' + PLUS + '</span>' +
           '<span class="mc-slot-t">' + esc(slotHint(steps[r.i])) + '</span></div>';
       }
       if(r.t === 'else'){
-        return '<div role="button" class="mc-step mc-else' + ins + (armed === r.i ? ' arm' : '') + '" data-step="' + r.i + '" aria-pressed="' + (on === r.i) + '"' + st + '>' +
-          guides(r) + '<span class="mc-bp"></span>' + NUM() + SP + '<span class="mc-bicn k-if">' + ICN['else'] + '</span><span class="mc-kw k-if">Else</span></div>';
+        return '<div role="button" class="mc-step mc-else' + ins + (arm === r.i ? ' arm' : '') + '" data-step="' + r.i + '" aria-pressed="' + (on === r.i) + '"' + st + '>' +
+          guides(r) + '<span class="mc-bp"></span>' + NUM() + SP + '<span class="mc-bicn k-if">' + ICN['else'] + '</span><span class="mc-kw k-if">Else</span>' +
+          (X ? '<span class="mc-fill"></span>' + X : '') + '</div>';
       }
       var s = steps[r.i];
       if(r.t === 'head'){
         var k = s.type === 'if' ? 'if' : 'loop';
         var meta = s.type === 'each' && s.src === 'model file' ? esc($('mcSrc').value.trim()) : '';
-        return '<div role="button" class="mc-step mc-head k-' + k + ins + (s.bp ? ' bp' : '') + (r.fold ? ' fold' : '') + (armed === r.i ? ' arm' : band(r)) + '" data-step="' + r.i + '" aria-pressed="' + (on === r.i) + '"' + st + ' title="' + esc(blkText(s)) + '">' +
+        return '<div role="button" class="mc-step mc-head k-' + k + ins + (s.bp ? ' bp' : '') + (r.fold ? ' fold' : '') + (arm === r.i ? ' arm' : band(r)) + '" data-step="' + r.i + '" aria-pressed="' + (on === r.i) + '"' + st + ' title="' + esc(blkText(s)) + '">' +
           guides(r) + BP(s) + NUM(r.no) +
           '<span class="mc-chev mc-fold" title="' + (r.fold ? 'Unfold' : 'Fold') + '">' + CARET + '</span>' +
           '<span class="mc-bicn k-' + k + '">' + ICN[s.type] + '</span><span class="mc-kw k-' + k + '">' + NAME[s.type] + '</span>' +
-          '<span class="mc-hctl">' + headCtl(s, r.i) + '</span>' +
+          (rec ? '<span class="mc-hphrase">' + phrase(s) + '</span>' : '<span class="mc-hctl">' + headCtl(s, r.i) + '</span>') +
           (r.fold ? '<span class="mc-bcount">' + r.inside + (r.inside === 1 ? ' step' : ' steps') + '</span>' : '') +
-          (s.type === 'if' && r.elseAt == null && !r.fold ? '<button class="mc-addelse" data-i="' + r.i + '" title="Add an Else branch">+ Else</button>' : '') +
-          (meta ? '<span class="mc-bmeta" title="' + meta + '">' + meta + '</span>' : '') + '</div>';
+          (!rec && s.type === 'if' && r.elseAt == null && !r.fold ? '<button class="mc-addelse" data-i="' + r.i + '" title="Add an Else branch">+ Else</button>' : '') +
+          (meta && !rec ? '<span class="mc-bmeta" title="' + meta + '">' + meta + '</span>' : '') +
+          (X ? '<span class="mc-fill"></span>' + X : '') + '</div>';
       }
       var sub = s.op && s.type === 'event' && s.label !== 'New operation' ? s.op : '';
       // a prompt step (Ask CAM Agent): the request is long text — the row shows its start on the right;
       // selected, a field opens under the row from the names' column to the right edge (2–8 lines, then it
       // scrolls); empty = ask when the macro runs
-      var pr = isPrompt(s), open = pr && on === r.i;
-      var val = pr ? (open ? '' : '<span class="mc-command-val mc-prompt-prev' + (s.val ? '' : ' ask') + '" title="' + esc(s.val) + '">' + esc(s.val ? s.val.replace(/\s+/g, ' ') : 'Ask when run') + '</span>')
-        : isParam(s) ? valCtl(s, r.i) : '<span class="mc-command-val">' + esc(s.val) + '</span>';
-      return '<div role="button" class="mc-step' + ins + (open ? ' has-ed' : '') + (s.bp ? ' bp' : '') + (isParam(s) && !s.val ? ' ask' : '') + band(r) + '" data-step="' + r.i + '" aria-pressed="' + (on === r.i) + '"' + st + ' title="' + esc(pr ? '' : s.cmd || '') + '">' +
-        guides(r) + BP(s) + NUM(r.no) + SP +
+      // the row reads the values as text; the selected step edits them under the row (fieldsHTML / the prompt)
+      var pr = isPrompt(s), fl = pr ? [] : fieldsOf(s), open = !rec && on === r.i && (pr || fl.length > 0);
+      var ask = pr ? !s.val : fl.some(function(f){ return !f.val; });
+      var val = open ? ''
+        : pr ? '<span class="mc-command-val mc-prompt-prev' + (ask ? ' ask' : '') + '" title="' + esc(s.val) + '">' + esc(s.val ? s.val.replace(/\s+/g, ' ') : 'Ask when run') + '</span>'
+        : fl.length ? '<span class="mc-command-val" title="' + esc(summaryText(fl)) + '">' + summaryHTML(fl) + '</span>'
+        : '<span class="mc-command-val" title="' + esc(s.val) + '">' + esc(s.val) + '</span>';
+      return '<div role="button" class="mc-step' + ins + (open ? ' has-ed' : '') + (s.bp ? ' bp' : '') + (ask ? ' ask' : '') + band(r) + '" data-step="' + r.i + '" aria-pressed="' + (on === r.i) + '"' + st +
+        (rec && recPaused ? ' draggable="true"' : '') + ' title="' + esc(pr || open ? '' : s.label + (s.val ? ': ' + s.val : '')) + '">' +
+        guides(r) + BP(s, ask) + NUM(r.no) + SP +
         stepIcon(s) +
-        '<span class="mc-command-label">' + esc(s.label) + (sub ? '<span class="mc-sub"> · ' + esc(sub) + '</span>' : '') + '</span>' + val +
-        (open ? '<span class="mc-ed"><textarea class="mc-prompt" data-i="' + r.i + '" rows="2" spellcheck="false" placeholder="What should the agent do? Leave empty to ask when the macro runs">' + esc(s.val) + '</textarea></span>' : '') +
+        '<span class="mc-command-label">' + esc(s.label) + (sub ? '<span class="mc-sub"> · ' + esc(sub) + '</span>' : '') + '</span>' + val + X +
+        (open ? (pr ? '<span class="mc-ed"><textarea class="mc-prompt" data-i="' + r.i + '" rows="2" spellcheck="false" placeholder="What should the agent do? Leave empty to ask when the macro runs">' + esc(s.val) + '</textarea></span>'
+                    : fieldsHTML(r.i, fl)) : '') +
         '</div>';
     }).join('');
   }
@@ -4563,6 +4654,13 @@
       if(hint) hint.textContent = 'Steps to repeat ' + (b.n || 'N') + ' times — click to add';
       return;
     }
+    var fi = e.target.closest('.mc-fin');
+    if(fi){
+      var fs = steps[+fi.dataset.i]; setField(fs, +fi.dataset.j, fi.value.trim());
+      fi.closest('.mc-fld').classList.toggle('ask', !fi.value.trim());
+      fi.closest('.mc-step').classList.toggle('ask', fieldsOf(fs).some(function(f){ return !f.val; }));
+      setValid(); return;
+    }
     var ta = e.target.closest('.mc-prompt');
     if(ta){ var ps = steps[+ta.dataset.i]; setVal(ps, ta.value.trim()); grow(ta); ta.closest('.mc-step').classList.toggle('ask', !ps.val); setValid(); return; }
     var inp = e.target.closest('.mc-command-input'); if(!inp) return;
@@ -4580,6 +4678,29 @@
       e.stopPropagation();
       var owner = +sl.dataset.slot; sel = {i:owner, slot:true}; armed = -1; renderSteps();
       commandMenu($('mcCmds').querySelector('.mc-slot[data-slot="' + owner + '"] .mc-slot-i')); // opens from its "+"
+      return;
+    }
+    // the selected step's fields: a list, a switch, its buttons (pick on the model · clear), "?" = ask when run
+    var fc = e.target.closest('.mc-fields [data-j]');
+    if(fc){
+      e.stopPropagation();
+      var fs = steps[+fc.dataset.i], j = +fc.dataset.j, f = fieldsOf(fs)[j], act = fc.dataset.act;
+      var put = function(v){ setField(fs, j, v); renderSteps(); };
+      // the ask marker toggles, as Blender's keyframe dot does: on keeps the value aside, off brings it back
+      if(act === 'ask'){
+        var keep = fs.fields ? fs.fields[j] : fs;
+        if(f.val){ keep.prevVal = f.val; put(''); } else put(keep.prevVal || (f.ctl === 'dropdown' && f.opts ? f.opts[0] : f.ctl === 'toggle' ? 'On' : ''));
+        return;
+      }
+      if(act === 'clear'){ put(''); return; }
+      if(act === 'pick'){ put(f.pick || f.val || 'Picked on the model'); return; }
+      if(fc.classList.contains('mc-ftgl')){ put(f.val === 'On' ? 'Off' : 'On'); return; }
+      if(fc.classList.contains('mc-fdd')){
+        var opts = (f.opts || []).slice(); if(f.val && opts.indexOf(f.val) < 0) opts.unshift(f.val);
+        var items = opts.map(function(o){ return {label:o, cur:o === f.val, onPick:function(){ put(o); }}; });
+        items.push({sep:true}, {label:'Ask when run', cur:!f.val, onPick:function(){ put(''); }});
+        window.ENCY_MENU.show(fc.getBoundingClientRect(), items, fc, fc.offsetWidth);
+      }
       return;
     }
     var s = e.target.closest('[data-step]'); if(!s) return;
@@ -4617,13 +4738,23 @@
     if(s.type === 'end') return 'End of ' + NAME[steps[startOf(steps.indexOf(s))].type];
     return s.label;
   }
-  // where recording goes on, said in words: after step 4 · inside For each · inside Else · after the If block
+  // the block a place lies in (the place = before index p): its name — "For each", "If", "Else" — or ''
+  function blockAt(p){
+    for(var k = p - 1, d = 0; k >= 0; k--){
+      var t = steps[k].type;
+      if(t === 'end') d++;
+      else if(OPEN[t]){ if(!d) return NAME[t]; d--; }
+      else if(t === 'else' && !d) return 'Else';
+    }
+    return '';
+  }
+  // where recording goes on, said in words: after step 4 in For each · inside Else · after the If block
   function whereText(i){
-    var t = steps[i].type;
+    var t = steps[i].type, ctx = blockAt(i + 1);
     if(OPEN[t]) return 'inside ' + NAME[t];
     if(t === 'else') return 'inside Else';
-    if(t === 'end') return 'after the ' + NAME[steps[startOf(i)].type] + ' block';
-    return 'after step ' + count(steps.slice(0, i + 1));
+    if(t === 'end'){ var out = blockAt(startOf(i)); return 'after the ' + NAME[steps[startOf(i)].type] + ' block' + (out ? ' in ' + out : ''); }
+    return 'after step ' + count(steps.slice(0, i + 1)) + (ctx ? ' in ' + ctx : '');
   }
   function updateRecording(){
     panel.classList.toggle('compact', recording);
@@ -4632,9 +4763,15 @@
     $('mcRecBar').hidden = !recording;
     var n = count(steps);
     $('mcRecText').textContent = recPaused ? 'Recording paused' : 'Recording \u00b7 ' + n + (n === 1 ? ' step' : ' steps');
-    var last = steps[recAt >= 0 ? recAt : steps.length - 1];
-    $('mcRecLast').textContent = recAt >= 0 && recPaused ? 'Continue ' + whereText(recAt)
-      : last ? recLabel(last) + (last.val ? ': ' + last.val : '') : 'Work in the project\u2026';
+    // paused: where it goes on; recording: the step just taken, and the block the next ones go into
+    // (the block's name never gets cut: the step's text gives way, "in For each" stays, in the block's hue)
+    var last = steps[recAt >= 0 ? recAt : steps.length - 1], ctx = blockAt(recAt >= 0 ? recAt + 1 : steps.length);
+    var txt = recPaused ? (recAt >= 0 ? 'Continue ' + whereText(recAt) : 'Continue at the end')
+      : last ? recLabel(last) + (last.val && isStep(last) && !OPEN[last.type] ? ': ' + last.val : '') : 'Work in the project\u2026';
+    var inBlk = !recPaused && ctx;
+    $('mcRecLast').innerHTML = '<span class="mc-rl-t">' + esc(txt) + '</span>' +
+      (inBlk ? '<span class="mc-rl-c ' + (ctx === 'If' || ctx === 'Else' ? 'k-if' : 'k-loop') + '">in ' + esc(ctx) + '</span>' : '');
+    $('mcRecLast').title = txt + (inBlk ? ' \u00b7 in ' + ctx : '');
     $('mcRecPause').title = recPaused ? 'Resume recording' : 'Pause recording';
     $('mcRecPause').innerHTML = recPaused
       ? '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="4.5" fill="#ff7072"/></svg>'
@@ -4642,79 +4779,60 @@
     renderRecList();
     renderSteps();
   }
-  // the tail of the recording under the strip: 3 rows while recording, 6 + delete while paused
+  // the recording strip's list: the macro's outline, read-only (stepsHTML(true)); what recording goes on
+  // after is lit and kept in view. A click on a row moves that place, recording or paused — as the Macro tab
+  // reads a selection: a step = after it, a header = after the whole block (the way out of a block), an Else
+  // or an empty branch = into it. Paused: a row's ✕ deletes it (a block whole), a step drags
   function renderRecList(){
     var box = $('mcRecList');
     if(!recording || !steps.length){ box.hidden = true; box.innerHTML = ''; return; }
-    var cur = recAt >= 0 ? recAt : steps.length - 1;
-    // every step, scrollable; the list follows the insertion point. Blocks: rows inside are indented,
-    // the opener and Else are rows of their own, End is a thin edge (a click on it: continue after the block)
     box.hidden = false;
-    var d = 0, no = 0, X = '<button class="mc-recrow__x" title="Delete"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 2l6 6M8 2l-6 6"/></svg></button>';
-    box.innerHTML = steps.map(function(st, i){
-        var t = st.type, html, k = t === 'if' || t === 'else' ? 'if' : 'loop';
-        if(t === 'end'){
-          d--;
-          var o = steps[startOf(i)];
-          html = '<div class="mc-recrow mc-recend k-' + (o.type === 'if' ? 'if' : 'loop') + (i === cur ? ' last' : '') + '" data-i="' + i + '" style="--d:' + d + '"' +
-            ' title="' + (recPaused ? 'Continue recording after the block' : '') + '"></div>';
-        } else if(t === 'else' || OPEN[t]){
-          if(t === 'else') d--;
-          html = '<div class="mc-recrow mc-recblk k-' + k + (i === cur ? ' last' : '') + '" data-i="' + i + '" style="--d:' + d + '"' +
-            ' title="' + (recPaused ? 'Continue recording inside' : '') + '">' +
-            '<span class="mc-recrow__n">' + (OPEN[t] ? String(++no).padStart(2, '0') : '') + '</span>' +
-            (OPEN[t] ? '<span class="mc-recrow__i">' + ICN[t] + '</span>' : '') +
-            '<span class="mc-recrow__l">' + esc(OPEN[t] ? blkText(st) : 'Else') + '</span>' + X + '</div>';
-          d++;
-        } else {
-          html = '<div class="mc-recrow' + (i === cur ? ' last' : '') + '" data-i="' + i + '" style="--d:' + d + '"' + (recPaused ? ' draggable="true"' : '') +
-            ' title="' + (recPaused ? 'Continue recording after this step \u00b7 drag to reorder' : '') + '">' +
-            '<span class="mc-recrow__n">' + String(++no).padStart(2, '0') + '</span>' +
-            '<span class="mc-recrow__l">' + esc(st.label) + (st.op && st.label !== 'New operation' && st.label !== 'Calculate' ? ' \u00b7 ' + esc(st.op) : '') + '</span>' +
-            '<span class="mc-recrow__v">' + esc(st.val) + '</span>' + X + '</div>';
-        }
-        return html + (recAt >= 0 && i === recAt ? '<div class="mc-recins" style="--d:' + d + '"><i></i><span>Recording continues here</span></div>' : '');
-      }).join('');
-    var row = box.querySelector('.mc-recrow.last');
-    if(row) row.scrollIntoView({block:'nearest'});
+    box.innerHTML = stepsHTML(true);
+    var lit = box.querySelectorAll('.ins-on'); if(lit.length) lit[lit.length - 1].scrollIntoView({block:'nearest'});
   }
   $('mcRecList').addEventListener('click', function(e){
-    if(!recPaused) return;
-    var row = e.target.closest('.mc-recrow'); if(!row) return;
-    var i = +row.dataset.i;
-    if(e.target.closest('.mc-recrow__x')){
+    var fold = e.target.closest('.mc-fold');
+    if(fold){ e.stopPropagation(); toggleFold(+fold.closest('[data-step]').dataset.step); renderRecList(); return; }
+    var sl = e.target.closest('.mc-slot'); if(sl){ recAt = +sl.dataset.slot; updateRecording(); return; }
+    var row = e.target.closest('[data-step]'); if(!row) return;
+    var i = +row.dataset.step;
+    if(recPaused && e.target.closest('.mc-recx')){
       // a block goes whole, an Else with its branch, a step alone
       var t = steps[i].type, a = i, b = OPEN[t] ? closeOf(i) : t === 'else' ? closeOf(i) - 1 : i;
       steps.splice(a, b - a + 1);
       if(recAt >= 0){ if(recAt > b) recAt -= b - a + 1; else if(recAt >= a) recAt = a - 1; if(recAt >= steps.length - 1) recAt = -1; }
       revision++; updateRecording(); return;
     }
-    // a click on the row sets the insertion point; the last step means "at the end"
-    recAt = (i === recAt || i === steps.length - 1) ? -1 : i;
+    // a header: after the whole block; the macro's last row means "at the end"
+    var to = OPEN[steps[i].type] ? closeOf(i) : i;
+    recAt = to >= steps.length - 1 ? -1 : to;
     updateRecording();
   });
-  // drag & drop while paused: drop above or below a row, the insertion marker follows its step
+  // drag & drop while paused: only a step is dragged (one step anywhere keeps the blocks whole); the tree's
+  // 2px green line marks the drop above or below a row, an empty branch takes it in
   (function(){
     var list = $('mcRecList'), dragI = -1;
-    function clearMarks(){ list.querySelectorAll('.mc-recrow').forEach(function(r){ r.classList.remove('drop-before', 'drop-after', 'dragging'); }); }
+    function rowsOf(){ return list.querySelectorAll('.mc-step'); }
+    function clearMarks(){ rowsOf().forEach(function(r){ r.classList.remove('drop-before', 'drop-after', 'dragging'); }); }
+    function target(e){ return e.target.closest && e.target.closest('.mc-step'); }
     list.addEventListener('dragstart', function(e){
-      // only a step is dragged: moving one step anywhere keeps the blocks whole
-      var r = e.target.closest('.mc-recrow'); if(!r || !recPaused || !r.draggable){ e.preventDefault(); return; }
-      dragI = +r.dataset.i; r.classList.add('dragging');
+      var r = target(e); if(!r || !recPaused || r.getAttribute('draggable') !== 'true'){ e.preventDefault(); return; }
+      dragI = +r.dataset.step; r.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(dragI)); } catch(x){}
     });
     list.addEventListener('dragover', function(e){
-      var r = e.target.closest('.mc-recrow'); if(!r || dragI < 0) return;
+      var r = target(e); if(!r || dragI < 0) return;
       e.preventDefault(); e.dataTransfer.dropEffect = 'move';
-      var rect = r.getBoundingClientRect(), below = e.clientY > rect.top + rect.height / 2;
-      list.querySelectorAll('.mc-recrow').forEach(function(x){ x.classList.remove('drop-before', 'drop-after'); });
-      if(+r.dataset.i !== dragI) r.classList.add(below ? 'drop-after' : 'drop-before');
+      var rect = r.getBoundingClientRect(), below = r.dataset.slot != null || e.clientY > rect.top + rect.height / 2;
+      rowsOf().forEach(function(x){ x.classList.remove('drop-before', 'drop-after'); });
+      if(+r.dataset.step !== dragI) r.classList.add(below ? 'drop-after' : 'drop-before');
     });
-    list.addEventListener('dragleave', function(e){ if(!list.contains(e.relatedTarget)) list.querySelectorAll('.mc-recrow').forEach(function(x){ x.classList.remove('drop-before', 'drop-after'); }); });
+    list.addEventListener('dragleave', function(e){ if(!list.contains(e.relatedTarget)) rowsOf().forEach(function(x){ x.classList.remove('drop-before', 'drop-after'); }); });
     list.addEventListener('drop', function(e){
-      var r = e.target.closest('.mc-recrow'); if(!r || dragI < 0) return;
+      var r = target(e); if(!r || dragI < 0) return;
       e.preventDefault();
-      var rect = r.getBoundingClientRect(), below = e.clientY > rect.top + rect.height / 2, to = +r.dataset.i + (below ? 1 : 0);
+      var rect = r.getBoundingClientRect(), slot = r.dataset.slot != null;
+      var to = slot ? +r.dataset.slot + 1 : +r.dataset.step + (e.clientY > rect.top + rect.height / 2 ? 1 : 0);
       var marked = recAt >= 0 ? steps[recAt] : null;
       var moved = steps.splice(dragI, 1)[0];
       if(to > dragI) to--;
@@ -4752,13 +4870,18 @@
   // line showed: after the selected row, after the selected block, into the selected branch, else at the end
   function addCommand(type){
     var at = insAt();
-    steps.splice(at, 0, base(type)); sel = {i:at}; armed = -1; revision++; renderSteps(); scrollSel();
+    steps.splice(at, 0, base(type)); armed = -1; revision++;
+    // while recording ("+" on the strip): recording goes on after the new step
+    if(recording){ recAt = at >= steps.length - 1 ? -1 : at; updateRecording(); return; }
+    sel = {i:at}; renderSteps(); scrollSel();
   }
   // a block comes whole (End, and Else for If / Else, with it); its empty branch is selected, so the next step goes in
   function addBlock(id){
     var at = insAt();
-    steps.splice.apply(steps, [at, 0].concat(newBlock(id)));
-    sel = {i:at, slot:true}; armed = -1; revision++; renderSteps(); scrollSel();
+    steps.splice.apply(steps, [at, 0].concat(newBlock(id))); armed = -1; revision++;
+    // while recording: recording goes on inside the new block (its first branch); its fields are set on the Macro tab
+    if(recording){ recAt = at; updateRecording(); return; }
+    sel = {i:at, slot:true}; renderSteps(); scrollSel();
     // an If wants its value first (after the menu has closed and the line has gone — that redraws the list)
     if(id === 'if' || id === 'ifelse') setTimeout(function(){
       var v = $('mcCmds').querySelector('.mc-chip-in[data-i="' + at + '"][data-f="v"]'); if(v) v.focus();
@@ -4776,6 +4899,8 @@
     insLine(true); m._onClose = function(){ insLine(false); };
   }
   $('mcAdd').addEventListener('click', function(e){ e.stopPropagation(); if(!recording) commandMenu($('mcAdd')); });
+  // the recording strip's "+": the same menu; the pick goes where recording goes on (the lit row)
+  $('mcAddRec').addEventListener('click', function(e){ e.stopPropagation(); commandMenu($('mcAddRec')); });
   // the trash: a step goes at once; a block or an Else turns red first and goes on the second click
   $('mcDel').addEventListener('click', function(){
     var k = selKind(), r = selRange(); if(!r) return;
@@ -4815,8 +4940,10 @@
     steps = []; sel = null; armed = -1; $('mcName').value = 'New macro'; revision++; renderSteps();
   });
   function renderSaved(){}
+  // a step's own copy, its fields too (the library and the open macro never share them)
+  function copyStep(s){ var c = Object.assign({}, s); if(s.fields) c.fields = s.fields.map(function(f){ return Object.assign({}, f); }); return c; }
   function loadMacro(name, list){
-    savedName = name; steps = list.map(function(s){ return Object.assign({}, s); }); sel = null; armed = -1;
+    savedName = name; steps = list.map(copyStep); sel = null; armed = -1;
     $('mcName').value = name; revision++; renderSteps();
   }
   // Open: recorded macros of this session, then a file on the computer (the pick is simulated)
@@ -4837,7 +4964,7 @@
   $('mcSave').addEventListener('click', function(){
     var name = $('mcName').value.trim();
     if(!name){ $('mcName').focus(); return; }
-    saved[name] = steps.map(function(s){ return Object.assign({}, s); }); savedName = name; renderSaved();
+    saved[name] = steps.map(copyStep); savedName = name; renderSaved();
   });
 
   // ——— From project: turn the current project state into steps ———
@@ -5220,36 +5347,57 @@
   $('mcLogH').addEventListener('click', function(){ var o = $('mcLog').classList.toggle('open'); $('mcLogB').hidden = !o; });
   $('mcModelsH').addEventListener('click', function(){ var o = $('mcModels').classList.toggle('open'); $('mcQueue').hidden = !o; });
 
-  // ——— the step list's height: room for 5 steps by default; the window's bottom edge drags it in whole
-  // rows, like resizing any window (only the resize cursor, no mark). Kept in localStorage; a double-click
-  // returns to 5 steps; the window never runs past the bottom of the 3D view. ———
-  var LIST_MIN = 5 * 24 + 4, LIST_KEY = 'ency.macroListH';
+  // ——— the window's size, as any window's: the bottom edge sets the step list's height (whole rows, room for
+  // 5 steps by default), the right edge the width (480 by default — wider for long names or German), the
+  // bottom-right corner both; only the resize cursor shows, no mark. Kept in localStorage; a double-click on
+  // an edge returns it to its default; the window never runs past the 3D view's bottom or right edge. ———
+  var LIST_MIN = 5 * 24 + 4, LIST_KEY = 'ency.macroListH', W_MIN = 480, W_KEY = 'ency.macroW';
   function listH(h){ panel.style.setProperty('--mc-list-h', h + 'px'); }
-  function listRoom(){ // how far the list may grow: down to 8px above the view's bottom
-    var vp = panel.offsetParent || document.body;
-    return $('mcCmds').offsetHeight + vp.getBoundingClientRect().bottom - 8 - panel.getBoundingClientRect().bottom;
+  function winW(w){ panel.style.setProperty('--mc-w', w + 'px'); }
+  function room(){ // how far the list may grow down and the window right: 8px short of the view's edges
+    var vp = (panel.offsetParent || document.body).getBoundingClientRect(), r = panel.getBoundingClientRect();
+    return {h:$('mcCmds').offsetHeight + vp.bottom - 8 - r.bottom, w:vp.right - 8 - r.left};
   }
-  function listFit(){ if(panel.classList.contains('open') && !$('mcPageMacro').hidden) listH(Math.max(LIST_MIN, Math.min(+localStorage.getItem(LIST_KEY) || LIST_MIN, listRoom()))); }
+  function listFit(){
+    if(!panel.classList.contains('open') || panel.classList.contains('compact')) return;
+    var rm = room();
+    winW(Math.max(W_MIN, Math.min(+localStorage.getItem(W_KEY) || W_MIN, rm.w)));
+    if(!$('mcPageMacro').hidden) listH(Math.max(LIST_MIN, Math.min(+localStorage.getItem(LIST_KEY) || LIST_MIN, rm.h)));
+  }
   (function(){
-    var grip = document.createElement('div'); grip.className = 'mc-vgrip';
-    grip.title = 'Drag to change the height · double-click: 5 steps';
-    panel.appendChild(grip);
     var saved = +localStorage.getItem(LIST_KEY); if(saved >= LIST_MIN) listH(saved);
-    grip.addEventListener('pointerdown', function(e){
-      e.preventDefault(); grip.classList.add('dragging'); document.body.classList.add('mc-resizing');
-      var y0 = e.clientY, h0 = $('mcCmds').offsetHeight, hMax = Math.max(LIST_MIN, listRoom());
-      function mv(ev){
-        var h = Math.max(LIST_MIN, Math.min(hMax, h0 + ev.clientY - y0)), n = Math.round((h - 4) / 24) * 24 + 4;
-        listH(n > hMax ? n - 24 : n); // whole rows only
-      }
-      function up(){
-        grip.classList.remove('dragging'); document.body.classList.remove('mc-resizing');
-        window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
-        try { localStorage.setItem(LIST_KEY, String($('mcCmds').offsetHeight)); } catch(x){}
-      }
-      window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
-    });
-    grip.addEventListener('dblclick', function(){ listH(LIST_MIN); try { localStorage.removeItem(LIST_KEY); } catch(x){} });
+    var savedW = +localStorage.getItem(W_KEY); if(savedW >= W_MIN) winW(savedW);
+    function grip(cls, title, ax, reset){
+      var g = document.createElement('div'); g.className = cls; g.title = title; panel.appendChild(g);
+      g.addEventListener('pointerdown', function(e){
+        e.preventDefault(); g.classList.add('dragging'); document.body.classList.add('mc-resizing', 'mc-rs-' + ax);
+        var x0 = e.clientX, y0 = e.clientY, h0 = $('mcCmds').offsetHeight, w0 = panel.offsetWidth, rm = room();
+        var hMax = Math.max(LIST_MIN, rm.h), wMax = Math.max(W_MIN, rm.w);
+        function mv(ev){
+          if(ax !== 'x'){
+            var h = Math.max(LIST_MIN, Math.min(hMax, h0 + ev.clientY - y0)), n = Math.round((h - 4) / 24) * 24 + 4;
+            listH(n > hMax ? n - 24 : n); // whole rows only
+          }
+          if(ax !== 'y') winW(Math.round(Math.max(W_MIN, Math.min(wMax, w0 + ev.clientX - x0))));
+        }
+        function up(){
+          g.classList.remove('dragging'); document.body.classList.remove('mc-resizing', 'mc-rs-' + ax);
+          window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+          try {
+            if(ax !== 'x') localStorage.setItem(LIST_KEY, String($('mcCmds').offsetHeight));
+            if(ax !== 'y') localStorage.setItem(W_KEY, String(panel.offsetWidth));
+          } catch(x){}
+        }
+        window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+      });
+      g.addEventListener('dblclick', reset);
+      g.addEventListener('click', function(e){ e.stopPropagation(); });
+    }
+    var resetH = function(){ listH(LIST_MIN); try { localStorage.removeItem(LIST_KEY); } catch(x){} };
+    var resetW = function(){ winW(W_MIN); try { localStorage.removeItem(W_KEY); } catch(x){} };
+    grip('mc-vgrip', 'Drag to change the height · double-click: 5 steps', 'y', resetH);
+    grip('mc-hgrip', 'Drag to change the width · double-click: default width', 'x', resetW);
+    grip('mc-cgrip', 'Drag to resize · double-click: default size', 'xy', function(){ resetH(); resetW(); });
     window.addEventListener('resize', listFit);
   })();
 
