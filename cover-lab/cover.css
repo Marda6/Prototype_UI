@@ -2,7 +2,7 @@
    ENCY Core tokens: dark theme, 24px controls, 4px radii. */
 :root{
   --th-on-green:#04150e; --th-green-hover:#00b578;
-  --cv-amber:#ebc14a; --cv-red:#ff6b6b; --cv-accent:#33d9c3;
+  --cv-amber:#ebc14a; --cv-red:#ff6b6b; --cv-accent:#00cb9a;
   --side-w:360px;
 }
 body{overflow:hidden;}

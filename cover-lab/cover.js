@@ -1,5 +1,5 @@
 /* ENCY · YouTube covers
-   One template for every video: the left panel is fixed — logo, rule, title, a dash, the bottom line —
+   One template for every video: the left panel is fixed — logo, rule, title, the bottom line —
    only the words change; the right side takes a picture (or four) that the user drops in, moves and zooms.
    The cover is a canvas: the preview, the feed thumbnails and the PNG are the same drawing (render). */
 (function(){
@@ -10,17 +10,16 @@
 
   /* ---- the template: measured on the six covers that were sent, then made the same for all ---- */
   var T = {
-    bg: '#0f151a', ink: '#ffffff', accent: '#33d9c3', sub: 'rgba(255,255,255,.82)',
+    bg: '#0f151a', ink: '#ffffff', accent: '#00cb9a', sub: 'rgba(255,255,255,.82)',
     empty: '#141b21',                    // a place with no picture yet
-    pad: 56,                             // left edge of the logo, the title, the dash and the bottom line
-    logo: {x: 56, y: 46, h: 36},
+    pad: 56,                             // left edge of the logo, the title and the bottom line
+    logo: {x: 56, y: 45, h: 38},         // 171 × 38, as on the covers that were sent
     rule: {y: 120, h: 2, color: 'rgba(255,255,255,.10)'},
     edge: {top: 650, bottom: 550},       // the slant: its x at the top and at the bottom of the cover
     gapEdge: 40,                         // text stays this far from the slant
     // the block is anchored to the bottom: the bottom line never moves, the title grows upwards
     title: {family: '"Inter Tight", "Inter", system-ui, sans-serif', weight: 800, max: 100, min: 56,
-            lh: 0.98, track: -0.01, base: 464, top: 168},
-    dash: {y: 526, w: 52, h: 6},
+            lh: 0.98, track: -0.01, base: 500, top: 168},
     subt: {family: '"Inter", system-ui, sans-serif', weight: 500, size: 30, lh: 40, base: 598, lines: 2}
   };
   function ex(y){ return T.edge.top + (T.edge.bottom - T.edge.top) * y / H; }   // the slant's x at y
@@ -182,29 +181,21 @@
     if (LS) c.letterSpacing = '0px';
   }
 
-  /* ---- the logo: the wordmark redrawn as strokes (a file of the real one can replace it) ---- */
-  function rpath(c, pts, r){
-    c.beginPath(); c.moveTo(pts[0][0], pts[0][1]);
-    for (var i = 1; i < pts.length - 1; i++)
-      c.arcTo(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], pts[i][2] != null ? pts[i][2] : r);
-    c.lineTo(pts[pts.length - 1][0], pts[pts.length - 1][1]); c.stroke();
-  }
+  /* ---- the logo: ENCY's wordmark as given by the designer ("Vector (Stroke).svg", 1080 × 240, one path,
+     gradient #00CB9A → #1269D9); drawn as a path, so it is sharp at any size. A file can replace it. ---- */
+  var LOGO = {w: 1080, h: 240, from: '#00cb9a', to: '#1269d9', path: null,
+    d: 'M280 120C280 53.7258 333.726 -3.8147e-06 400 0C466.274 3.8147e-06 520 53.7258 520 120V220C520 231.046 511.046 240 500 240C488.954 240 480 231.046 480 220V120C480 75.8172 444.183 40 400 40C355.817 40 320 75.8172 320 120V220C320 231.046 311.046 240 300 240C288.954 240 280 231.046 280 220V120Z' +
+       'M0 120C0 53.7258 53.7258 3.8147e-06 120 3.8147e-06H200.201C222.181 3.8147e-06 240 17.8186 240 39.799C240 50.3543 235.807 60.4774 228.343 67.9412L162.142 134.142C154.332 141.953 141.668 141.953 133.858 134.142C126.047 126.332 126.047 113.668 133.858 105.858L199.716 40H120C75.8172 40 40 75.8172 40 120C40 164.183 75.8172 200 120 200H220C231.046 200 240 208.954 240 220C240 231.046 231.046 240 220 240H120C53.7258 240 0 186.274 0 120Z' +
+       'M560 120C560 53.7258 613.726 3.8147e-06 680 3.8147e-06H780C791.046 3.8147e-06 800 8.95431 800 20C800 31.0457 791.046 40 780 40H680C635.817 40 600 75.8172 600 120C600 164.183 635.817 200 680 200H780C791.046 200 800 208.954 800 220C800 231.046 791.046 240 780 240H680C613.726 240 560 186.274 560 120Z' +
+       'M1060 1.14441e-05C1071.05 1.14441e-05 1080 8.95432 1080 20V120C1080 186.274 1026.27 240 960 240H860C848.954 240 840 231.046 840 220C840 208.954 848.954 200 860 200H960C1004.18 200 1040 164.183 1040 120V20C1040 8.95432 1048.95 1.14441e-05 1060 1.14441e-05Z' +
+       'M845.858 5.85788C853.668 -1.9526 866.332 -1.9526 874.142 5.85789L974.142 105.858C981.953 113.668 981.953 126.332 974.142 134.142C966.332 141.953 953.668 141.953 945.858 134.142L845.858 34.1422C838.047 26.3317 838.047 13.6684 845.858 5.85788Z'};
   function drawLogo(c, x, y, h){
     if (logo) { c.drawImage(logo.img, x, y, logo.img.naturalWidth * h / logo.img.naturalHeight, h); return; }
-    var sw = .17 * h, i = sw / 2, r = .3 * h, yT = i, yB = h - i, yM = h / 2;
-    c.save(); c.translate(x, y);
-    var g = c.createLinearGradient(0, 0, 4.5 * h, 0);
-    g.addColorStop(0, '#35d3ad'); g.addColorStop(1, '#3b70d8');
-    c.strokeStyle = g; c.lineWidth = sw; c.lineCap = 'butt'; c.lineJoin = 'round';
-    var o = 0, w = h;                                     // e
-    rpath(c, [[o + i, yM], [o + w - i, yM, .1 * h], [o + w - i, yT], [o + i, yT], [o + i, yB], [o + w, yB]], r);
-    o = 1.2 * h;                                          // n
-    rpath(c, [[o + i, h], [o + i, yT], [o + w - i, yT], [o + w - i, h]], r);
-    o = 2.4 * h; w = .86 * h;                             // c
-    rpath(c, [[o + w, yT], [o + i, yT], [o + i, yB], [o + w, yB]], r);
-    o = 3.46 * h; w = 1.04 * h;                           // y
-    rpath(c, [[o + i, 0], [o + i, .58 * h], [o + w - i, .58 * h]], .26 * h);
-    rpath(c, [[o + w - i, 0], [o + w - i, yB], [o + .1 * h, yB]], r);
+    if (!LOGO.path) LOGO.path = new Path2D(LOGO.d);
+    var k = h / LOGO.h, g = c.createLinearGradient(0, 0, LOGO.w, 0);
+    g.addColorStop(0, LOGO.from); g.addColorStop(1, LOGO.to);
+    c.save(); c.translate(x, y); c.scale(k, k);
+    c.fillStyle = g; c.fill(LOGO.path, 'evenodd');
     c.restore();
   }
 
@@ -265,7 +256,7 @@
       c.save(); c.beginPath(); c.rect(r.x, r.y, r.w, r.h); c.clip();
       if (imgs[i]) { var p = place(r, imgs[i].img, st.views[i]); c.drawImage(imgs[i].img, p.x, p.y, p.w, p.h); }
       else { c.fillStyle = T.empty; c.fillRect(r.x, r.y, r.w, r.h); if (ui) placeholder(c, r, i, R.length > 1); }
-      if (ui && dropAt === i) { c.fillStyle = 'rgba(51,217,195,.16)'; c.fillRect(r.x, r.y, r.w, r.h); }
+      if (ui && dropAt === i) { c.fillStyle = 'rgba(0,203,154,.16)'; c.fillRect(r.x, r.y, r.w, r.h); }
       c.restore();
     }
     // the panel's shade on the picture, along the slant
@@ -284,11 +275,10 @@
     // the left panel
     c.fillStyle = T.rule.color; c.fillRect(0, T.rule.y, ex(T.rule.y), T.rule.h);
     var gl = c.createLinearGradient(0, 0, 0, H);
-    gl.addColorStop(0, 'rgba(51,217,195,.12)'); gl.addColorStop(1, 'rgba(51,217,195,.6)');
+    gl.addColorStop(0, 'rgba(0,203,154,.12)'); gl.addColorStop(1, 'rgba(0,203,154,.6)');
     c.strokeStyle = gl; c.lineWidth = 2; c.beginPath(); c.moveTo(T.edge.top, 0); c.lineTo(T.edge.bottom, H); c.stroke();
     drawLogo(c, T.logo.x, T.logo.y, T.logo.h);
     if (L.t.lines.length) drawLines(c, L.t, T.pad, T.title.base - (L.t.lines.length - 1) * L.t.lh, T.ink);
-    c.fillStyle = T.accent; c.fillRect(T.pad, T.dash.y, T.dash.w, T.dash.h);
     if (L.s.lines.length) drawLines(c, L.s, T.pad, T.subt.base, T.sub);
 
     if (ui && st.guides) guides(c);
@@ -399,7 +389,7 @@
   function at(e){ var b = cv.getBoundingClientRect(); return {x: (e.clientX - b.left) * W / b.width, y: (e.clientY - b.top) * H / b.height}; }
   function textAt(p){                                    // which field a click on the left panel means
     if (p.x >= ex(p.y) || p.y < T.rule.y + 8) return null;
-    return p.y > T.dash.y - 14 ? fSub : fTitle;
+    return p.y > T.subt.base - T.subt.size - 16 ? fSub : fTitle;
   }
   function cursor(p){
     var i = slotAt(p);
@@ -554,8 +544,8 @@
   // logo
   function logoSync(){
     $('logoDrop').disabled = !logo;
-    $('logoNote').textContent = logo ? 'Свой файл, по высоте ' + T.logo.h + ' px.'
-      : 'Сейчас знак перерисован с присланных обложек. Для точного загрузите SVG или PNG без полей.';
+    $('logoNote').textContent = logo ? 'Свой файл, по высоте ' + T.logo.h + ' px. «Встроенный» вернёт знак ENCY.'
+      : 'Знак ENCY. Для другого логотипа загрузите SVG или PNG без полей — встанет по высоте ' + T.logo.h + ' px.';
   }
   $('logoPick').addEventListener('click', function(){ pick('logo'); });
   $('logoDrop').addEventListener('click', function(){ if (logo) URL.revokeObjectURL(logo.url); logo = null; idbPut('logo', null); logoSync(); draw(); });
