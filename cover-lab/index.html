@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Обложки YouTube · ENCY</title>
+<!-- YouTube covers in one ENCY template: the left panel is fixed (logo, rule, title, dash, bottom line),
+     the words are typed in on the right; the picture is dropped onto the cover. Not part of the prototype. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&family=Inter+Tight:wght@700..900&display=block">
+<link rel="stylesheet" href="../packages/shared-ui/tokens.css">
+<link rel="stylesheet" href="cover.css">
+</head>
+<body>
+<div class="cv-app">
+  <header class="cv-top">
+    <h1>Обложки YouTube</h1>
+    <span class="lbl">1280 × 720 · шаблон ENCY</span>
+    <span class="sp"></span>
+    <button class="btn" id="cvGuides" title="Показать сетку шаблона (G)">
+      <svg viewBox="0 0 16 16"><path d="M5 1.5v13M1.5 5h13M1.5 11h13" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>Направляющие</button>
+    <button class="btn" id="cvCopy" title="Скопировать картинку в буфер">
+      <svg viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M10.5 3.5v-.5a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 3v5A1.5 1.5 0 0 0 4 9.5h.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>Копировать</button>
+    <button class="btn pri" id="cvSave" title="Ctrl+S">
+      <svg viewBox="0 0 16 16"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M2.5 13.5h11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Скачать PNG</button>
+  </header>
+
+  <main class="cv-main">
+    <section class="cv-stage" id="stage">
+      <canvas id="cv" width="1280" height="720"></canvas>
+      <div class="cv-hint">Перетащите картинку на правую часть или нажмите туда · двигайте мышью · колесо — масштаб · <kbd>Ctrl</kbd>+<kbd>V</kbd> — из буфера</div>
+    </section>
+
+    <aside class="cv-side">
+      <div class="fld">
+        <div class="fh">
+          <label for="fTitle">Заголовок</label>
+          <span class="sp"></span>
+          <button class="btn sm" id="accBtn" title="Выделить бирюзой (Ctrl+B)"><i class="sw"></i>Акцент</button>
+        </div>
+        <textarea id="fTitle" rows="4" spellcheck="false"></textarea>
+        <div class="meta" id="titleMeta"></div>
+      </div>
+
+      <div class="fld">
+        <div class="fh"><label for="fSub">Нижняя строка</label></div>
+        <textarea id="fSub" rows="2" spellcheck="false"></textarea>
+        <div class="meta" id="subMeta"></div>
+        <div class="note">Enter — новая строка. <code>*слово*</code> — бирюзой: выделите текст и нажмите «Акцент» или <kbd>Ctrl</kbd>+<kbd>B</kbd>.</div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="fld">
+        <div class="fh">
+          <label>Картинка</label>
+          <span class="sp"></span>
+          <div class="cseg" id="layoutSeg">
+            <div class="ci" data-layout="1">Одна</div>
+            <div class="ci" data-layout="4">2 × 2</div>
+          </div>
+        </div>
+        <div class="slots" id="slotList"></div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="fld">
+        <div class="fh"><label>В ленте YouTube</label></div>
+        <div class="yt-home">
+          <div class="yt-th"><canvas id="thHome"></canvas><span class="yt-dur">12:34</span></div>
+          <div class="yt-meta">
+            <div class="yt-av"></div>
+            <div class="yt-txt"><div class="yt-t" id="ytT1"></div><div class="yt-c">ENCY Software<br>1,2 тыс. просмотров · 2 дня назад</div></div>
+          </div>
+        </div>
+        <div class="yt-side">
+          <div class="yt-th sm"><canvas id="thSide"></canvas><span class="yt-dur">12:34</span></div>
+          <div class="yt-txt"><div class="yt-t" id="ytT2"></div><div class="yt-c">ENCY Software<br>1,2 тыс. просмотров</div></div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="fld">
+        <div class="fh">
+          <label>Логотип</label>
+          <span class="sp"></span>
+          <button class="btn sm" id="logoPick">Загрузить файл…</button>
+          <button class="btn sm" id="logoDrop" title="Вернуть встроенный">Встроенный</button>
+        </div>
+        <div class="note" id="logoNote"></div>
+      </div>
+    </aside>
+  </main>
+</div>
+<input type="file" id="file" accept="image/*" hidden>
+<div class="toast" id="toast"></div>
+<script src="cover.js"></script>
+</body>
+</html>
