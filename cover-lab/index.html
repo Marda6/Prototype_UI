@@ -28,15 +28,28 @@
   <main class="cv-main">
     <section class="cv-stage" id="stage">
       <canvas id="cv" width="1280" height="720"></canvas>
-      <div class="cv-hint">Перетащите картинку на правую часть или нажмите туда · двигайте мышью · колесо — масштаб · <kbd>Ctrl</kbd>+<kbd>V</kbd> — из буфера</div>
+      <div class="cv-hint" id="cvHint"></div>
     </section>
 
     <aside class="cv-side">
       <div class="fld">
         <div class="fh">
+          <label>Вариант</label>
+          <span class="sp"></span>
+          <div class="cseg" id="styleSeg">
+            <div class="ci" data-style="photo">С картинкой</div>
+            <div class="ci" data-style="stripes">Полосы</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="fld">
+        <div class="fh">
           <label for="fTitle">Заголовок</label>
           <span class="sp"></span>
-          <button class="btn sm" id="accBtn" title="Выделить бирюзой (Ctrl+B)"><i class="sw"></i>Акцент</button>
+          <button class="btn sm" id="accBtn" title="Выделить цветом акцента (Ctrl+B)"><i class="sw"></i>Акцент</button>
         </div>
         <textarea id="fTitle" rows="4" spellcheck="false"></textarea>
         <div class="meta" id="titleMeta"></div>
@@ -46,12 +59,22 @@
         <div class="fh"><label for="fSub">Нижняя строка</label></div>
         <textarea id="fSub" rows="2" spellcheck="false"></textarea>
         <div class="meta" id="subMeta"></div>
-        <div class="note">Enter — новая строка. <code>*слово*</code> — бирюзой: выделите текст и нажмите «Акцент» или <kbd>Ctrl</kbd>+<kbd>B</kbd>.</div>
+        <div class="note">Enter — новая строка. <code>*слово*</code> — цветом акцента: выделите текст и нажмите «Акцент» или <kbd>Ctrl</kbd>+<kbd>B</kbd>.</div>
       </div>
 
       <div class="hr"></div>
 
-      <div class="fld">
+      <div class="fld" id="stripeBlock" hidden>
+        <div class="fh">
+          <label>Полосы</label>
+          <span class="sp"></span>
+          <button class="btn sm" id="sxReset" title="Вернуть на место">На место</button>
+        </div>
+        <div class="sl-zoom"><span class="lbl">Сдвиг</span><input type="range" id="sxRange" min="380" max="820" step="1"><span class="v" id="sxVal"></span></div>
+        <div class="note">Фирменные полосы вместо картинки. Двигаются влево-вправо — ползунком или мышью прямо на обложке.</div>
+      </div>
+
+      <div class="fld" id="picBlock">
         <div class="fh">
           <label>Картинка</label>
           <span class="sp"></span>

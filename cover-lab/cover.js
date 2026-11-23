@@ -1,6 +1,7 @@
 /* ENCY · YouTube covers
    One template for every video: the left panel is fixed — logo, rule, title, the bottom line —
    only the words change; the right side takes a picture (or four) that the user drops in, moves and zooms.
+   A second variant has no picture: the brand's diagonal bands of light instead (stripes).
    The cover is a canvas: the preview, the feed thumbnails and the PNG are the same drawing (render). */
 (function(){
   'use strict';
@@ -35,12 +36,16 @@
   /* ---- state: words and framing in localStorage, pictures in IndexedDB ---- */
   var KEY = 'ency.cover';
   function view0(){ return {zoom: 1, cx: .5, cy: .5}; }
-  var st = {title: 'Extension\nStore', sub: 'Build CAM tools with AI', layout: 1, guides: false,
+  // the stripes variant: the bands' angle, where the first band's edge meets the cover's bottom (x) and how far it may go
+  var SB = {angle: 44, x: 480, min: 380, max: 820, cv: null};
+  var st = {title: 'Extension\nStore', sub: 'Build CAM tools with AI', style: 'photo', sx: SB.x, layout: 1, guides: false,
             views: [view0(), view0(), view0(), view0()]};
   try {
     var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (saved) {
       ['title', 'sub', 'layout', 'guides'].forEach(function(k){ if (saved[k] != null) st[k] = saved[k]; });
+      if (saved.style === 'stripes') st.style = 'stripes';
+      if (isFinite(saved.sx)) st.sx = Math.max(SB.min, Math.min(SB.max, +saved.sx));
       (saved.views || []).forEach(function(v, i){ if (v && i < 4) st.views[i] = {zoom: +v.zoom || 1, cx: +v.cx || .5, cy: +v.cy || .5}; });
     }
   } catch (e) {}
@@ -199,6 +204,43 @@
     c.restore();
   }
 
+  /* ---- the stripes: the brand's diagonal bands of light (the "Go beyond CAD/CAM" picture), drawn as gradients,
+     so there is no picture file and the PNG stays clean. A band = a colour that changes along it × a soft
+     profile across it. u runs along the bands (up and to the right), v across them (down and to the right),
+     both from the point where the first band's edge meets the cover's bottom. Moving the bands left or right
+     is a plain shift, so the layer is drawn once, wider than the cover, and shown from the place asked. ---- */
+  function ramp(g, n, from, len, up){      // a soft step of a band's profile: len px from `from`, of n px across
+    for (var i = 0; i <= 8; i++) {
+      var k = i / 8, a = k * k * (3 - 2 * k);
+      g.addColorStop(Math.max(0, Math.min(1, (from + len * k) / n)), 'rgba(0,0,0,' + (up ? a : 1 - a).toFixed(3) + ')');
+    }
+  }
+  function stripes(){
+    if (SB.cv) return SB.cv;
+    var lw = W + SB.max - SB.min, out = document.createElement('canvas'), tmp = document.createElement('canvas');
+    out.width = tmp.width = lw; out.height = tmp.height = H;
+    var o = out.getContext('2d'), t = tmp.getContext('2d'), U0 = -900, U1 = 2000, a = -SB.angle * Math.PI / 180;
+    // v0…v1 across, soft edges `sin` / `sout` wide, colours along u from u0 to u1
+    function band(v0, v1, sin, sout, u0, u1, stops){
+      var n = v1 - v0;
+      t.setTransform(1, 0, 0, 1, 0, 0); t.globalCompositeOperation = 'source-over'; t.clearRect(0, 0, lw, H);
+      t.translate(SB.max, H); t.rotate(a);
+      var g = t.createLinearGradient(u0, 0, u1, 0);
+      stops.forEach(function(s){ g.addColorStop(s[0], s[1]); });
+      t.fillStyle = g; t.fillRect(U0, v0, U1 - U0, n);
+      var m = t.createLinearGradient(0, v0, 0, v1);
+      ramp(m, n, 0, sin, true); ramp(m, n, n - sout, sout, false);
+      t.globalCompositeOperation = 'destination-in'; t.fillStyle = m; t.fillRect(U0, v0 - 2, U1 - U0, n + 4);
+      o.drawImage(tmp, 0, 0);
+    }
+    var dim = 'rgba(15,21,26,';
+    band(252, 552, 108, 108, 0, 1, [[0, 'rgba(13,84,100,.5)'], [1, 'rgba(13,84,100,.5)']]);             // a haze in the gap
+    band(-14, 360, 96, 67, -120, 1120, [[0, '#0b8fb4'], [.26, '#04ae9c'], [.5, '#02bd94'], [.74, '#05a9a0'], [1, '#079cb3']]);  // green
+    band(-14, 158, 96, 53, 230, 1300, [[0, dim + '0)'], [.16, dim + '.46)'], [1, dim + '.46)']]);      // its upper half, dimmer
+    band(422, 680, 67, 53, 160, 1000, [[0, '#07a2b8'], [.35, '#0a8ba0'], [.75, '#0f6172'], [1, '#10505e']]);                     // teal
+    SB.cv = out; return out;
+  }
+
   /* ---- pictures ---- */
   function rects(){
     var x0 = T.edge.bottom, w = W - x0;
@@ -220,7 +262,7 @@
     c.beginPath(); c.moveTo(T.edge.top, 0); c.lineTo(W, 0); c.lineTo(W, H); c.lineTo(T.edge.bottom, H); c.closePath(); c.clip();
   }
   function slotAt(p){
-    if (p.x < 0 || p.y < 0 || p.x > W || p.y > H || p.x <= ex(p.y)) return -1;
+    if (st.style === 'stripes' || p.x < 0 || p.y < 0 || p.x > W || p.y > H || p.x <= ex(p.y)) return -1;
     var R = rects();
     for (var i = 0; i < R.length; i++)
       if (p.x >= R[i].x && p.x <= R[i].x + R[i].w && p.y >= R[i].y && p.y <= R[i].y + R[i].h) return i;
@@ -247,6 +289,13 @@
     var L = layout(), R = rects(), i;
     c.setTransform(k, 0, 0, k, 0, 0);
     c.fillStyle = T.bg; c.fillRect(0, 0, W, H);
+    if (st.style === 'stripes') {
+      c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+      c.drawImage(stripes(), SB.max - st.sx, 0, W, H, 0, 0, W, H);
+      words(c, L);
+      if (ui && st.guides) guides(c);
+      return;
+    }
 
     // the right side
     c.save(); sideClip(c);
@@ -277,11 +326,14 @@
     var gl = c.createLinearGradient(0, 0, 0, H);
     gl.addColorStop(0, 'rgba(0,203,154,.12)'); gl.addColorStop(1, 'rgba(0,203,154,.6)');
     c.strokeStyle = gl; c.lineWidth = 2; c.beginPath(); c.moveTo(T.edge.top, 0); c.lineTo(T.edge.bottom, H); c.stroke();
+    words(c, L);
+
+    if (ui && st.guides) guides(c);
+  }
+  function words(c, L){                    // the same in both variants: logo, title, bottom line
     drawLogo(c, T.logo.x, T.logo.y, T.logo.h);
     if (L.t.lines.length) drawLines(c, L.t, T.pad, T.title.base - (L.t.lines.length - 1) * L.t.lh, T.ink);
     if (L.s.lines.length) drawLines(c, L.s, T.pad, T.subt.base, T.sub);
-
-    if (ui && st.guides) guides(c);
   }
   function guides(c){
     c.save(); c.strokeStyle = 'rgba(255,79,216,.8)'; c.fillStyle = 'rgba(255,79,216,.9)'; c.lineWidth = 1.5;
@@ -378,6 +430,10 @@
   }
   function pick(target){ pickFor = target; file.value = ''; file.click(); }
   file.addEventListener('change', function(){ if (file.files[0]) loadFile(file.files[0], pickFor); });
+  function noPics(){                                     // the stripes variant takes no picture
+    if (st.style !== 'stripes') return false;
+    toast('В варианте «Полосы» картинки нет — переключите на «С картинкой»'); return true;
+  }
   function freeSlot(){                                   // where a pasted or loosely dropped picture goes
     var n = st.layout === 4 ? 4 : 1;
     if (sel < n && !imgs[sel]) return sel;
@@ -393,18 +449,25 @@
   }
   function cursor(p){
     var i = slotAt(p);
-    cv.style.cursor = drag ? 'grabbing' : i >= 0 ? (imgs[i] ? 'grab' : 'pointer') : textAt(p) ? 'text' : 'default';
+    cv.style.cursor = drag ? (drag.s ? 'ew-resize' : 'grabbing') : i >= 0 ? (imgs[i] ? 'grab' : 'pointer')
+      : textAt(p) ? 'text' : st.style === 'stripes' && p.x >= ex(p.y) ? 'ew-resize' : 'default';
   }
   cv.addEventListener('pointerdown', function(e){
     if (e.button !== 0) return;
     var p = at(e), i = slotAt(p);
-    if (i < 0) { var ta = textAt(p); if (ta) { e.preventDefault(); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } return; }
+    if (i < 0) {
+      var ta = textAt(p);
+      if (ta) { e.preventDefault(); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+      else if (st.style === 'stripes' && p.x >= ex(p.y)) { drag = {s: 1, x: p.x}; cv.setPointerCapture(e.pointerId); cursor(p); e.preventDefault(); }
+      return;
+    }
     if (sel !== i) { sel = i; sideSync(); draw(); }
     if (!imgs[i]) { pick(i); return; }
     drag = {i: i, x: p.x, y: p.y}; cv.setPointerCapture(e.pointerId); cursor(p); e.preventDefault();
   });
   cv.addEventListener('pointermove', function(e){
     var p = at(e);
+    if (drag && drag.s) { setSx(st.sx + p.x - drag.x); drag.x = p.x; return; }
     if (drag) {
       var r = rects()[drag.i], v = st.views[drag.i], pl = place(r, imgs[drag.i].img, v);
       v.cx -= (p.x - drag.x) / pl.w; v.cy -= (p.y - drag.y) / pl.h;
@@ -438,6 +501,7 @@
   stage.addEventListener('dragover', function(e){
     if (!hasFiles(e)) return;
     e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
+    if (st.style === 'stripes') return;
     var i = slotAt(at(e)); if (i < 0) i = freeSlot();
     if (i !== dropAt) { dropAt = i; draw(); }
   });
@@ -445,13 +509,14 @@
   stage.addEventListener('drop', function(e){
     if (!hasFiles(e)) return;
     e.preventDefault();
+    if (noPics()) return;
     var i = dropAt >= 0 ? dropAt : freeSlot(); dropAt = -1; draw();
     loadFile(e.dataTransfer.files[0], i);
   });
   document.addEventListener('paste', function(e){
     var items = (e.clipboardData && e.clipboardData.items) || [];
     for (var i = 0; i < items.length; i++)
-      if (items[i].kind === 'file' && /^image\//.test(items[i].type)) { e.preventDefault(); loadFile(items[i].getAsFile(), freeSlot()); return; }
+      if (items[i].kind === 'file' && /^image\//.test(items[i].type)) { e.preventDefault(); if (!noPics()) loadFile(items[i].getAsFile(), freeSlot()); return; }
   });
 
   /* ---- the side panel ---- */
@@ -476,8 +541,27 @@
     }
     $('slotList').innerHTML = html;
     Array.prototype.forEach.call($('layoutSeg').children, function(b){ b.classList.toggle('on', +b.dataset.layout === st.layout); });
+    Array.prototype.forEach.call($('styleSeg').children, function(b){ b.classList.toggle('on', b.dataset.style === st.style); });
+    var bands = st.style === 'stripes';
+    $('picBlock').hidden = bands; $('stripeBlock').hidden = !bands;
+    $('cvHint').innerHTML = bands ? 'Полосы двигаются мышью влево-вправо · текст — в полях справа'
+      : 'Перетащите картинку на правую часть или нажмите туда · двигайте мышью · колесо — масштаб · <kbd>Ctrl</kbd>+<kbd>V</kbd> — из буфера';
+    sxSync();
     $('cvGuides').classList.toggle('on', !!st.guides);
   }
+  function sxSync(){
+    var r = $('sxRange'), d = Math.round(st.sx - SB.x);
+    r.value = st.sx; r.style.setProperty('--p', (st.sx - SB.min) / (SB.max - SB.min) * 100 + '%');
+    $('sxVal').textContent = (d > 0 ? '+' : d < 0 ? '−' : '') + Math.abs(d) + ' px';
+    $('sxReset').disabled = d === 0;
+  }
+  function setSx(x){ st.sx = Math.max(SB.min, Math.min(SB.max, Math.round(x))); save(); sxSync(); draw(); }
+  $('sxRange').addEventListener('input', function(){ setSx(+this.value); });
+  $('sxReset').addEventListener('click', function(){ setSx(SB.x); });
+  $('styleSeg').addEventListener('click', function(e){
+    var b = e.target.closest('[data-style]'); if (!b) return;
+    st.style = b.dataset.style; hoverAt = dropAt = -1; save(); sideSync(); draw();
+  });
   function zoomSync(i){
     var row = $('slotList').querySelector('.slot[data-i="' + i + '"]'); if (!row) return;
     var z = Math.round(st.views[i].zoom * 100), inp = row.querySelector('input');
