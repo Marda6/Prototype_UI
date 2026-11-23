@@ -59,6 +59,8 @@
             cut: {x: CUT.x, y: H - CUT.h / 2, s: 1},      // the cut-out: its centre and size
             front: {a1: false, a2: true, b: true},        // which bands lie over it: a1 upper (dim green), a2 green, b teal
             bg: '#0f151a',                                // the background of both variants
+            bgv: view0(),                                 // the background picture's framing (it covers the whole cover)
+            bgDim: 40,                                    // the background colour over the picture, % — keeps the words readable
             fade: 60,                                     // the front bands' transparency at the top, % (a gradient down to a third of it)
             views: [view0(), view0(), view0(), view0()]};
   try {
@@ -71,6 +73,8 @@
         st.cut = {x: +saved.cut.x, y: +saved.cut.y, s: Math.max(CUT.min, Math.min(CUT.max, +saved.cut.s))};
       if (saved.front) ['a1', 'a2', 'b'].forEach(function(k){ if (saved.front[k] != null) st.front[k] = !!saved.front[k]; });
       if (/^#[0-9a-f]{6}$/i.test(saved.bg || '')) st.bg = saved.bg.toLowerCase();
+      if (saved.bgv) st.bgv = {zoom: +saved.bgv.zoom || 1, cx: +saved.bgv.cx || .5, cy: +saved.bgv.cy || .5};
+      if (isFinite(saved.bgDim)) st.bgDim = Math.max(0, Math.min(95, Math.round(+saved.bgDim)));
       if (isFinite(saved.fade)) st.fade = Math.max(0, Math.min(90, Math.round(+saved.fade)));
       (saved.views || []).forEach(function(v, i){ if (v && i < 4) st.views[i] = {zoom: +v.zoom || 1, cx: +v.cx || .5, cy: +v.cy || .5}; });
     }
@@ -79,7 +83,7 @@
   function save(){ clearTimeout(saveT); saveT = setTimeout(function(){
     try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }, 200); }
 
-  var imgs = [null, null, null, null, null];   // {img, url} per place; the fifth (4) is the stripes variant's cut-out
+  var imgs = [null, null, null, null, null, null];   // {img, url} per place; 4 = the stripes variant's cut-out, 5 = the background
   var logo = null;                       // {img, url} — the user's own logo file
   var sel = 0, hoverAt = -1, dropAt = -1, drag = null, pickFor = 0, hoverCut = false;
 
@@ -349,6 +353,12 @@
     var L = layout(), R = rects(), i;
     c.setTransform(k, 0, 0, k, 0, 0);
     c.fillStyle = P().bg; c.fillRect(0, 0, W, H);
+    if (imgs[5]) {                          // the background picture, darkened by the background colour
+      var bp = place({x: 0, y: 0, w: W, h: H}, imgs[5].img, st.bgv);
+      c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+      c.drawImage(imgs[5].img, bp.x, bp.y, bp.w, bp.h);
+      c.fillStyle = P().bgA(st.bgDim / 100); c.fillRect(0, 0, W, H);
+    }
     if (st.style === 'stripes') {
       c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
       var S = stripes(), sx = SB.max - st.sx;
@@ -366,6 +376,7 @@
         c.strokeRect(f.x + 1, f.y + 1, f.w - 2, f.h - 2); c.restore();
       }
       words(c, L);
+      if (ui) bgDrop(c);
       if (ui && st.guides) guides(c);
       return;
     }
@@ -400,8 +411,16 @@
     gl.addColorStop(0, 'rgba(0,203,154,.12)'); gl.addColorStop(1, 'rgba(0,203,154,.6)');
     c.strokeStyle = gl; c.lineWidth = 2; c.beginPath(); c.moveTo(T.edge.top, 0); c.lineTo(T.edge.bottom, H); c.stroke();
     words(c, L);
+    if (ui) bgDrop(c);
 
     if (ui && st.guides) guides(c);
+  }
+  function bgDrop(c){
+    if (dropAt !== 5) return;
+    c.save(); c.beginPath(); c.moveTo(0, 0); c.lineTo(T.edge.top, 0); c.lineTo(T.edge.bottom, H); c.lineTo(0, H); c.closePath();
+    c.fillStyle = 'rgba(0,203,154,.12)'; c.fill(); c.setLineDash([8, 6]); c.lineWidth = 3; c.strokeStyle = T.accent; c.stroke();
+    c.setLineDash([]); c.fillStyle = T.accent; c.font = '600 26px ' + T.subt.family; c.textAlign = 'center';
+    c.fillText('Отпустите — станет фоном', (T.edge.top + T.edge.bottom) / 4, H / 2 + 120); c.restore();
   }
   function words(c, L){                    // the same in both variants: logo, title, bottom line
     drawLogo(c, T.logo.x, T.logo.y, T.logo.h);
@@ -496,7 +515,7 @@
       } else {
         if (imgs[target]) URL.revokeObjectURL(imgs[target].url);
         imgs[target] = r.o;
-        if (target === 4) st.cut = cut0(); else { st.views[target] = view0(); sel = target; }
+        if (target === 4) st.cut = cut0(); else if (target === 5) st.bgv = view0(); else { st.views[target] = view0(); sel = target; }
         idbPut('s' + target, r.blob); save(); sideSync();
       }
       draw();
@@ -525,6 +544,7 @@
   }
   cv.addEventListener('pointerdown', function(e){
     if (e.button !== 0) return;
+    if (e.altKey && imgs[5]) { drag = {g: 1, x: at(e).x, y: at(e).y}; cv.setPointerCapture(e.pointerId); cv.style.cursor = 'move'; e.preventDefault(); return; }
     var p = at(e), i = slotAt(p);
     if (i < 0) {
       var ta = textAt(p);
@@ -541,6 +561,10 @@
   });
   cv.addEventListener('pointermove', function(e){
     var p = at(e);
+    if (drag && drag.g) {
+      var bv = st.bgv, bq = place({x: 0, y: 0, w: W, h: H}, imgs[5].img, bv);
+      bv.cx -= (p.x - drag.x) / bq.w; bv.cy -= (p.y - drag.y) / bq.h; drag.x = p.x; drag.y = p.y; save(); draw(); return;
+    }
     if (drag && drag.s) { setSx(st.sx + p.x - drag.x); drag.x = p.x; return; }
     if (drag && drag.c) { st.cut.x += p.x - drag.x; st.cut.y += p.y - drag.y; drag.x = p.x; drag.y = p.y; save(); draw(); return; }
     var hc = cutAt(p) && !textAt(p); if (hc !== hoverCut) { hoverCut = hc; draw(); }
@@ -586,7 +610,8 @@
   stage.addEventListener('dragover', function(e){
     if (!hasFiles(e)) return;
     e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
-    var i = slotAt(at(e)); if (i < 0) i = freeSlot();
+    var p = at(e), i = slotAt(p);
+    if (i < 0) i = cutAt(p) ? 4 : p.x < ex(p.y) ? 5 : freeSlot();      // the left part takes the background
     if (i !== dropAt) { dropAt = i; draw(); }
   });
   stage.addEventListener('dragleave', function(e){ if (!stage.contains(e.relatedTarget) && dropAt !== -1) { dropAt = -1; draw(); } });
@@ -612,7 +637,7 @@
   // a picture's size in percent and the ends of its slider: a photo fills its place from 100 %, the cut-out is free
   function zoomOf(i){
     return i === 4 ? {z: Math.round(st.cut.s * 100), min: CUT.min * 100, max: CUT.max * 100}
-                   : {z: Math.round(st.views[i].zoom * 100), min: 100, max: 400};
+                   : {z: Math.round((i === 5 ? st.bgv : st.views[i]).zoom * 100), min: 100, max: 400};
   }
   function rowHTML(i, name, picked){
     var im = imgs[i], q = zoomOf(i);
@@ -630,6 +655,7 @@
     for (var i = 0; i < n; i++) html += rowHTML(i, n > 1 ? NAMES[i] : imgs[i] ? 'Картинка справа' : 'Нет картинки', n > 1 && sel === i);
     $('slotList').innerHTML = html;
     $('cutList').innerHTML = rowHTML(4, imgs[4] ? 'Между полосами' : 'Нет картинки', false);
+    $('bgList').innerHTML = rowHTML(5, imgs[5] ? 'Картинка фона' : 'Без картинки', false);
     Array.prototype.forEach.call($('layoutSeg').children, function(b){ b.classList.toggle('on', +b.dataset.layout === st.layout); });
     Array.prototype.forEach.call($('styleSeg').children, function(b){ b.classList.toggle('on', b.dataset.style === st.style); });
     Array.prototype.forEach.call($('frontSeg').children, function(b){ b.classList.toggle('on', !!st.front[b.dataset.band]); });
@@ -638,8 +664,9 @@
     $('fadeVal').textContent = st.fade + ' %';
     var bands = st.style === 'stripes';
     $('picBlock').hidden = bands; $('stripeBlock').hidden = !bands;
-    $('cvHint').innerHTML = bands ? 'Перетащите PNG без фона на обложку · двигайте его мышью, колесо — размер · полосы двигаются мышью влево-вправо'
-      : 'Перетащите картинку на правую часть или нажмите туда · двигайте мышью · колесо — масштаб · <kbd>Ctrl</kbd>+<kbd>V</kbd> — из буфера';
+    $('cvHint').innerHTML = (bands ? 'PNG без фона — на правую часть · колесо — размер · полосы двигаются мышью'
+      : 'Картинку — на правую часть · колесо — масштаб · <kbd>Ctrl</kbd>+<kbd>V</kbd> — из буфера') +
+      ' · фон — на левую часть, <kbd>Alt</kbd> + мышь двигает фон';
     sxSync(); bgSync();
     $('cvGuides').classList.toggle('on', !!st.guides);
   }
@@ -659,7 +686,13 @@
     $('bgPick').value = st.bg; $('bgHex').textContent = st.bg.toUpperCase();
     $('bgPick').parentNode.classList.toggle('on', !preset);
     $('bgNote').hidden = !P().light;
+    var dr = $('bgDim'); dr.value = st.bgDim; dr.style.setProperty('--p', st.bgDim / 95 * 100 + '%'); dr.disabled = !imgs[5];
+    $('bgDimVal').textContent = st.bgDim + ' %';
   }
+  $('bgDim').addEventListener('input', function(){
+    st.bgDim = +this.value; this.style.setProperty('--p', st.bgDim / 95 * 100 + '%'); $('bgDimVal').textContent = st.bgDim + ' %';
+    save(); draw();
+  });
   function setBg(c){ st.bg = c.toLowerCase(); save(); bgSync(); draw(); }
   $('bgSeg').addEventListener('click', function(e){ var b = e.target.closest('[data-bg]'); if (b) setBg(b.dataset.bg); });
   $('bgPick').addEventListener('input', function(){ setBg(this.value); });
@@ -681,9 +714,9 @@
     var q = zoomOf(i), inp = row.querySelector('input');
     inp.value = q.z; inp.style.setProperty('--p', (q.z - q.min) / (q.max - q.min) * 100 + '%'); row.querySelector('.v').textContent = q.z + ' %';
   }
-  function reset(i){ if (i === 4) st.cut = cut0(); else st.views[i] = view0(); }
+  function reset(i){ if (i === 4) st.cut = cut0(); else if (i === 5) st.bgv = view0(); else st.views[i] = view0(); }
   // the rows of pictures: the photo's places and the stripes variant's cut-out work the same
-  [$('slotList'), $('cutList')].forEach(function(list){
+  [$('slotList'), $('cutList'), $('bgList')].forEach(function(list){
     list.addEventListener('click', function(e){
       var row = e.target.closest('.slot'); if (!row) return;
       var i = +row.dataset.i, b = e.target.closest('[data-act]'), act = b && b.dataset.act;
@@ -697,7 +730,7 @@
     list.addEventListener('input', function(e){
       var row = e.target.closest('.slot'); if (!row || e.target.type !== 'range') return;
       var i = +row.dataset.i;
-      if (i === 4) st.cut.s = e.target.value / 100; else { st.views[i].zoom = e.target.value / 100; sel = i; }
+      if (i === 4) st.cut.s = e.target.value / 100; else if (i === 5) st.bgv.zoom = e.target.value / 100; else { st.views[i].zoom = e.target.value / 100; sel = i; }
       save(); zoomSync(i); draw();
     });
     list.addEventListener('dragover', function(e){
@@ -801,7 +834,7 @@
         mcache.clear(); lay.key = null; draw();
         if (!document.fonts.check('800 100px "Inter Tight"')) toast('Шрифт Inter Tight не загрузился — нужен интернет');
       }, function(){ toast('Шрифт Inter Tight не загрузился — нужен интернет'); });
-  ['s0', 's1', 's2', 's3', 's4', 'logo'].forEach(function(k, i){
+  ['s0', 's1', 's2', 's3', 's4', 's5', 'logo'].forEach(function(k, i){
     idbGet(k).then(function(blob){
       if (!blob) return;
       return imgFrom(blob).then(function(o){ if (k === 'logo') { logo = o; logoSync(); } else imgs[i] = o; sideSync(); draw(); });
