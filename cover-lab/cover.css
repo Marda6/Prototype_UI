@@ -68,6 +68,11 @@ textarea:focus{box-shadow:inset 0 0 0 1px var(--ec-green);}
 .sl-thumb{flex:0 0 96px;height:54px;border-radius:4px;overflow:hidden;display:grid;place-items:center;cursor:pointer;
   background:var(--ec-fg-6);color:var(--ec-fg-48);}
 .sl-thumb img{width:100%;height:100%;object-fit:cover;}
+/* a cut-out is shown whole, on the checkerboard of transparency */
+.slot.cut:not(.empty) .sl-thumb{background:repeating-conic-gradient(var(--ec-fg-12) 0 25%, transparent 0 50%) 0 0/12px 12px;}
+.slot.cut .sl-thumb img{object-fit:contain;}
+.tgs{display:flex;gap:4px;}
+.fh.sub{margin-top:6px;}
 .sl-thumb svg{width:20px;height:20px;}
 .slot.empty .sl-thumb{background:transparent;border:1px dashed var(--ec-fg-24);}
 .slot.empty .sl-thumb:hover{border-color:var(--ec-fg-48);color:var(--ec-fg-80);}

@@ -71,7 +71,19 @@
           <button class="btn sm" id="sxReset" title="Вернуть на место">На место</button>
         </div>
         <div class="sl-zoom"><span class="lbl">Сдвиг</span><input type="range" id="sxRange" min="380" max="820" step="1"><span class="v" id="sxVal"></span></div>
-        <div class="note">Фирменные полосы вместо картинки. Двигаются влево-вправо — ползунком или мышью прямо на обложке.</div>
+        <div class="note">Фирменные полосы. Двигаются влево-вправо — ползунком или мышью прямо на обложке.</div>
+        <div class="fh sub"><label>Картинка без фона</label></div>
+        <div class="slots" id="cutList"></div>
+        <div class="fh"><span class="lbl">Поверх картинки</span></div>
+        <div class="fh">
+          <div class="tgs" id="frontSeg">
+            <button class="btn sm" data-band="a1" title="Верхняя, приглушённая зелёная"><i class="sw" style="background:#0a6b58"></i>Верхняя</button>
+            <button class="btn sm" data-band="a2" title="Яркая зелёная"><i class="sw" style="background:#02bd94"></i>Средняя</button>
+            <button class="btn sm" data-band="b" title="Бирюзовая в углу"><i class="sw" style="background:#0a8ba0"></i>Нижняя</button>
+          </div>
+        </div>
+        <div class="sl-zoom" title="Сверху полосы просвечивают сильнее, к низу — плотнее"><span class="lbl">Прозрачность</span><input type="range" id="fadeRange" min="0" max="90" step="1"><span class="v" id="fadeVal"></span></div>
+        <div class="note">PNG с прозрачным фоном встаёт между полосами: отмеченные идут поверх него, остальные — за ним. Передние полосы просвечивают градиентом — сверху сильнее, к низу плотнее.</div>
       </div>
 
       <div class="fld" id="picBlock">

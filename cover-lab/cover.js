@@ -37,8 +37,13 @@
   var KEY = 'ency.cover';
   function view0(){ return {zoom: 1, cx: .5, cy: .5}; }
   // the stripes variant: the bands' angle, where the first band's edge meets the cover's bottom (x) and how far it may go
-  var SB = {angle: 44, x: 480, min: 380, max: 820, cv: null};
+  var SB = {angle: 44, x: 480, min: 380, max: 820, key: null, back: null, fore: null};
+  // the stripes variant's cut-out (a PNG without a background): the box it fits at 100 %, its centre's x
+  var CUT = {w: 640, h: 620, x: 940, min: .2, max: 4};
   var st = {title: 'Extension\nStore', sub: 'Build CAM tools with AI', style: 'photo', sx: SB.x, layout: 1, guides: false,
+            cut: {x: CUT.x, y: H - CUT.h / 2, s: 1},      // the cut-out: its centre and size
+            front: {a1: false, a2: true, b: true},        // which bands lie over it: a1 upper (dim green), a2 green, b teal
+            fade: 60,                                     // the front bands' transparency at the top, % (a gradient down to a third of it)
             views: [view0(), view0(), view0(), view0()]};
   try {
     var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
@@ -46,6 +51,10 @@
       ['title', 'sub', 'layout', 'guides'].forEach(function(k){ if (saved[k] != null) st[k] = saved[k]; });
       if (saved.style === 'stripes') st.style = 'stripes';
       if (isFinite(saved.sx)) st.sx = Math.max(SB.min, Math.min(SB.max, +saved.sx));
+      if (saved.cut && isFinite(saved.cut.x) && isFinite(saved.cut.y) && saved.cut.s > 0)
+        st.cut = {x: +saved.cut.x, y: +saved.cut.y, s: Math.max(CUT.min, Math.min(CUT.max, +saved.cut.s))};
+      if (saved.front) ['a1', 'a2', 'b'].forEach(function(k){ if (saved.front[k] != null) st.front[k] = !!saved.front[k]; });
+      if (isFinite(saved.fade)) st.fade = Math.max(0, Math.min(90, Math.round(+saved.fade)));
       (saved.views || []).forEach(function(v, i){ if (v && i < 4) st.views[i] = {zoom: +v.zoom || 1, cx: +v.cx || .5, cy: +v.cy || .5}; });
     }
   } catch (e) {}
@@ -53,9 +62,9 @@
   function save(){ clearTimeout(saveT); saveT = setTimeout(function(){
     try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }, 200); }
 
-  var imgs = [null, null, null, null];   // {img, url} per place
+  var imgs = [null, null, null, null, null];   // {img, url} per place; the fifth (4) is the stripes variant's cut-out
   var logo = null;                       // {img, url} — the user's own logo file
-  var sel = 0, hoverAt = -1, dropAt = -1, drag = null, pickFor = 0;
+  var sel = 0, hoverAt = -1, dropAt = -1, drag = null, pickFor = 0, hoverCut = false;
 
   var db = null;
   function idb(){
@@ -215,13 +224,18 @@
       g.addColorStop(Math.max(0, Math.min(1, (from + len * k) / n)), 'rgba(0,0,0,' + (up ? a : 1 - a).toFixed(3) + ')');
     }
   }
+  // Two layers: the bands behind the cut-out picture and the bands over it (st.front says which is which).
   function stripes(){
-    if (SB.cv) return SB.cv;
-    var lw = W + SB.max - SB.min, out = document.createElement('canvas'), tmp = document.createElement('canvas');
-    out.width = tmp.width = lw; out.height = tmp.height = H;
-    var o = out.getContext('2d'), t = tmp.getContext('2d'), U0 = -900, U1 = 2000, a = -SB.angle * Math.PI / 180;
-    // v0…v1 across, soft edges `sin` / `sout` wide, colours along u from u0 to u1
-    function band(v0, v1, sin, sout, u0, u1, stops){
+    var key = [st.front.a1, st.front.a2, st.front.b, st.fade].join();
+    if (SB.key === key) return SB;
+    var lw = W + SB.max - SB.min, tmp = document.createElement('canvas');
+    function layer(old){ var c = old || document.createElement('canvas'); c.width = lw; c.height = H; return c.getContext('2d'); }
+    tmp.width = lw; tmp.height = H;
+    var back = layer(SB.back), fore = layer(SB.fore), t = tmp.getContext('2d'), U0 = -900, U1 = 2000, a = -SB.angle * Math.PI / 180;
+    SB.back = back.canvas; SB.fore = fore.canvas;
+    // onto layer o: v0…v1 across, soft edges `sin` / `sout` wide, colours along u from u0 to u1;
+    // atop = only where the layer is painted already (a shade on a band, not on what is under the layer)
+    function band(o, v0, v1, sin, sout, u0, u1, stops, atop){
       var n = v1 - v0;
       t.setTransform(1, 0, 0, 1, 0, 0); t.globalCompositeOperation = 'source-over'; t.clearRect(0, 0, lw, H);
       t.translate(SB.max, H); t.rotate(a);
@@ -231,14 +245,43 @@
       var m = t.createLinearGradient(0, v0, 0, v1);
       ramp(m, n, 0, sin, true); ramp(m, n, n - sout, sout, false);
       t.globalCompositeOperation = 'destination-in'; t.fillStyle = m; t.fillRect(U0, v0 - 2, U1 - U0, n + 4);
+      o.globalCompositeOperation = atop ? 'source-atop' : 'source-over';
       o.drawImage(tmp, 0, 0);
     }
-    var dim = 'rgba(15,21,26,';
-    band(252, 552, 108, 108, 0, 1, [[0, 'rgba(13,84,100,.5)'], [1, 'rgba(13,84,100,.5)']]);             // a haze in the gap
-    band(-14, 360, 96, 67, -120, 1120, [[0, '#0b8fb4'], [.26, '#04ae9c'], [.5, '#02bd94'], [.74, '#05a9a0'], [1, '#079cb3']]);  // green
-    band(-14, 158, 96, 53, 230, 1300, [[0, dim + '0)'], [.16, dim + '.46)'], [1, dim + '.46)']]);      // its upper half, dimmer
-    band(422, 680, 67, 53, 160, 1000, [[0, '#07a2b8'], [.35, '#0a8ba0'], [.75, '#0f6172'], [1, '#10505e']]);                     // teal
-    SB.cv = out; return out;
+    var dim = 'rgba(15,21,26,', green = [[0, '#0b8fb4'], [.26, '#04ae9c'], [.5, '#02bd94'], [.74, '#05a9a0'], [1, '#079cb3']];
+    var A1 = st.front.a1 ? fore : back, A2 = st.front.a2 ? fore : back, B = st.front.b ? fore : back;
+    band(back, 252, 552, 108, 108, 0, 1, [[0, 'rgba(13,84,100,.5)'], [1, 'rgba(13,84,100,.5)']]);       // a haze in the gap
+    band(A1, -14, 196, 96, 60, -120, 1120, green);                                                      // the upper band: green…
+    band(A1, -14, 196, 96, 60, 230, 1300, [[0, dim + '0)'], [.16, dim + '.46)'], [1, dim + '.46)']], true);  // …dimmer past its start
+    band(A2, 104, 360, 54, 67, -120, 1120, green);                                                      // the bright green band
+    band(B, 422, 680, 67, 53, 160, 1000, [[0, '#07a2b8'], [.35, '#0a8ba0'], [.75, '#0f6172'], [1, '#10505e']]);  // teal
+    // the front bands let the picture show through: most at the top (a face), less towards the bottom edge;
+    // the gradient is vertical, so the layer's left-right shift does not change it
+    var f = st.fade / 100;
+    if (f > 0) {
+      var m = fore.createLinearGradient(0, 0, 0, H);
+      m.addColorStop(0, 'rgba(0,0,0,' + (1 - f).toFixed(3) + ')');
+      m.addColorStop(1, 'rgba(0,0,0,' + (1 - f / 3).toFixed(3) + ')');
+      fore.globalCompositeOperation = 'destination-in'; fore.fillStyle = m; fore.fillRect(0, 0, lw, H);
+      fore.globalCompositeOperation = 'source-over';
+    }
+    SB.key = key; return SB;
+  }
+  // where the cut-out lies: fitted into its box at 100 %, moved and sized freely, never quite out of the cover
+  function cutBox(){
+    var im = imgs[4].img, c = st.cut, k = Math.min(CUT.w / im.naturalWidth, CUT.h / im.naturalHeight) * c.s;
+    var w = im.naturalWidth * k, h = im.naturalHeight * k;
+    c.x = clamp(c.x, 80 - w / 2, W - 80 + w / 2); c.y = clamp(c.y, 80 - h / 2, H - 80 + h / 2);
+    return {x: c.x - w / 2, y: c.y - h / 2, w: w, h: h};
+  }
+  function cut0(){                         // a new cut-out stands on the cover's bottom edge, right of the text
+    var im = imgs[4] && imgs[4].img;
+    var h = im ? im.naturalHeight * Math.min(CUT.w / im.naturalWidth, CUT.h / im.naturalHeight) : CUT.h;
+    return {x: CUT.x, y: H - h / 2, s: 1};
+  }
+  function cutAt(p){
+    if (st.style !== 'stripes' || !imgs[4]) return false;
+    var b = cutBox(); return p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
   }
 
   /* ---- pictures ---- */
@@ -291,7 +334,20 @@
     c.fillStyle = T.bg; c.fillRect(0, 0, W, H);
     if (st.style === 'stripes') {
       c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
-      c.drawImage(stripes(), SB.max - st.sx, 0, W, H, 0, 0, W, H);
+      var S = stripes(), sx = SB.max - st.sx;
+      c.drawImage(S.back, sx, 0, W, H, 0, 0, W, H);
+      if (imgs[4]) {                        // the cut-out between the bands, with a soft shadow of its own shape
+        var b = cutBox();
+        c.save(); c.shadowColor = 'rgba(0,0,0,.32)'; c.shadowBlur = 40 * k; c.shadowOffsetY = 12 * k;
+        c.drawImage(imgs[4].img, b.x, b.y, b.w, b.h); c.restore();
+      }
+      c.drawImage(S.fore, sx, 0, W, H, 0, 0, W, H);
+      if (ui && (dropAt === 4 || (imgs[4] && (hoverCut || (drag && drag.c))))) {
+        var f = imgs[4] ? cutBox() : {x: CUT.x - CUT.w / 2, y: H - CUT.h, w: CUT.w, h: CUT.h};
+        c.save(); c.setLineDash([8, 6]); c.lineWidth = 2;
+        c.strokeStyle = dropAt === 4 ? T.accent : 'rgba(255,255,255,.5)';
+        c.strokeRect(f.x + 1, f.y + 1, f.w - 2, f.h - 2); c.restore();
+      }
       words(c, L);
       if (ui && st.guides) guides(c);
       return;
@@ -422,7 +478,8 @@
         logo = r.o; idbPut('logo', r.blob); logoSync();
       } else {
         if (imgs[target]) URL.revokeObjectURL(imgs[target].url);
-        imgs[target] = r.o; st.views[target] = view0(); sel = target;
+        imgs[target] = r.o;
+        if (target === 4) st.cut = cut0(); else { st.views[target] = view0(); sel = target; }
         idbPut('s' + target, r.blob); save(); sideSync();
       }
       draw();
@@ -430,11 +487,8 @@
   }
   function pick(target){ pickFor = target; file.value = ''; file.click(); }
   file.addEventListener('change', function(){ if (file.files[0]) loadFile(file.files[0], pickFor); });
-  function noPics(){                                     // the stripes variant takes no picture
-    if (st.style !== 'stripes') return false;
-    toast('В варианте «Полосы» картинки нет — переключите на «С картинкой»'); return true;
-  }
   function freeSlot(){                                   // where a pasted or loosely dropped picture goes
+    if (st.style === 'stripes') return 4;
     var n = st.layout === 4 ? 4 : 1;
     if (sel < n && !imgs[sel]) return sel;
     for (var i = 0; i < n; i++) if (!imgs[i]) return i;
@@ -450,7 +504,7 @@
   function cursor(p){
     var i = slotAt(p);
     cv.style.cursor = drag ? (drag.s ? 'ew-resize' : 'grabbing') : i >= 0 ? (imgs[i] ? 'grab' : 'pointer')
-      : textAt(p) ? 'text' : st.style === 'stripes' && p.x >= ex(p.y) ? 'ew-resize' : 'default';
+      : textAt(p) ? 'text' : cutAt(p) ? 'grab' : st.style === 'stripes' && p.x >= ex(p.y) ? 'ew-resize' : 'default';
   }
   cv.addEventListener('pointerdown', function(e){
     if (e.button !== 0) return;
@@ -458,7 +512,10 @@
     if (i < 0) {
       var ta = textAt(p);
       if (ta) { e.preventDefault(); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
-      else if (st.style === 'stripes' && p.x >= ex(p.y)) { drag = {s: 1, x: p.x}; cv.setPointerCapture(e.pointerId); cursor(p); e.preventDefault(); }
+      else if (st.style === 'stripes' && (cutAt(p) || p.x >= ex(p.y))) {   // the cut-out first, else the bands
+        drag = cutAt(p) ? {c: 1, x: p.x, y: p.y} : {s: 1, x: p.x};
+        cv.setPointerCapture(e.pointerId); cursor(p); e.preventDefault();
+      }
       return;
     }
     if (sel !== i) { sel = i; sideSync(); draw(); }
@@ -468,6 +525,8 @@
   cv.addEventListener('pointermove', function(e){
     var p = at(e);
     if (drag && drag.s) { setSx(st.sx + p.x - drag.x); drag.x = p.x; return; }
+    if (drag && drag.c) { st.cut.x += p.x - drag.x; st.cut.y += p.y - drag.y; drag.x = p.x; drag.y = p.y; save(); draw(); return; }
+    var hc = cutAt(p) && !textAt(p); if (hc !== hoverCut) { hoverCut = hc; draw(); }
     if (drag) {
       var r = rects()[drag.i], v = st.views[drag.i], pl = place(r, imgs[drag.i].img, v);
       v.cx -= (p.x - drag.x) / pl.w; v.cy -= (p.y - drag.y) / pl.h;
@@ -479,11 +538,20 @@
   function dragEnd(e){ if (!drag) return; drag = null; cursor(at(e)); }
   cv.addEventListener('pointerup', dragEnd);
   cv.addEventListener('pointercancel', dragEnd);
-  cv.addEventListener('pointerleave', function(){ if (hoverAt !== -1) { hoverAt = -1; draw(); } });
-  cv.addEventListener('dblclick', function(e){ var i = slotAt(at(e)); if (i >= 0 && imgs[i]) pick(i); });
+  cv.addEventListener('pointerleave', function(){ if (hoverAt !== -1 || hoverCut) { hoverAt = -1; hoverCut = false; draw(); } });
+  cv.addEventListener('dblclick', function(e){
+    var p = at(e), i = slotAt(p);
+    if (i >= 0 && imgs[i]) pick(i); else if (cutAt(p) && !textAt(p)) pick(4);
+  });
   // the wheel zooms around the pointer
   cv.addEventListener('wheel', function(e){
     var p = at(e), i = slotAt(p);
+    if (cutAt(p)) {
+      e.preventDefault();
+      var c = st.cut, s2 = Math.max(CUT.min, Math.min(CUT.max, c.s * Math.exp(-e.deltaY * .0015))), f = s2 / c.s;
+      c.x = p.x - (p.x - c.x) * f; c.y = p.y - (p.y - c.y) * f; c.s = s2;
+      save(); zoomSync(4); draw(); return;
+    }
     if (i < 0 || !imgs[i]) return;
     e.preventDefault();
     var r = rects()[i], v = st.views[i], im = imgs[i].img, pl = place(r, im, v);
@@ -501,7 +569,6 @@
   stage.addEventListener('dragover', function(e){
     if (!hasFiles(e)) return;
     e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
-    if (st.style === 'stripes') return;
     var i = slotAt(at(e)); if (i < 0) i = freeSlot();
     if (i !== dropAt) { dropAt = i; draw(); }
   });
@@ -509,14 +576,13 @@
   stage.addEventListener('drop', function(e){
     if (!hasFiles(e)) return;
     e.preventDefault();
-    if (noPics()) return;
     var i = dropAt >= 0 ? dropAt : freeSlot(); dropAt = -1; draw();
     loadFile(e.dataTransfer.files[0], i);
   });
   document.addEventListener('paste', function(e){
     var items = (e.clipboardData && e.clipboardData.items) || [];
     for (var i = 0; i < items.length; i++)
-      if (items[i].kind === 'file' && /^image\//.test(items[i].type)) { e.preventDefault(); if (!noPics()) loadFile(items[i].getAsFile(), freeSlot()); return; }
+      if (items[i].kind === 'file' && /^image\//.test(items[i].type)) { e.preventDefault(); loadFile(items[i].getAsFile(), freeSlot()); return; }
   });
 
   /* ---- the side panel ---- */
@@ -526,29 +592,48 @@
     fit: '<svg viewBox="0 0 16 16"><path d="M2.5 6V3.5a1 1 0 0 1 1-1H6M10 2.5h2.5a1 1 0 0 1 1 1V6M13.5 10v2.5a1 1 0 0 1-1 1H10M6 13.5H3.5a1 1 0 0 1-1-1V10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><rect x="6" y="6" width="4" height="4" rx=".5" fill="currentColor"/></svg>',
     del: '<svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>'
   };
+  // a picture's size in percent and the ends of its slider: a photo fills its place from 100 %, the cut-out is free
+  function zoomOf(i){
+    return i === 4 ? {z: Math.round(st.cut.s * 100), min: CUT.min * 100, max: CUT.max * 100}
+                   : {z: Math.round(st.views[i].zoom * 100), min: 100, max: 400};
+  }
+  function rowHTML(i, name, picked){
+    var im = imgs[i], q = zoomOf(i);
+    return '<div class="slot' + (im ? '' : ' empty') + (picked ? ' sel' : '') + (i === 4 ? ' cut' : '') + '" data-i="' + i + '">' +
+      '<div class="sl-thumb" data-act="pick" title="' + (im ? 'Заменить' : 'Выбрать файл') + '">' + (im ? '<img src="' + im.url + '" alt="">' : IC.up) + '</div>' +
+      '<div class="sl-body"><div class="sl-row"><span class="sl-name">' + name + '</span>' +
+      '<button class="ib" data-act="pick" title="' + (im ? 'Заменить' : 'Выбрать файл') + '">' + IC.up + '</button>' +
+      '<button class="ib" data-act="fit" title="' + (i === 4 ? 'Вернуть на место, 100 %' : 'Вернуть кадр: по центру, 100 %') + '"' + (im ? '' : ' disabled') + '>' + IC.fit + '</button>' +
+      '<button class="ib" data-act="del" title="Убрать"' + (im ? '' : ' disabled') + '>' + IC.del + '</button></div>' +
+      '<div class="sl-zoom"><input type="range" min="' + q.min + '" max="' + q.max + '" step="1" value="' + q.z + '" style="--p:' +
+      (q.z - q.min) / (q.max - q.min) * 100 + '%"' + (im ? '' : ' disabled') + '><span class="v">' + q.z + ' %</span></div></div></div>';
+  }
   function sideSync(){
     var n = st.layout === 4 ? 4 : 1, html = '';
-    for (var i = 0; i < n; i++) {
-      var im = imgs[i], z = Math.round(st.views[i].zoom * 100);
-      html += '<div class="slot' + (im ? '' : ' empty') + (n > 1 && sel === i ? ' sel' : '') + '" data-i="' + i + '">' +
-        '<div class="sl-thumb" data-act="pick" title="' + (im ? 'Заменить' : 'Выбрать файл') + '">' + (im ? '<img src="' + im.url + '" alt="">' : IC.up) + '</div>' +
-        '<div class="sl-body"><div class="sl-row"><span class="sl-name">' + (n > 1 ? NAMES[i] : im ? 'Картинка справа' : 'Нет картинки') + '</span>' +
-        '<button class="ib" data-act="pick" title="' + (im ? 'Заменить' : 'Выбрать файл') + '">' + IC.up + '</button>' +
-        '<button class="ib" data-act="fit" title="Вернуть кадр: по центру, 100 %"' + (im ? '' : ' disabled') + '>' + IC.fit + '</button>' +
-        '<button class="ib" data-act="del" title="Убрать"' + (im ? '' : ' disabled') + '>' + IC.del + '</button></div>' +
-        '<div class="sl-zoom"><input type="range" min="100" max="400" step="1" value="' + z + '" style="--p:' + (z - 100) / 3 + '%"' + (im ? '' : ' disabled') + '>' +
-        '<span class="v">' + z + ' %</span></div></div></div>';
-    }
+    for (var i = 0; i < n; i++) html += rowHTML(i, n > 1 ? NAMES[i] : imgs[i] ? 'Картинка справа' : 'Нет картинки', n > 1 && sel === i);
     $('slotList').innerHTML = html;
+    $('cutList').innerHTML = rowHTML(4, imgs[4] ? 'Между полосами' : 'Нет картинки', false);
     Array.prototype.forEach.call($('layoutSeg').children, function(b){ b.classList.toggle('on', +b.dataset.layout === st.layout); });
     Array.prototype.forEach.call($('styleSeg').children, function(b){ b.classList.toggle('on', b.dataset.style === st.style); });
+    Array.prototype.forEach.call($('frontSeg').children, function(b){ b.classList.toggle('on', !!st.front[b.dataset.band]); });
+    var fr = $('fadeRange'), anyFront = st.front.a1 || st.front.a2 || st.front.b;
+    fr.value = st.fade; fr.style.setProperty('--p', st.fade / 90 * 100 + '%'); fr.disabled = !anyFront;
+    $('fadeVal').textContent = st.fade + ' %';
     var bands = st.style === 'stripes';
     $('picBlock').hidden = bands; $('stripeBlock').hidden = !bands;
-    $('cvHint').innerHTML = bands ? 'Полосы двигаются мышью влево-вправо · текст — в полях справа'
+    $('cvHint').innerHTML = bands ? 'Перетащите PNG без фона на обложку · двигайте его мышью, колесо — размер · полосы двигаются мышью влево-вправо'
       : 'Перетащите картинку на правую часть или нажмите туда · двигайте мышью · колесо — масштаб · <kbd>Ctrl</kbd>+<kbd>V</kbd> — из буфера';
     sxSync();
     $('cvGuides').classList.toggle('on', !!st.guides);
   }
+  $('fadeRange').addEventListener('input', function(){
+    st.fade = +this.value; this.style.setProperty('--p', st.fade / 90 * 100 + '%'); $('fadeVal').textContent = st.fade + ' %';
+    save(); draw();
+  });
+  $('frontSeg').addEventListener('click', function(e){
+    var b = e.target.closest('[data-band]'); if (!b) return;
+    st.front[b.dataset.band] = !st.front[b.dataset.band]; save(); sideSync(); draw();
+  });
   function sxSync(){
     var r = $('sxRange'), d = Math.round(st.sx - SB.x);
     r.value = st.sx; r.style.setProperty('--p', (st.sx - SB.min) / (SB.max - SB.min) * 100 + '%');
@@ -563,32 +648,38 @@
     st.style = b.dataset.style; hoverAt = dropAt = -1; save(); sideSync(); draw();
   });
   function zoomSync(i){
-    var row = $('slotList').querySelector('.slot[data-i="' + i + '"]'); if (!row) return;
-    var z = Math.round(st.views[i].zoom * 100), inp = row.querySelector('input');
-    inp.value = z; inp.style.setProperty('--p', (z - 100) / 3 + '%'); row.querySelector('.v').textContent = z + ' %';
+    var row = document.querySelector('.slot[data-i="' + i + '"]'); if (!row) return;
+    var q = zoomOf(i), inp = row.querySelector('input');
+    inp.value = q.z; inp.style.setProperty('--p', (q.z - q.min) / (q.max - q.min) * 100 + '%'); row.querySelector('.v').textContent = q.z + ' %';
   }
-  $('slotList').addEventListener('click', function(e){
-    var row = e.target.closest('.slot'); if (!row) return;
-    var i = +row.dataset.i, b = e.target.closest('[data-act]'), act = b && b.dataset.act;
-    sel = i;
-    if (act === 'pick') pick(i);
-    else if (act === 'fit') { st.views[i] = view0(); save(); }
-    else if (act === 'del') { if (imgs[i]) URL.revokeObjectURL(imgs[i].url); imgs[i] = null; st.views[i] = view0(); idbPut('s' + i, null); save(); }
-    if (e.target.tagName !== 'INPUT') sideSync();
-    draw();
-  });
-  $('slotList').addEventListener('input', function(e){
-    var row = e.target.closest('.slot'); if (!row || e.target.type !== 'range') return;
-    var i = +row.dataset.i; st.views[i].zoom = e.target.value / 100; sel = i; save(); zoomSync(i); draw();
-  });
-  $('slotList').addEventListener('dragover', function(e){
-    var row = e.target.closest('.slot'); if (!row || !hasFiles(e)) return;
-    e.preventDefault(); row.classList.add('drop');
-  });
-  $('slotList').addEventListener('dragleave', function(e){ var row = e.target.closest('.slot'); if (row && !row.contains(e.relatedTarget)) row.classList.remove('drop'); });
-  $('slotList').addEventListener('drop', function(e){
-    var row = e.target.closest('.slot'); if (!row || !hasFiles(e)) return;
-    e.preventDefault(); row.classList.remove('drop'); loadFile(e.dataTransfer.files[0], +row.dataset.i);
+  function reset(i){ if (i === 4) st.cut = cut0(); else st.views[i] = view0(); }
+  // the rows of pictures: the photo's places and the stripes variant's cut-out work the same
+  [$('slotList'), $('cutList')].forEach(function(list){
+    list.addEventListener('click', function(e){
+      var row = e.target.closest('.slot'); if (!row) return;
+      var i = +row.dataset.i, b = e.target.closest('[data-act]'), act = b && b.dataset.act;
+      if (i < 4) sel = i;
+      if (act === 'pick') pick(i);
+      else if (act === 'fit') { reset(i); save(); }
+      else if (act === 'del') { if (imgs[i]) URL.revokeObjectURL(imgs[i].url); imgs[i] = null; reset(i); idbPut('s' + i, null); save(); }
+      if (e.target.tagName !== 'INPUT') sideSync();
+      draw();
+    });
+    list.addEventListener('input', function(e){
+      var row = e.target.closest('.slot'); if (!row || e.target.type !== 'range') return;
+      var i = +row.dataset.i;
+      if (i === 4) st.cut.s = e.target.value / 100; else { st.views[i].zoom = e.target.value / 100; sel = i; }
+      save(); zoomSync(i); draw();
+    });
+    list.addEventListener('dragover', function(e){
+      var row = e.target.closest('.slot'); if (!row || !hasFiles(e)) return;
+      e.preventDefault(); row.classList.add('drop');
+    });
+    list.addEventListener('dragleave', function(e){ var row = e.target.closest('.slot'); if (row && !row.contains(e.relatedTarget)) row.classList.remove('drop'); });
+    list.addEventListener('drop', function(e){
+      var row = e.target.closest('.slot'); if (!row || !hasFiles(e)) return;
+      e.preventDefault(); row.classList.remove('drop'); loadFile(e.dataTransfer.files[0], +row.dataset.i);
+    });
   });
   $('layoutSeg').addEventListener('click', function(e){
     var b = e.target.closest('[data-layout]'); if (!b) return;
@@ -681,7 +772,7 @@
         mcache.clear(); lay.key = null; draw();
         if (!document.fonts.check('800 100px "Inter Tight"')) toast('Шрифт Inter Tight не загрузился — нужен интернет');
       }, function(){ toast('Шрифт Inter Tight не загрузился — нужен интернет'); });
-  ['s0', 's1', 's2', 's3', 'logo'].forEach(function(k, i){
+  ['s0', 's1', 's2', 's3', 's4', 'logo'].forEach(function(k, i){
     idbGet(k).then(function(blob){
       if (!blob) return;
       return imgFrom(blob).then(function(o){ if (k === 'logo') { logo = o; logoSync(); } else imgs[i] = o; sideSync(); draw(); });
