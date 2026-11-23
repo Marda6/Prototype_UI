@@ -72,6 +72,18 @@ textarea:focus{box-shadow:inset 0 0 0 1px var(--ec-green);}
 .slot.cut:not(.empty) .sl-thumb{background:repeating-conic-gradient(var(--ec-fg-12) 0 25%, transparent 0 50%) 0 0/12px 12px;}
 .slot.cut .sl-thumb img{object-fit:contain;}
 .tgs{display:flex;gap:4px;}
+/* the background: presets and a colour of one's own */
+.bgs{display:flex;gap:4px;}
+.bgs button{width:20px;height:20px;padding:0;border:0;border-radius:4px;cursor:pointer;box-shadow:inset 0 0 0 1px var(--ec-fg-16);}
+.bgs button:hover{box-shadow:inset 0 0 0 1px var(--ec-fg-48);}
+.bgs button.on,.bg-pick.on input{box-shadow:inset 0 0 0 1px var(--ec-fg-16), 0 0 0 2px var(--ec-bg), 0 0 0 3px var(--ec-green);}
+.bg-pick{display:inline-flex;align-items:center;gap:6px;height:20px;padding:0 6px 0 2px;border-radius:4px;cursor:pointer;
+  background:var(--ec-fg-8);color:var(--ec-fg-72);font-variant-numeric:tabular-nums;}
+.bg-pick:hover{background:var(--ec-fg-12);color:var(--ec-fg-96);}
+.bg-pick input{width:16px;height:16px;padding:0;border:0;border-radius:3px;background:none;cursor:pointer;}
+.bg-pick input::-webkit-color-swatch-wrapper{padding:0;}
+.bg-pick input::-webkit-color-swatch{border:0;border-radius:3px;}
+.bg-pick input::-moz-color-swatch{border:0;border-radius:3px;}
 .fh.sub{margin-top:6px;}
 .sl-thumb svg{width:20px;height:20px;}
 .slot.empty .sl-thumb{background:transparent;border:1px dashed var(--ec-fg-24);}
