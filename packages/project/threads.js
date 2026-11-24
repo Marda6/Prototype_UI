@@ -269,6 +269,8 @@
     hd.classList.remove('stack');
     hd.classList.toggle('stack', [].some.call(hd.children, function(c){ return c.offsetHeight > 16; }));
   }
+  // measured in a fallback font before Inter came, the head would stay on two lines: measure again once it is in
+  if(document.fonts) document.fonts.addEventListener('loadingdone', function(){ if(isOpen()) hdFit(); });
 
   function drawList(L, o){
     var q = query(), hits = 0, h = '', u = U(L), pu = PU(L), ins = INSERTS[o.insert];

@@ -2348,13 +2348,16 @@ img.mc-ftgl{width:24px;height:14px;flex:none;}
 .thr-hd,.thr-row{display:grid;grid-template-columns:minmax(104px, 1fr) repeat(var(--thr-n, 4), minmax(52px, 72px));
   column-gap:4px;align-items:center;}
 /* a column's unit once, right of its name while the column has room, under it while not; the names on one line */
-.thr-hd{flex:0 0 auto;margin-top:8px;padding:0 4px;align-items:start;}
+/* the head is a 24px row (5px above and below one line of names), a hairline under it as under the tree's sticky heads:
+   the rows scroll away under a clear edge, never right under the names */
+.thr-hd{flex:0 0 auto;margin-top:8px;min-height:25px;box-sizing:border-box;padding:5px 4px;border-bottom:1px solid var(--ec-fg-8);
+  align-items:start;align-content:center;}
 .thr-c{display:flex;flex-wrap:wrap;justify-content:flex-end;column-gap:4px;font:400 11px/14px var(--ec-font);white-space:nowrap;}
 .thr-c:first-child{justify-content:flex-start;}
 .thr-c b{font-weight:500;color:var(--ec-fg-56);}
 .thr-c i{font-style:normal;color:var(--ec-fg-48);}
 /* the list keeps its height while a search narrows it (no jump): whole rows, 12 by default (--thr-list-h, threads.js) */
-.thr-list{position:relative;flex:0 1 auto;min-height:49px;height:var(--thr-list-h, 299px);margin:4px -6px 0 0;
+.thr-list{position:relative;flex:0 1 auto;min-height:49px;height:var(--thr-list-h, 299px);margin:2px -6px 0 0;
   overflow-y:auto;scrollbar-gutter:stable;display:flex;flex-direction:column;gap:1px;outline:none;}
 /* rows as the tree's: no lines between them; hover fg-4, the operation's thread lit fg-12 */
 .thr-row{height:24px;flex:0 0 24px;box-sizing:border-box;padding:0 4px;border-radius:4px;cursor:pointer;
