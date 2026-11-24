@@ -6,8 +6,8 @@
      next to it a square button (.rowbtn, lit while open) toggles the window; it stands level with the row at
      the left edge of the free view (the smart hint's place) and rises to fit; ✕ / Esc close it (Esc clears
      the search first). Its head drags it, its edges and corners resize it (see "moved and resized")
-   - the title is the library too: a click lists the libraries (name · count), as the row's dropdown does;
-     picking one is the operation's Thread library
+   - the head names the window (Thread library) and has ✕; under it two 28px rows: the library combobox (a click lists the
+     libraries, name · count, as the row's dropdown; the pick is the op's library) with Add thread, then search, filters, units
    - search by name or diameter in the tree's field: "n of N" in the field, matches marked in the names
    - the table: Name · Major Ø · Minor Ø · Pitch · Tap drill, each unit once under its column's name (an inch
      pitch in TPI there, never in the cells); numbers in tabular figures, decimal points in line; no lines
@@ -218,11 +218,16 @@
   win.className = 'stpanel arw thr'; win.id = 'thrWin';
   win.setAttribute('role', 'dialog'); win.setAttribute('aria-label', 'Thread library');
   win.innerHTML =
-    '<div class="arw-head">' +
+    // the head says what the window is; it drags the window
+    '<div class="arw-head"><span class="arw-title">Thread library</span>' +
+      '<button class="arw-close" id="thrClose" title="Close (Esc)">' + X + '</button></div>' +
+    // two rows under it. The first: the library (a 28px combobox, the operation's Thread library) and Add thread
+    // (the tree's add button: fg-16, with its label — ENCY's old "Add row to the table")
+    '<div class="thr-bar">' +
       '<button class="thr-lib" id="thrLib" title="The operation\'s thread library — pick another"><span id="thrLibT"></span>' +
         '<img class="i16" src="' + INSP.A.ddchev + '" alt=""></button>' +
-      '<button class="arw-close" id="thrClose" title="Close (Esc)">' + X + '</button></div>' +
-    // the search row: the tree's field, the model's diameter as a filter (only the threads that fit it), the units
+      '<button class="thr-addb" id="thrAdd" title="Add a thread to the library — a row of fields on top of the list">' + PLUS + '<span>Add thread</span></button></div>' +
+    // the second: the tree's search field, the filters (the model's diameter, the insert), the units
     '<div class="thr-tools">' +
       '<label class="tt-search thr-search" id="thrSearch"><img class="tt-ic" src="../shared-ui/assets/st-search.svg" alt="">' +
         '<input id="thrQ" type="text" placeholder="Name or diameter" autocomplete="off" spellcheck="false">' +
@@ -235,6 +240,7 @@
         '<span class="ci" data-u="mm" role="radio" title="Millimetres — the pitch as the lead in mm">mm</span></div></div>' +
     '<div class="thr-hd" id="thrHd"></div>' +
     '<div class="thr-list" id="thrList" role="listbox" tabindex="-1"></div>' +
+    // under the table: what every thread of the library shares
     '<div class="thr-note" id="thrNote"></div>' +
     '<div class="line arw-div"></div>' +
     // what the operation's thread is checked against: the model's diameter, the insert — two lines, always there
@@ -293,14 +299,15 @@
     var why = [];
     if(fitOnly) why.push('the model\'s Ø ' + dFmt(o.model, u) + ' ' + u);
     if(insOnly) why.push('insert ' + o.tool + ' (' + insTxt(ins) + ')');
-    list.innerHTML = hits ? h : '<div class="thr-none">' + (q ? 'No threads match "' + esc(qEl.value.trim()) + '"' + (why.length ? ' for ' + why.join(' and ') : '')
+    list.innerHTML = hits ? h : '<div class="thr-none">' + (!L.rows.length ? 'No threads in this library yet — Add thread adds one'
+      : q ? 'No threads match "' + esc(qEl.value.trim()) + '"' + (why.length ? ' for ' + why.join(' and ') : '')
       : 'No threads for ' + why.join(' and ') + ' in this library') + '</div>';
     search.classList.toggle('has-q', !!q);
     search.classList.toggle('has-f', fitOnly || insOnly);
     $('thrCount').textContent = hits + ' of ' + L.rows.length;
     // what every thread of the library shares (one value per library in ENCY's samples — threads-export.js checks)
-    $('thrNote').textContent = 'All threads: angle ' + L.angle + '°, inclination ' + L.incl + '°, taper ' + L.taper + '°, ' +
-      (L.starts === 1 ? '1 start' : L.starts + ' starts');
+    $('thrNote').textContent = $('thrNote').title = !L.rows.length ? (L.file ? L.file + ' — empty' : '') :
+      'All threads: angle ' + L.angle + '°, inclination ' + L.incl + '°, taper ' + L.taper + '°, ' + (L.starts === 1 ? '1 start' : L.starts + ' starts');
   }
   function sync(){
     if(!isOpen()) return;
@@ -309,7 +316,7 @@
     if(o.model == null) fitOnly = false;
     if(!ins) insOnly = false;
     var sig = [L.id, query(), L.rows.length, L._ver || 0, u, fitOnly, insOnly, o.model, o.insert].join('\u0001');
-    if(sig !== drawn){ drawList(L, o); drawn = sig; }
+    if(sig !== drawn){ editing = null; drawList(L, o); drawn = sig; }   // a redrawn list drops a row being edited
     $('thrLibT').textContent = L.name;
     // the filters: the model's diameter, the insert (each hidden without its data); the units the window shows
     var fb = $('thrFit'), md = o.model != null ? dFmt(o.model, u) + ' ' + u : '';
@@ -400,6 +407,62 @@
         L.rows.splice(i, 1); L._dec = null; L._ver = (L._ver || 0) + 1;
         INSP.rerender(); list.focus();
       }});
+  }
+  /* ---------- the library is edited here, as in ENCY's old form (Add row / Delete row): "+" in the head adds a
+     thread, a row's menu (right-click) has Edit (F2), Duplicate and Delete. The row turns into fields in place —
+     name, major Ø, minor Ø (empty = by the profile: 60° d − 1.0825·P, 55° d − 1.2807·P), pitch — in the units the
+     window shows; Tap drill follows by itself. Enter / a click outside saves, Esc cancels; a thread lands in the
+     list by its diameter, lit with a flash. Operations keep their values (as with Delete) ---------- */
+  var editing = null;   // {i} — the library row being edited, -1 — a new one
+  function edCell(v, k, ph){ return '<input class="thr-in' + (k ? ' num' : '') + '" data-k="' + k + '" value="' + esc(v) + '" placeholder="' + ph + '" spellcheck="false" autocomplete="off">'; }
+  function editStart(i, seed){
+    editCancel();
+    var o = op(), L = lib(o.lib), r = seed || (i >= 0 ? L.rows[i] : null), row;
+    editing = {i:i};
+    if(i >= 0) row = list.querySelector('.thr-row[data-i="' + i + '"]');
+    if(!row){ row = document.createElement('div'); list.insertBefore(row, list.firstChild); list.scrollTop = 0; }
+    row.className = 'thr-row editing';
+    row.innerHTML = edCell(r ? r[0] : '', 0, 'Name') + edCell(r ? fmt(L, 1, r[1]) : '', 1, 'Major') +
+      edCell(r ? fmt(L, 2, r[2]) : '', 2, 'auto') + edCell(r ? fmt(L, 3, r[3]) : '', 3, PU(L) === 'tpi' ? 'TPI' : 'Pitch') +
+      (L.tap ? '<span class="thr-auto" title="Tap drill follows the diameter and the pitch">auto</span>' : '');
+    reveal(row);
+    var first = row.querySelector('.thr-in'); first.focus(); first.select();
+  }
+  function editCancel(){
+    if(!editing) return;
+    editing = null; drawn = ''; sync();
+  }
+  // the fields → a library row: the numbers read in the window's units, the minor Ø by the profile when empty
+  function editSave(){
+    if(!editing) return true;
+    var o = op(), L = lib(o.lib), row = list.querySelector('.thr-row.editing'), u = U(L), pu = PU(L);
+    var f = [].map.call(row.querySelectorAll('.thr-in'), function(x){ return x.value.trim(); });
+    var n = f.map(function(s){ return parseFloat(s.replace(',', '.')); });
+    var bad = [];
+    if(!f[0]) bad.push(0);
+    if(!(n[1] > 0)) bad.push(1);
+    if(!(n[3] > 0)) bad.push(3);
+    var dmm = mm(n[1], u), pmm = pu === 'tpi' ? 25.4 / n[3] : n[3];
+    var d1mm = f[2] ? mm(n[2], u) : dmm - (L.angle === 55 ? 1.280654 : 1.082532) * pmm;
+    if((f[2] || (n[1] > 0 && n[3] > 0)) && !(d1mm > 0 && d1mm < dmm)) bad.push(2);   // an empty minor Ø waits for the others
+    [].forEach.call(row.querySelectorAll('.thr-in'), function(x){ x.classList.toggle('bad', bad.indexOf(+x.dataset.k) >= 0); });
+    if(bad.length){ row.querySelector('.thr-in.bad').focus(); return false; }
+    var r = into(L, {name:f[0], d:dmm, d1:d1mm, p:pmm, unit:'mm', pitch:'mm'}, f[0]);
+    var at = editing.i;
+    if(at >= 0 && same(L.rows[at][1], r[1])) L.rows[at] = r;     // the same diameter: it keeps its place
+    else {
+      if(at >= 0) L.rows.splice(at, 1);
+      at = 0; while(at < L.rows.length && L.rows[at][1] <= r[1]) at++;
+      L.rows.splice(at, 0, r);
+    }
+    L._dec = null; L._ver = (L._ver || 0) + 1;
+    editing = null;
+    INSP.rerender();
+    var el = list.querySelector('.thr-row[data-i="' + at + '"]');
+    if(!el){ qEl.value = ''; fitOnly = insOnly = false; sync(); el = list.querySelector('.thr-row[data-i="' + at + '"]'); }   // hidden by the search or a filter
+    if(el){ reveal(el, 'center'); el.classList.add('nt-flash'); }
+    list.focus();
+    return true;
   }
   // keep a row in sight inside the list only (scrollIntoView would move the view too)
   function reveal(row, how){
@@ -540,12 +603,33 @@
   function libMenu(anchor){
     if(anchor.classList.contains('dd-open')){ MENU.close(); return; }
     var o = op();
-    MENU.show(anchor.getBoundingClientRect(), LIBS.map(function(L){
-      return {label:L.name, kbd:String(L.rows.length), cur:L.id === o.lib, onPick:function(){
+    var items = LIBS.map(function(L){
+      return {label:L.name, kbd:String(L.rows.length), cur:L.id === o.lib, title:L.file ? L.file : '', onPick:function(){
         o.lib = L.id; INSP.rerender(); if(isOpen()) revealCur();
       }};
-    }), anchor, Math.max(200, anchor.getBoundingClientRect().width));
+    });
+    // the user's own library file (ENCY's old form: Thread file · Add new file), after a divider
+    items.push({sep:true}, {label:'Add custom library…', icon:PLUS.replace('<svg ', '<svg width="16" height="16" '), title:'Connect a thread library file (.db)', onPick:addLib});
+    MENU.show(anchor.getBoundingClientRect(), items, anchor, Math.max(200, anchor.getBoundingClientRect().width));
   }
+  /* Add custom library: the system's file dialog for a .db; the library joins the list under the file's name and
+     becomes the operation's. The mockup cannot read SQLite, so it comes in empty — Add thread fills it (the code
+     reads the file's threads and units, ISTHeaderAccess.LIBUNITS). The same file again — that library is picked */
+  var fileIn = document.createElement('input');
+  fileIn.type = 'file'; fileIn.accept = '.db'; fileIn.hidden = true;
+  document.body.appendChild(fileIn);
+  function addLib(){ fileIn.value = ''; fileIn.click(); }
+  fileIn.addEventListener('change', function(){
+    var f = fileIn.files && fileIn.files[0], o = op(); if(!f || !o) return;
+    var name = f.name.replace(/\.db$/i, ''), L = LIBS.filter(function(x){ return x.file === f.name; })[0];
+    if(!L){
+      L = {id:'custom-' + LIBS.length, name:name, file:f.name, custom:true, unit:'mm', pitch:'mm', angle:60, incl:30, taper:0, starts:1, tap:true, rows:[]};
+      LIBS.push(L);
+    }
+    o.lib = L.id;
+    INSP.rerender();
+    if(isOpen()){ revealCur(); var lb = $('thrLib'); lb.classList.remove('nt-flash'); void lb.offsetWidth; lb.classList.add('nt-flash'); }
+  });
   // (capture: before app.js takes it for an ordinary dropdown of fixed options)
   INSP.irows.addEventListener('click', function(e){
     var dd = cur && e.target.closest('.irow[data-key="thr-lib"] .dropdown'); if(!dd) return;
@@ -558,6 +642,12 @@
   /* ---------- the window's pointer and keys ---------- */
   win.addEventListener('click', function(e){
     if(e.target.closest('#thrClose')){ close(); return; }
+    // a row being edited: clicks in it stay there, a click elsewhere saves it first (invalid — it stays open)
+    if(editing){
+      if(e.target.closest('.thr-row.editing')) return;
+      if(!editSave()) return;
+    }
+    if(e.target.closest('#thrAdd')){ editStart(-1); return; }
     if(e.target.closest('#thrClear')){ e.preventDefault(); qEl.value = ''; sync(); qEl.focus(); return; }
     var lb = e.target.closest('#thrLib');
     if(lb){ e.stopPropagation(); libMenu(lb); return; }
@@ -571,12 +661,17 @@
     if(e.target.closest('.thr-op.in-lib')){ var c = list.querySelector('.thr-row.cur'); if(c) reveal(c, 'center'); return; }
     var row = e.target.closest('.thr-row'); if(row) apply(row);
   });
-  list.addEventListener('dblclick', function(e){ if(e.target.closest('.thr-row')) close(); });
+  list.addEventListener('dblclick', function(e){ if(e.target.closest('.thr-row:not(.editing)')) close(); });
+  list.addEventListener('input', function(e){ if(e.target.classList.contains('thr-in')) e.target.classList.remove('bad'); });   // typing clears the red ring
   list.addEventListener('contextmenu', function(e){
-    var row = e.target.closest('.thr-row'); if(!row) return;
+    var row = e.target.closest('.thr-row:not(.editing)'); if(!row) return;
     e.preventDefault(); e.stopPropagation();
-    var i = +row.dataset.i;
+    if(editing && !editSave()) return;
+    var i = +row.dataset.i, L = lib(op().lib);
     MENU.show({left:e.clientX, top:e.clientY, bottom:e.clientY}, [
+      {label:'Edit', kbd:'F2', onPick:function(){ editStart(i); }},
+      {label:'Duplicate', onPick:function(){ editStart(-1, L.rows[i]); }},
+      {sep:true},
       {label:'Delete from the library', kbd:'Del', danger:true, onPick:function(){ del(i); }}
     ], row, 180);
   });
@@ -587,6 +682,16 @@
       if(k === 'Enter'){ e.preventDefault(); saveEnd(true); }
       else if(k === 'Escape'){ e.preventDefault(); saveEnd(false); }
       e.stopPropagation(); return;
+    }
+    // the fields of a row being edited: Enter saves, Esc cancels, the rest is typing (Tab moves between them)
+    if(e.target.classList && e.target.classList.contains('thr-in')){
+      if(k === 'Enter'){ e.preventDefault(); editSave(); }
+      else if(k === 'Escape'){ e.preventDefault(); editCancel(); list.focus(); }
+      e.stopPropagation(); return;
+    }
+    if(k === 'F2' && e.target !== qEl){
+      var cr = list.querySelector('.thr-row.cur'); if(cr){ e.preventDefault(); e.stopPropagation(); editStart(+cr.dataset.i); }
+      return;
     }
     var step = {ArrowDown:1, ArrowUp:-1, PageDown:ROWS - 1, PageUp:1 - ROWS}[k];
     if(step || ((k === 'Home' || k === 'End') && e.target !== qEl)){
