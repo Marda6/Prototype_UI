@@ -122,26 +122,67 @@
 .i12{width:12px;height:14px;}
 /* no side padding: the rows under the toolbar share its edges (6px from the inset), so the
    first and the last buttons of all three rows stand in one column */
-.sortrow{display:flex;align-items:center;gap:8px;padding:6px 0 0;flex:0 0 auto;
+.sortrow{display:flex;align-items:center;gap:6px;padding:6px 0 0;flex:0 0 auto;
   border-top:1px solid var(--ec-fg-8);}
 .sortrow[hidden]{display:none;}
-/* the dropdown stretches over the free space; the chevron rides its right edge */
+/* Sort stretches over the free space; the chevron rides its right edge; the label ellipsizes when the row is tight */
 .sr-sort{display:flex;align-items:center;gap:2px;padding:0 6px 0 0;border-radius:4px;cursor:pointer;
   flex:1 1 0;min-width:0;color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);}
 .sr-sort .chev7{margin-left:auto;}
-.sr-sort:hover{background:var(--ec-fg-8);}
+.sr-sort:hover,.sr-sort.dd-open{background:var(--ec-fg-8);}
+.sr-sort .sr-val{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* a narrow dock (the row under ~320px) keeps Approach/return whole: Sort drops its label and stays an icon with its
+   chevron (the name in its tooltip); under ~300px the row closes up (gaps 4, the hint right after the caption, Auto's
+   left padding 4) so the chevron still fits */
+.sortrow{container-type:inline-size;}
+@container (max-width:319px){
+  #srSort .sr-val{display:none;}
+  #srSort{flex:0 0 auto;}
+  /* the rest keeps to the right edge, so the last button stays in the toolbar's column */
+  #sortRow > .sr-div{margin-left:auto;}
+}
+@container (max-width:299px){
+  /* Sort takes the few pixels left over (its chevron rides its right edge), the rest still ends at the right edge */
+  #srSort{gap:0;padding-right:2px;flex:1 1 auto;}
+  /* (a container query cannot restyle the row itself: its 6px gaps close to 4 through the children) */
+  #sortRow > .sr-div,#sortRow > .sr-cap,#sortRow > .sr-auto{margin-left:-2px;}
+  #sortRow .sr-cap{gap:0;}
+  #sortRow .sr-auto{padding-left:4px;}
+}
+.sr-div{width:1px;height:14px;background:var(--ec-fg-12);flex:0 0 1px;}
+/* Approach/return: the caption (12/16 fg 56) with its hint right after it — an "i" in a circle (16px, drawn in
+   currentColor: fg 48 at rest, fg 96 with a plate fg 8 under the pointer or while its tooltip is open) — so it reads
+   as the section's title, not a button */
+.sr-cap{display:flex;align-items:center;gap:2px;flex:0 0 auto;}
+.sr-lbl{color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);white-space:nowrap;}
+.sr-hint{width:16px;height:20px;flex:0 0 16px;display:grid;place-items:center;border-radius:4px;cursor:help;color:var(--ec-fg-48);}
+.sr-hint svg{width:16px;height:16px;}
+.sr-hint:hover,.sr-hint.on{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+.sr-hint:focus{outline:none;}
+.sr-hint:focus-visible{box-shadow:inset 0 0 0 1px var(--ec-fg-48);}
+/* the hint's tooltip: the function bar's (.etb-tip — title over a hairline, text fg 56), paragraphs 4px apart, the
+   control names in it fg 96 */
+.sr-tip span + span{margin-top:4px;}
+.sr-tip em{font-style:normal;color:var(--ec-fg-96);}
+/* Auto — ENCY's Links toggle, a switch with its own label: one borderless 28px control, the word then Core's toggle
+   24×14, 6px apart; the whole of it toggles — a hover plate fg 8, the word fg 72 off → fg 96 on / under the pointer */
+.sr-auto{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 4px 0 6px;flex:0 0 auto;
+  border:0;border-radius:4px;background:transparent;color:var(--ec-fg-72);
+  font:400 12px/16px var(--ec-font);white-space:nowrap;cursor:pointer;}
+.sr-auto:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+.sr-auto.on{color:var(--ec-fg-96);}
+.sr-auto .tgl{pointer-events:none;}
+.sr-auto:focus{outline:none;}
+.sr-auto:focus-visible{box-shadow:inset 0 0 0 1px var(--ec-fg-48);}
+/* the two square buttons, 28×28, 4px apart and 4px after Auto — the toolbar's rhythm (the row's gap is 6: Sort keeps
+   its label at the default dock width) */
 .sr-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;
   border-radius:4px;cursor:pointer;flex:0 0 28px;}
-/* trailing buttons sit 4px apart — same rhythm as the toolbar's tb-group */
-.sr-auto + .sr-btn,.sr-btn + .sr-btn{margin-left:-4px;}
+.sr-auto + .sr-btn,.sr-btn + .sr-btn{margin-left:-2px;}
 .sr-btn:hover{background:var(--ec-fg-8);}
-.sr-div{width:1px;height:14px;background:var(--ec-fg-12);flex:0 0 1px;}
-.sr-lbl{color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);white-space:nowrap;}
-.sr-auto{border:1px solid var(--ec-fg-16);background:transparent;color:var(--ec-fg-72);
-  font:400 12px/16px var(--ec-font);height:28px;padding:0 10px;border-radius:4px;cursor:pointer;
-  display:inline-flex;align-items:center;box-sizing:border-box;}
-.sr-auto:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
-.sr-auto.on{border-color:var(--ec-green);background:color-mix(in srgb, var(--ec-green) 8%, transparent);color:var(--ec-fg-96);}
+/* a switch row of the shared .dd-menu (showMenu items with toggle): the label, then Core's toggle at the end */
+.dd-opt.dd-tg{display:flex;align-items:center;gap:12px;color:var(--ec-fg-96);}
+.dd-opt.dd-tg .tgl{margin-left:auto;pointer-events:none;}
 
 /* ===== Tree ===== */
 /* wrapper hosts the halves split: a full-height line + drag handle that do

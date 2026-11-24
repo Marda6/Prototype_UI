@@ -48,6 +48,17 @@
       if(it.pre || it.color || it.icon){ o.appendChild(document.createTextNode(it.label)); }
       else { o.textContent = it.label; }
       if(it.kbd){ var kb = document.createElement('span'); kb.className = 'dd-kbd'; kb.textContent = it.kbd; o.appendChild(kb); }
+      if(it.title) o.title = it.title;
+      // a switch row: Core's toggle at the end; a click flips it and the menu stays open
+      if(it.toggle != null){
+        o.classList.add('dd-tg');
+        var tg = document.createElement('img'); tg.className = 'tgl'; tg.alt = '';
+        var tgSet = function(){ tg.src = A[it.toggle ? 'tgl-on' : 'tgl-off']; o.setAttribute('aria-checked', it.toggle ? 'true' : 'false'); };
+        o.setAttribute('role', 'switch'); tgSet(); o.appendChild(tg);
+        o.addEventListener('click', function(ev){ ev.stopPropagation(); it.toggle = !it.toggle; tgSet(); if(it.onToggle) it.onToggle(it.toggle); });
+        menu.appendChild(o);
+        return;
+      }
       o.addEventListener('click', function(ev){ ev.stopPropagation(); if(it.onPick) it.onPick(); closeMenu(); });
       menu.appendChild(o);
     });
@@ -1588,7 +1599,8 @@
   // errors by type — selected, revealed and its Status panel open
   function notifyShow(go){
     var tab = go.proj ? htabs.filter(function(t){ return t.dataset.proj === go.proj; })[0] : htabs[0];
-    if(tab && !tab.classList.contains('active')) tab.click();
+    // a tab force-closed from its project window is gone until the page reloads
+    if(tab && tab.isConnected && !tab.classList.contains('active')) tab.click();
     var mt = Array.prototype.filter.call(document.querySelectorAll('.tabs .seg'),
       function(b){ return b.textContent.trim() === 'Machining'; })[0];
     if(mt && !mt.classList.contains('active')) mt.click();
@@ -1598,7 +1610,35 @@
     treeReveal(r);
     stpOpen(r);
   }
-  window.ENCY_PROJECT = {show:notifyShow};
+  // the tab's process for the project window and the tab's progress line (shared-ui/chrome.js
+  // "Project window"): what runs, how far and on what, or null while the project is idle; stop() is the
+  // window's force actions (Force close tab / Force close and restart from latest snapshot) ending it
+  function projProcess(){
+    // op / where: the operation it is on and its group or part (the Status panel's "name · where")
+    if(calcState){
+      var c = calcState.plan[calcState.i], par = c && byId[c.row.dataset.parent];
+      return {t:'Calculation', p:calcState.p || 0,
+        d:(c ? rowName(c.row) + ' · ' : '') + Math.min(calcState.i + 1, calcState.plan.length) + ' of ' + calcState.plan.length,
+        op:c ? rowName(c.row) : '', where:par ? rowName(par) : ''};
+    }
+    if(simPlaying){
+      var k = simCurOp();
+      return {t:'Machining simulation', p:SIM_TOTAL ? simT / SIM_TOTAL : 0,
+        d:(SIM_OPS[k] ? SIM_OPS[k].name + ' · ' : '') + (k + 1) + ' of ' + SIM_DURS.length,
+        op:SIM_OPS[k] ? SIM_OPS[k].name : '', where:(k + 1) + ' of ' + SIM_DURS.length};
+    }
+    return null;
+  }
+  function projStop(){
+    projStalled = false;
+    if(calcState) calcFinish(false);
+    if(simPlaying) simPause();
+  }
+  // prototype switch (the tab's context menu): the running process keeps responding but stops moving —
+  // CAM-882's "responding does not mean working"
+  var projStalled = false;
+  window.ENCY_PROJECT = {show:notifyShow, process:projProcess, stop:projStop,
+    stall:function(on){ projStalled = !!on; }, stalled:function(){ return projStalled; }};
 
   /* ---------- Calculate ---------- */
   var EMPTY = A['status-empty'], P1 = A['status-prog1'], P2 = A['status-prog2'], CALC = A['status-calc'];
@@ -1626,8 +1666,7 @@
       var stIcons = scope.map(function(r){ return r.querySelector('.st'); }).filter(Boolean);
       if(!stIcons.length) return;
       // Auto approach/return restores the links on recalculation
-      var srAutoBtn = document.getElementById('srAuto');
-      if(srAutoBtn && srAutoBtn.classList.contains('on')) tree.classList.add('linked');
+      if(linksAuto) tree.classList.add('linked');
       calcRun(scope);
       var scopeName = sel && sel.dataset.type !== 'machine' ? (sel.querySelector('.rlabel span') || {}).textContent : 'All operations';
       emitAction('Calculate', scopeName || 'All operations', 'OP.CALC ' + (sel && sel.dataset.type === 'operation' ? 'SELECTED' : 'ALL'));
@@ -2241,6 +2280,10 @@
   }
   function calcTick(){
     var st = calcState; if(!st) return;
+    // stuck (prototype switch, ENCY_PROJECT.stall): the tab keeps responding, its progress stands still
+    var t1 = performance.now();
+    if(projStalled && st.last != null){ st.opT0 += t1 - st.last; st.t0 += t1 - st.last; }
+    st.last = t1;
     var now = performance.now(), cur = st.plan[st.i], el = now - st.opT0;
     if(el >= cur.ms){
       // the checks of the calculation find the project's known problems again
@@ -2251,6 +2294,7 @@
       st.opT0 = now; cur = st.plan[st.i]; el = 0;
     }
     var frac = Math.min(1, el / cur.ms), total = (st.i + frac) / st.plan.length;
+    st.p = total;                                   // the tab's process (ENCY_PROJECT.process)
     // the current operation blinks between the two "in progress" glyphs
     var icon = cur.row.querySelector('.st');
     if(Math.floor(now / 350) !== st.blink){ st.blink = Math.floor(now / 350); icon.src = st.blink % 2 ? P1 : P2; }
@@ -2810,16 +2854,50 @@
       }), srSort, 150);
     });
   }
-  var srAuto = document.getElementById('srAuto');
-  if(srAuto) srAuto.addEventListener('click', function(e){ e.stopPropagation(); srAuto.classList.toggle('on'); });
-  // links between status circles = Approach/Return in Auto; the red-cross button drops them
+  // Approach/return: the caption with its hint, Auto (ENCY's Links toggle — while on, Calculate builds the links
+  // between the operations, see Calculate above), Link approach/return (ENCY: "Calculates selected operations with
+  // links" — draws the lines between the status circles) and Remove links ("… without links" — drops them)
+  var linksAuto = true;
   tree.classList.add('linked');
-  var srBtns = document.querySelectorAll('#sortRow .sr-btn');
-  var srReset = srBtns[srBtns.length-1];
-  if(srReset) srReset.addEventListener('click', function(e){
+  var srAuto = document.getElementById('srAuto');
+  if(srAuto) srAuto.addEventListener('click', function(e){
     e.stopPropagation();
-    tree.classList.remove('linked');
+    linksAuto = !linksAuto;
+    srAuto.classList.toggle('on', linksAuto);
+    srAuto.setAttribute('aria-checked', linksAuto ? 'true' : 'false');
+    srAuto.querySelector('.tgl').src = A[linksAuto ? 'tgl-on' : 'tgl-off'];
   });
+  var srLink = document.getElementById('srLink'), srUnlink = document.getElementById('srUnlink');
+  if(srLink) srLink.addEventListener('click', function(e){ e.stopPropagation(); tree.classList.add('linked'); });
+  if(srUnlink) srUnlink.addEventListener('click', function(e){ e.stopPropagation(); tree.classList.remove('linked'); });
+  // the section's hint: a tooltip in the function bar's ENCY look (title over a hairline, then the text) on how
+  // Approach/return works — on hover or keyboard focus, a click pins it until the next click elsewhere
+  var srHint = document.getElementById('srHint');
+  if(srHint){
+    var srTip = document.createElement('div');
+    srTip.className = 'etb-tip sr-tip'; srTip.hidden = true;
+    srTip.innerHTML = '<b>Approach/Return</b>' +
+      '<span>Tool moves from the tool change position to the first cut and back.</span>' +
+      '<span><em>Auto</em> — Calculate builds them for every operation.</span>' +
+      '<span><em>Link</em> / <em>Remove links</em> — recalculate the selected operations with or without them.</span>';
+    document.body.appendChild(srTip);
+    var srPinned = false;
+    var tipShow = function(){
+      srTip.hidden = false;
+      var r = srHint.getBoundingClientRect();
+      srTip.style.left = Math.max(8, Math.min(r.left - 8, innerWidth - srTip.offsetWidth - 8)) + 'px';
+      srTip.style.top = (r.bottom + 6 + srTip.offsetHeight > innerHeight - 8 ? r.top - 6 - srTip.offsetHeight : r.bottom + 6) + 'px';
+      srHint.classList.add('on');
+    };
+    var tipHide = function(){ if(srPinned) return; srTip.hidden = true; srHint.classList.remove('on'); };
+    srHint.addEventListener('mouseenter', tipShow);
+    srHint.addEventListener('mouseleave', tipHide);
+    srHint.addEventListener('focus', tipShow);
+    srHint.addEventListener('blur', function(){ srPinned = false; tipHide(); });
+    srHint.addEventListener('click', function(e){ e.stopPropagation(); srPinned = !srPinned; if(srPinned) tipShow(); else tipHide(); });
+    document.addEventListener('click', function(){ if(srPinned){ srPinned = false; tipHide(); } });
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && !srTip.hidden){ srPinned = false; tipHide(); } });
+  }
 
   /* ---------- Tree halves divider: drag to resize name | facts columns ---------- */
   var treewrap = document.getElementById('treewrap');
@@ -3295,6 +3373,7 @@
     if(!simPlaying){ simRAF = null; return; }
     var dt = simLast ? (ts - simLast) / 1000 : 0;
     simLast = ts;
+    if(projStalled) dt = 0;          // stuck (prototype switch): playing, but not moving
     var prev = simT;
     var next = Math.min(SIM_TOTAL, simT + dt * SIM_BASE_RATE * (simEffSpeed() / 100));
     // stop conditions: pause exactly on the first enabled event we cross

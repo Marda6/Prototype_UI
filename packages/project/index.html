@@ -58,10 +58,22 @@
               <img class="chev7" src="assets/tb-chev.svg" alt="">
             </div>
             <div class="sr-div"></div>
-            <span class="sr-lbl">Approach/Return</span>
-            <button class="sr-auto on" id="srAuto">Auto</button>
-            <div class="sr-btn" title="Approach"><img class="i28" src="assets/fig-appr1.svg" alt=""></div>
-            <div class="sr-btn" title="Return"><img class="i28" src="assets/fig-appr2.svg" alt=""></div>
+            <!-- Approach/return: the section's caption with its hint (an "i" in a circle; a tooltip on how the
+                 section works), then Auto — ENCY's Links toggle as a switch with its label, on by default — and the two
+                 square buttons Link approach/return / Remove links -->
+            <span class="sr-cap">
+              <span class="sr-lbl">Approach/return</span>
+              <span class="sr-hint" id="srHint" tabindex="0" role="button" aria-label="How Approach/return works">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><path d="M8 7.4v3.3" stroke-width="1.3"/><circle cx="8" cy="5.3" r=".75" fill="currentColor" stroke="none"/></svg>
+              </span>
+            </span>
+            <button class="sr-auto on" id="srAuto" role="switch" aria-checked="true"
+              title="Approach/Return: Auto — Calculate builds the approaches and returns between the operations">
+              <span>Auto</span>
+              <img class="tgl" src="assets/toggle-on.svg" alt="">
+            </button>
+            <div class="sr-btn" id="srLink" title="Link approach/return — Calculate selected operations with links"><img class="i28" src="assets/fig-appr1.svg" alt=""></div>
+            <div class="sr-btn" id="srUnlink" title="Remove links — Calculate selected operations without links"><img class="i28" src="assets/fig-appr2.svg" alt=""></div>
           </div>
 
           <!-- search row (toggled by the search button): search + expand / collapse all -->

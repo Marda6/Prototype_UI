@@ -55,6 +55,13 @@
     return SECTIONS.filter(function(s){ return s.group === name; }).map(sectionRow).join('\n');
   }
 
+  // the end of a project tab: where the project lives (the computer = a local file; Core's local_16) — a
+  // click on it opens the project window ("Project window" below) — then the close cross
+  function tabEnd(){
+    return '<span class="htab-loc" title="Local project"><img src="' + BASE + 'hdr-tabicn.svg" alt=""></span>' +
+      '<img class="htab-x" src="' + BASE + 'hdr-tabclose.svg" alt="">';
+  }
+
   // ——— window title bar ———
   function topbar(){
     return '' +
@@ -76,17 +83,13 @@
         // in the home area no project tab is active — Home is active
         '<div class="htab' + (AREA === 'project' ? ' active' : '') + '"' +
           (AREA === 'project' ? '' : ' data-app="../project/"') + '>' +
-          '<span class="htab-t">Turn part probing 2</span>' +
-          '<img class="htab-x" src="' + BASE + 'hdr-tabclose.svg" alt=""></div>' +
+          '<span class="htab-t">Turn part probing 2</span>' + tabEnd() + '</div>' +
         // big-project stress case (391 operations, CAM-724): the project app builds its tree
         '<div class="htab" data-proj="ency393"' +
           (AREA === 'project' ? '' : ' data-app="../project/?project=ency393"') + '>' +
-          '<span class="htab-t">ENCY393</span>' +
-          '<img class="htab-x" src="' + BASE + 'hdr-tabclose.svg" alt=""></div>' +
-        '<div class="htab"><span class="htab-t">New project 2</span>' +
-          '<img class="htab-x" src="' + BASE + 'hdr-tabclose.svg" alt=""></div>' +
-        '<div class="htab"><span class="htab-t">New project 3</span>' +
-          '<img class="htab-x" src="' + BASE + 'hdr-tabclose.svg" alt=""></div>' +
+          '<span class="htab-t">ENCY393</span>' + tabEnd() + '</div>' +
+        '<div class="htab"><span class="htab-t">New project 2</span>' + tabEnd() + '</div>' +
+        '<div class="htab"><span class="htab-t">New project 3</span>' + tabEnd() + '</div>' +
         '<div class="hbtn" title="New tab"><img class="hicn-plus" src="' + BASE + 'hdr-plus.svg" alt=""></div>' +
       '</div>' +
       '<div class="hgroup-right">' +
@@ -1024,6 +1027,417 @@
     setTimeout(function(){ el.classList.remove('nt-flash'); }, 1800);
   }
   if (location.hash) setTimeout(function(){ ntReveal(location.hash.slice(1)); }, 300);
+
+  // ——— Project window and the tab's health (CAM-882): ENCY's TPrjOptionsForm (Bin64/ency_prime.exe) + the cam-app states ———
+  // The window opens from a tab's location icon (the computer = a local project), for that tab, without switching to it,
+  // in the frame of the project's floating windows (Approach: 300px, padding 8, radius 10). Top to bottom: the head —
+  // the project's name and Share; the tab's trouble or its process; Location — the project file, Explore; Snapshots —
+  // the project's saved states, newest first (the user's own ones and ENCY's autosaves before / after running, before
+  // deleting, before updating the machine), the current one green, a click selects another as current, the pin makes
+  // one persistent; Snapshot manager opens the full list.
+  // Each tab hosts a cam-app, a process of its own (CAM-882, Nikolai Zelensky's draft): it is
+  //   run      — running, or busy while a process reports progress (Calculate, the simulation): a line along the tab's
+  //              bottom and the process section in the window; no progress for a while (it may answer and still be
+  //              stuck — "responding does not mean working") turns the line amber and the section offers the way out;
+  //   hung     — not responding: an amber dot on the tab's icon; the tab's area freezes under a warning card like
+  //              Chrome's "page unresponsive" — Not responding for how long, what it was doing, the latest snapshot —
+  //              with Wait (the warning comes back later), Restart and Terminate; the window shows the same card;
+  //   dead     — terminated by the user or crashed: a red dot; the tab keeps its place and title, its area is a
+  //              placeholder with Restart (the sad-tab pattern); closing it is the tab's ✕;
+  //   restart  — restarting from the latest snapshot: a spinner in the icon's place.
+  // Restart and Terminate are always in the tab's context menu (right-click the tab), whatever its state — a stuck tab
+  // may still answer; Details opens the window. Both ask first and say what is lost: the changes after the latest
+  // snapshot (none → the saved file; a new project → an empty one). Restart = ENCY's "Force close and restart from
+  // latest snapshot", Terminate = its "Force close tab", now keeping the tab. The menu's Prototype group simulates the
+  // states: Not responding, Stuck progress (only while busy), Crash.
+  // Strings: cam_prime_Eng.lng (TPrjOptionsForm_*, prj_opts_form_*, STDirBasedProject_rs*, PrimeMainForm_rs*); "Not
+  // responding" is Windows' word, ENCY has none. Icons: ENCY's menu sprite (Dark_Menu.svg: Share 4·4, SnapPin 5·5 /
+  // SnapPin2 5·6, Explorer 5·7, SnapShot 5·8) at 20 in the 24px buttons, 16 in Share. The process comes from the section
+  // (window.ENCY_PROJECT.process() / stop() / stall()). Share, Explore and Snapshot manager are not built.
+  var PJ_SVG = {
+    restart: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12.6 8.6A4.6 4.6 0 1 1 11.2 4.6"/><path d="M12.4 2.4v2.8H9.6"/></svg>',
+    x:       '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>',
+    info:    '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><path d="M8 7.3v3.4"/><path d="M8 5.2v.1"/></svg>'
+  };
+  var PJ_STUCK = 8000;    // "no progress" after 8 s in the prototype (the product would wait minutes)
+  var PJ_WAIT = 30000;    // Wait hides the warning for 30 s
+  // sample snapshots relative to now: minutes ago, or [days ago, h, m]
+  function pjAt(a){
+    if (typeof a === 'number') return Date.now() - a * 60000;
+    var d = new Date(); d.setDate(d.getDate() - a[0]); d.setHours(a[1], a[2], 0, 0); return d.getTime();
+  }
+  function pjSnaps(list){
+    return list.map(function(s, i){ return {id:'s' + i, c:s[0], at:pjAt(s[1]), by:s[2] || USER.mail, cur:!!s[3], pin:!!s[4]}; });
+  }
+  // per tab, in the header's order; a new project has no file and no snapshots yet
+  var PJ = [
+    {path:'D:\\ENCY\\Projects\\Turning\\Turn part probing 2.stcp', snaps:pjSnaps([
+      ['Snapshot', 14, 0, true],
+      ['After running', 38],
+      ['Before running', 41],
+      ['Before deleting', 95],
+      ['Snapshot', [1, 17, 42], 0, false, true],
+      ['Before update machine', [1, 16, 5]],
+      ['Snapshot', [11, 8, 38], 'marat_u@headquarters.team']
+    ])},
+    {path:'D:\\ENCY\\Projects\\CAM-724\\ENCY393.stcp', snaps:pjSnaps([
+      ['Snapshot', [1, 11, 20], 0, true],
+      ['Before running', [1, 11, 2]],
+      ['Snapshot', [6, 9, 15], 'marat_u@headquarters.team', false, true]
+    ])},
+    {path:null, snaps:[]},
+    {path:null, snaps:[]}
+  ];
+  // ENCY's own wording: "Today at 8:38", "Yesterday at 17:42", "12 seconds ago", else 29.10.2026 8:38
+  function pjWhen(at){
+    var d = new Date(at), now = new Date(), s = Math.round((now - d) / 1000);
+    var hm = d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2);
+    if (s < 60) return s + (s === 1 ? ' second ago' : ' seconds ago');
+    var day = function(x){ return new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime(); };
+    var dd = Math.round((day(now) - day(d)) / 86400000);
+    if (dd === 0) return 'Today at ' + hm;
+    if (dd === 1) return 'Yesterday at ' + hm;
+    return ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2) + '.' + d.getFullYear() + ' ' + hm;
+  }
+  function pjSince(ms){ var t = Math.max(0, Math.floor(ms / 1000)); return Math.floor(t / 60) + ':' + ('0' + t % 60).slice(-2); }
+
+  (function(){
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.htabs .htab'));
+    if (!tabs.length) return;
+    var pop = null, at = -1;   // the open window and its tab
+    var menu = null;           // the tab's context menu
+    var veil = null, veilKey = '';   // the card over the active tab's area
+    var ts = {};               // tab index → {s:'hung'|'dead'|'restart', at, p (the process it was in), why, wait}
+    var track = null;          // the active process's progress: {i, t, p, since} — for "no progress"
+    tabs.forEach(function(t){ var n = t.querySelector('.htab-t'); t.dataset.name = n ? n.textContent : 'Project'; });
+    function S(i){ return ts[i] ? ts[i].s : 'run'; }
+    function api(){ return window.ENCY_PROJECT || null; }
+    function active(i){ return tabs[i] && tabs[i].classList.contains('active'); }
+    function proc(i){
+      var p = api();
+      // the section runs one project: the process is the active tab's, while it runs normally
+      return active(i) && S(i) === 'run' && p && p.process ? p.process() : null;
+    }
+    function stuck(i){ return !!(track && track.i === i && proc(i) && Date.now() - track.since >= PJ_STUCK); }
+    function latest(i){ return PJ[i] && PJ[i].snaps[0] || null; }
+    // what a restart brings back: the newest snapshot, else the saved file, else an empty project (ENCY's order)
+    function restoreText(i){
+      var sn = latest(i);
+      return sn ? 'From ' + sn.c.toLowerCase() + ' - ' + pjWhen(sn.at) : PJ[i] && PJ[i].path ? 'From the saved file' : 'Empty project';
+    }
+    // a cell of the sprite by column / row (0-based); CSS sets the size (16 in Share, 20 in the 24px buttons)
+    function spr(c, r){ return '<span class="pj-ic" style="--c:' + c + ';--r:' + r + '"></span>'; }
+    function snapRow(s){
+      return '<div class="pj-snap' + (s.cur ? ' cur' : '') + (s.pin ? ' pin' : '') + '" data-id="' + s.id + '"' +
+        (s.cur ? '' : ' title="Select snapshot as current"') + '>' +
+        '<span class="pj-sb"><span class="pj-st">' + utEsc(s.c + ' - ' + pjWhen(s.at)) + '</span>' +
+          '<span class="pj-sd">Project saved by ' + utEsc(s.by) + '</span></span>' +
+        '<span class="pj-ib pj-pin" data-pj="pin" title="Make snapshot persistent — Use pin to preserve a snapshot. Pinned snapshots are never deleted.">' +
+          '<span class="pj-ic"></span></span>' +
+      '</div>';
+    }
+    function crow(name, right, cls){
+      return '<div class="pj-crow' + (cls ? ' ' + cls : '') + '"><span class="pj-cname">' + utEsc(name) + '</span>' +
+        '<span class="pj-cwhere">' + right + '</span></div>';
+    }
+    // the card of a tab in trouble — amber while it does not respond, red once its process is gone: the state and
+    // since when, what it was doing (the process and how far, or ENCY's "Idle"), the operation and where, and the
+    // latest snapshot (what a restart brings back)
+    function cardHTML(i){
+      var x = ts[i], p = x.p, dead = x.s === 'dead', sn = latest(i);
+      return '<div class="pj-card' + (dead ? ' err' : '') + '">' +
+        '<div class="pj-crow pj-chead"><span class="pj-cic"></span><b>' +
+          (dead ? (x.why === 'crashed' ? 'Crashed' : 'Terminated') : 'Not responding') + '</b>' +
+          '<span class="pj-cn" data-' + (dead ? 'ago' : 'since') + '="' + x.at + '"></span></div>' +
+        crow(p ? p.t : 'Idle', p ? Math.floor(p.p * 100) + '%' : '') +
+        (p && p.op ? crow(p.op, utEsc(p.where || '')) : '') +
+        crow('Latest snapshot', sn ? utEsc(pjWhen(sn.at)) : (PJ[i] && PJ[i].path ? 'None · the saved file' : 'None'), 'pj-cq') +
+      '</div>';
+    }
+    // the ways out, sized to their labels: Wait only over the frozen tab, Terminate while the process is alive
+    function actsHTML(i, wait){
+      var dead = S(i) === 'dead';
+      return '<div class="pj-acts">' +
+        (wait ? '<span class="pj-fb" data-pj="wait" title="Keep waiting — the warning comes back if the tab still does not respond">Wait</span>' : '') +
+        '<span class="pj-fb" data-pj="restart" title="Force close and restart from latest snapshot">' + PJ_SVG.restart + 'Restart</span>' +
+        (dead ? '' : '<span class="pj-fb danger" data-pj="kill" title="Force close tab — the tab stays and can be restarted">' + PJ_SVG.x + 'Terminate</span>') +
+      '</div>';
+    }
+    function restartHTML(i){
+      return '<div class="pj-sec"><span class="pj-sec-t">Restarting</span></div>' +
+        '<div class="pj-track ind"><i></i></div>' +
+        '<div class="pj-rd">' + utEsc(restoreText(i)) + '</div>';
+    }
+    function render(){
+      var d = PJ[at] || PJ[0], s = S(at);
+      pop.innerHTML =
+        '<div class="pj-head">' +
+          '<span class="pj-title">' + utEsc(tabs[at].dataset.name) + '</span>' +
+          '<span class="pj-share" data-pj="share" title="Share — Share options">' + spr(3, 3) + 'Share</span>' +
+        '</div>' +
+        // the tab in trouble: its card and the ways out
+        (s === 'hung' || s === 'dead' ? '<div class="pj-div"></div>' + cardHTML(at) + actsHTML(at, false) : '') +
+        (s === 'restart' ? '<div class="pj-div"></div>' + restartHTML(at) : '') +
+        // the busy project's own section, there only while something runs (tick fills it); stuck → the ways out
+        '<div class="pj-run" hidden><div class="pj-div"></div>' +
+          '<div class="pj-sec"><span class="pj-sec-t pj-rt"></span><span class="pj-pct"></span></div>' +
+          '<div class="pj-track"><i></i></div>' +
+          '<div class="pj-rd"></div>' +
+          '<div class="pj-stuck" hidden><div class="pj-note"><span class="pj-cic"></span>No progress for <span class="pj-sv"></span></div>' +
+            actsHTML(at, false) + '</div>' +
+        '</div>' +
+        '<div class="pj-div"></div>' +
+        '<div class="pj-sec"><span class="pj-sec-t">Location</span>' +
+          '<span class="pj-ib' + (d.path ? '' : ' dis') + '" data-pj="explore" title="Explore — Show project file in explorer window">' + spr(6, 4) + '</span></div>' +
+        '<div class="pj-path' + (d.path ? '' : ' none') + '"' + (d.path ? ' title="' + utEsc(d.path) + '"' : '') + '>' +
+          (d.path ? utEsc(d.path) : 'Not saved yet') + '</div>' +
+        '<div class="pj-div"></div>' +
+        '<div class="pj-sec"><span class="pj-sec-t">Snapshots' +
+            (d.snaps.length ? '<span class="pj-cnt">' + d.snaps.length + '</span>' : '') + '</span>' +
+          '<span class="pj-ib' + (d.snaps.length ? '' : ' dis') + '" data-pj="manager" title="Snapshot manager — Open snapshot manager">' + spr(7, 4) + '</span></div>' +
+        (d.snaps.length
+          ? '<div class="pj-list">' + d.snaps.map(snapRow).join('') + '</div>'
+          : '<div class="pj-path none">No snapshots yet</div>');
+      tick();
+    }
+    // the card over the active tab's area: frozen (Not responding, until Wait), gone (Terminated / Crashed), restarting
+    function veilHTML(i){
+      var s = S(i);
+      return '<div class="pj-pop pj-ov" data-tab="' + i + '">' +
+        '<div class="pj-head"><span class="pj-title">' + utEsc(tabs[i].dataset.name) + '</span></div>' +
+        '<div class="pj-div"></div>' +
+        (s === 'restart' ? restartHTML(i) : cardHTML(i) + actsHTML(i, s === 'hung')) +
+      '</div>';
+    }
+    // the timers: since when it hangs, how long ago it died
+    function times(root){
+      root.querySelectorAll('[data-since]').forEach(function(e){ e.textContent = pjSince(Date.now() - +e.dataset.since); });
+      // when it went: the clock time ("0 seconds ago" reads badly), the day too if not today
+      root.querySelectorAll('[data-ago]').forEach(function(e){
+        var t = +e.dataset.ago, w = pjWhen(t), d = new Date(t);
+        e.textContent = /ago$/.test(w) ? d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2) : w.replace(/^Today at /, '');
+      });
+    }
+    function tick(){
+      // the active process's progress: a change resets "no progress"
+      var ai = tabs.findIndex(function(t){ return t.classList.contains('active'); });
+      var ap = ai >= 0 ? proc(ai) : null;
+      if (!ap) track = null;
+      else if (!track || track.i !== ai || track.t !== ap.t || Math.abs(track.p - ap.p) > 1e-6)
+        track = {i:ai, t:ap.t, p:ap.p, since:Date.now()};
+      tabs.forEach(function(t, i){
+        var p = proc(i), line = t.querySelector('.htab-prog'), s = S(i);
+        t.classList.toggle('busy', !!p);
+        t.classList.toggle('stuck', stuck(i));
+        t.classList.toggle('hung', s === 'hung');
+        t.classList.toggle('dead', s === 'dead');
+        t.classList.toggle('restarting', s === 'restart');
+        if (p){
+          if (!line){ line = document.createElement('i'); line.className = 'htab-prog'; t.appendChild(line); }
+          line.style.setProperty('--p', (p.p * 100).toFixed(1));
+        }
+      });
+      // the active tab's area: frozen while it hangs, a placeholder once its process is gone or restarting
+      var as = ai >= 0 ? S(ai) : 'run';
+      app.classList.toggle('tab-hung', as === 'hung');
+      app.classList.toggle('tab-down', as === 'dead' || as === 'restart');
+      var show = as === 'dead' || as === 'restart' || (as === 'hung' && !(ts[ai].wait > Date.now()));
+      var key = show ? ai + ':' + as : '';
+      if (key !== veilKey){
+        veilKey = key;
+        if (veil){ veil.remove(); veil = null; }
+        if (show){
+          veil = document.createElement('div');
+          veil.className = 'pj-veil';
+          veil.innerHTML = veilHTML(ai);
+          veil.addEventListener('click', function(e){
+            e.stopPropagation();
+            var b = e.target.closest('[data-pj]');
+            if (b) act(ai, b.dataset.pj);
+          });
+          document.body.appendChild(veil);
+        }
+      }
+      if (veil){
+        var ws = app.querySelector('.workspace'), r = ws ? ws.getBoundingClientRect() : null;
+        if (r){ veil.style.left = r.left + 'px'; veil.style.top = r.top + 'px'; veil.style.width = r.width + 'px'; veil.style.height = r.height + 'px'; }
+        times(veil);
+      }
+      if (!pop) return;
+      times(pop);
+      var p = proc(at), run = pop.querySelector('.pj-run');
+      run.hidden = !p;
+      if (!p) return;
+      run.querySelector('.pj-rt').textContent = p.t;
+      run.querySelector('.pj-pct').textContent = Math.floor(p.p * 100) + '%';
+      run.querySelector('.pj-track i').style.width = (p.p * 100).toFixed(1) + '%';
+      run.querySelector('.pj-rd').textContent = p.d || '';
+      var sk = stuck(at), box = pop.querySelector('.pj-stuck');
+      run.classList.toggle('stuck', sk);
+      box.hidden = !sk;
+      if (sk) box.querySelector('.pj-sv').textContent = pjSince(Date.now() - track.since);
+    }
+
+    // ——— the actions ———
+    function doRestart(i){
+      var a = api();
+      if (a && a.stop && active(i)) a.stop();
+      ts[i] = {s:'restart', at:Date.now()};
+      setTimeout(function(){
+        if (S(i) !== 'restart') return;
+        delete ts[i];
+        // the tab is back at the newest snapshot
+        PJ[i].snaps.forEach(function(x, k){ x.cur = k === 0; });
+        if (pop && at === i) render(); else tick();
+      }, 1500);
+      if (pop && at === i) render(); else tick();
+    }
+    function doKill(i, why){
+      var a = api(), x = ts[i];
+      // what it was doing when it went: the frozen process of a hung tab, else the running one
+      var p = x && x.s === 'hung' ? x.p : proc(i);
+      if (a && a.stop && active(i)) a.stop();
+      ts[i] = {s:'dead', why:why, at:Date.now(), p:p};
+      if (pop && at === i) render(); else tick();
+    }
+    function doHang(i){
+      var a = api(), p = proc(i);
+      ts[i] = {s:'hung', at:Date.now(), p:p};
+      // a hung process does not move: it freezes where it is
+      if (p && a && a.stop) a.stop();
+      if (pop && at === i) render(); else tick();
+    }
+    function recover(i){ delete ts[i]; if (pop && at === i) render(); else tick(); }
+    // ask first, saying what is lost (CAM-882): the changes after the latest snapshot
+    function confirmWin(i, kind){
+      var name = tabs[i].dataset.name, sn = latest(i), kill = kind === 'kill';
+      var lost = sn ? 'Changes made after the latest snapshot (' + pjWhen(sn.at) + ') will be lost.'
+        : PJ[i].path ? 'Changes made after the project was last saved will be lost.'
+        : 'The project has never been saved: all its work will be lost.';
+      var body = kill ? 'The tab’s process stops at once. ' + lost + ' The tab stays, so it can be restarted.'
+        : 'The tab’s process stops and the project opens again ' +
+          (sn ? 'from the latest snapshot.' : PJ[i].path ? 'from the saved file.' : 'empty.') + ' ' + lost;
+      var scrim = document.createElement('div');
+      scrim.className = 'ut-scrim';
+      scrim.innerHTML =
+        '<div class="ut-dlg sm" role="alertdialog" aria-modal="true">' +
+          '<div class="ut-dt">' + (kill ? 'Terminate' : 'Restart') + ' “' + utEsc(name) + '”?</div>' +
+          '<div class="ut-dd2">' + utEsc(body) + '</div>' +
+          '<div class="ut-foot"><button class="ut-btn" data-act="x">Cancel</button>' +
+            '<button class="ut-btn ' + (kill ? 'danger' : 'pri') + '" data-act="ok">' + (kill ? 'Terminate' : 'Restart') + '</button></div>' +
+        '</div>';
+      var ok = scrim.querySelector('[data-act="ok"]'), no = scrim.querySelector('[data-act="x"]');
+      function close(){ scrim.remove(); window.removeEventListener('keydown', key, true); }
+      function yes(){ close(); if (kill) doKill(i, 'terminated'); else doRestart(i); }
+      function key(e){
+        e.stopPropagation();
+        if (e.key === 'Escape'){ e.preventDefault(); close(); }
+        else if (e.key === 'Tab'){ e.preventDefault(); (document.activeElement === ok ? no : ok).focus(); }
+        else if (e.key === 'Enter' && document.activeElement === ok){ e.preventDefault(); yes(); }
+      }
+      ok.addEventListener('click', yes);
+      no.addEventListener('click', close);
+      // the veil cancels, as in the group warning
+      scrim.addEventListener('click', function(e){ e.stopPropagation(); if (e.target === scrim) close(); });
+      window.addEventListener('keydown', key, true);
+      document.body.appendChild(scrim);
+      ok.focus();
+    }
+    function act(i, a){
+      if (a === 'wait'){ if (ts[i]) ts[i].wait = Date.now() + PJ_WAIT; tick(); return; }
+      if (a === 'restart'){ if (S(i) === 'dead') doRestart(i); else confirmWin(i, 'restart'); return; }
+      if (a === 'kill'){ confirmWin(i, 'kill'); return; }
+      if (a === 'details'){ openPop(i); return; }
+      // prototype switches
+      if (a === 'p-hang'){ if (S(i) === 'hung') recover(i); else doHang(i); return; }
+      if (a === 'p-stall'){ var p = api(); if (p && p.stall) p.stall(!p.stalled()); tick(); return; }
+      if (a === 'p-crash'){ doKill(i, 'crashed'); return; }
+    }
+
+    // ——— the window ———
+    function closePop(){
+      if (!pop) return;
+      pop.remove(); pop = null;
+      if (tabs[at]) tabs[at].querySelector('.htab-loc').classList.remove('open');
+      at = -1;
+    }
+    function openPop(i){
+      closePop(); closeMenu();
+      at = i;
+      pop = document.createElement('div');
+      pop.className = 'pj-pop';
+      document.body.appendChild(pop);
+      render();
+      // under the tab, left edges aligned, 4px under it like the other title-bar lists
+      var r = tabs[i].getBoundingClientRect();
+      pop.style.left = Math.max(8, Math.min(r.left, innerWidth - pop.offsetWidth - 8)) + 'px';
+      pop.style.top = (r.bottom + 4) + 'px';
+      tabs[i].querySelector('.htab-loc').classList.add('open');
+      pop.addEventListener('click', function(e){
+        e.stopPropagation();
+        var b = e.target.closest('[data-pj]'), a = b && b.dataset.pj;
+        if (a === 'restart' || a === 'kill'){ act(at, a); return; }
+        var d = PJ[at], row = e.target.closest('.pj-snap'), s = row && d.snaps.filter(function(x){ return x.id === row.dataset.id; })[0];
+        if (!s) return;
+        if (a === 'pin') s.pin = !s.pin;
+        else if (!s.cur){ d.snaps.forEach(function(x){ x.cur = x === s; }); }
+        else return;
+        var sc = pop.querySelector('.pj-list').scrollTop;
+        render();
+        pop.querySelector('.pj-list').scrollTop = sc;
+      });
+    }
+
+    // ——— the tab's context menu: the ways out always at hand, Details, and the prototype's switches ———
+    function closeMenu(){ if (menu){ menu.remove(); menu = null; } }
+    function openMenu(i, x, y){
+      closeMenu();
+      var s = S(i), a = api(), busy = !!proc(i);
+      var opt = function(id, t, ic, cls, ck){
+        return '<div class="hm-opt' + (cls ? ' ' + cls : '') + '" data-pj="' + id + '">' +
+          (ic != null ? '<span class="hm-ic">' + ic + '</span>' : '<span class="hm-ck">' + (ck ? '✓' : '') + '</span>') +
+          '<span class="hm-t">' + t + '</span></div>';
+      };
+      menu = document.createElement('div');
+      menu.className = 'hmenu pj-menu';
+      menu.innerHTML =
+        (s === 'restart' ? '' : opt('restart', 'Restart from latest snapshot', PJ_SVG.restart)) +
+        (s === 'run' || s === 'hung' ? opt('kill', 'Terminate', PJ_SVG.x, 'danger') : '') +
+        opt('details', 'Details', PJ_SVG.info) +
+        '<div class="pj-msep"></div><div class="hm-head">Prototype</div>' +
+        (s === 'run' || s === 'hung' ? opt('p-hang', 'Not responding', null, '', s === 'hung') : '') +
+        (busy ? opt('p-stall', 'Stuck progress', null, '', a && a.stalled && a.stalled()) : '') +
+        (s === 'run' || s === 'hung' ? opt('p-crash', 'Crash', null, '') : '');
+      document.body.appendChild(menu);
+      menu.style.left = Math.max(4, Math.min(x, innerWidth - menu.offsetWidth - 4)) + 'px';
+      menu.style.top = Math.max(4, Math.min(y, innerHeight - menu.offsetHeight - 4)) + 'px';
+      menu.addEventListener('click', function(e){
+        e.stopPropagation();
+        var o = e.target.closest('[data-pj]'); if (!o) return;
+        closeMenu();
+        act(i, o.dataset.pj);
+      });
+    }
+
+    tabs.forEach(function(t, i){
+      var ic = t.querySelector('.htab-loc');
+      // the icon is the window's, not the tab's: no switch, no navigation
+      if (ic) ic.addEventListener('click', function(e){
+        e.stopPropagation(); closeMenu();
+        if (at === i) closePop(); else openPop(i);
+      });
+      t.addEventListener('contextmenu', function(e){
+        e.preventDefault(); e.stopPropagation();
+        closePop();
+        openMenu(i, e.clientX, e.clientY);
+      });
+    });
+    document.addEventListener('click', function(){ closePop(); closeMenu(); });
+    document.addEventListener('contextmenu', closeMenu);
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape'){ closePop(); closeMenu(); } });
+    // the processes, the timers and the tab states
+    setInterval(tick, 200);
+  })();
 
   // license state, switchable at runtime (License manager activates an expired license)
   function setLicense(state){

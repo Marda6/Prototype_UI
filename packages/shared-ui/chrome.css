@@ -74,6 +74,31 @@
   .htab-x{width:9px;height:9px;flex:0 0 9px;cursor:pointer;border-radius:3px;opacity:0;}
   .htab.active .htab-x,.htab:hover .htab-x{opacity:.7;}
   .htab-x:hover{opacity:1;}
+  /* where the project lives (the computer = a local file, Core's local_16), left of the cross: always shown,
+     quiet; a 20px plate on hover and while its project window is open (chrome.js "Project window") */
+  .htab-loc{width:20px;height:20px;flex:0 0 20px;margin:0 -4px 0 -2px;display:grid;place-items:center;border-radius:4px;opacity:.56;}
+  .htab-loc img{width:16px;height:16px;}
+  .htab.active .htab-loc{opacity:.72;}
+  .htab-loc:hover,.htab-loc.open{opacity:1;background:var(--ec-fg-12);}
+  /* the cam-app's state on the icon (CAM-882): not responding — an amber dot, terminated / crashed — a red one (the
+     bell's badge, ringed in the bar's colour), the icon at full strength; restarting — a spinner in the icon's place */
+  .htab-loc{position:relative;}
+  .htab.hung .htab-loc,.htab.dead .htab-loc{opacity:1;}
+  .htab.hung .htab-loc::after,.htab.dead .htab-loc::after{content:"";position:absolute;top:2px;right:2px;width:5px;height:5px;border-radius:50%;
+    background:var(--ec-amber, #ebc14a);box-shadow:0 0 0 1px color-mix(in srgb, var(--th-ink, #f5f5f5) var(--th-k8, 8%), var(--ec-bg));}
+  .htab.dead .htab-loc::after{background:var(--th-red, #ff5c5e);}
+  .htab.restarting .htab-loc{opacity:1;}
+  .htab.restarting .htab-loc img{visibility:hidden;}
+  .htab.restarting .htab-loc::before{content:"";position:absolute;inset:4px;border-radius:50%;box-sizing:border-box;
+    border:1.5px solid var(--ec-fg-24);border-top-color:var(--ec-fg-96);animation:pj-spin .8s linear infinite;}
+  @keyframes pj-spin{to{transform:rotate(360deg);}}
+  /* the tab's process (Calculate, the simulation), as in ENCY: a 2px line along the tab's bottom */
+  .htab-prog{display:none;position:absolute;left:6px;right:6px;bottom:1px;height:2px;border-radius:1px;
+    background:var(--ec-fg-12);pointer-events:none;overflow:hidden;}
+  .htab.busy .htab-prog{display:block;}
+  .htab-prog::after{content:"";display:block;height:100%;width:calc(var(--p, 0) * 1%);background:var(--st-green);}
+  /* no progress for a while (it may answer and still be stuck): the line turns amber */
+  .htab.stuck .htab-prog::after{background:var(--ec-amber, #ebc14a);}
 
   /* ===== Sidebar ===== */
   .sidebar{flex:0 0 40px;position:relative;transition:flex-basis .16s ease;}
@@ -378,6 +403,135 @@
   /* where a notification (or any #link) lands: its element lights up once */
   .nt-flash{animation:nt-flash 1.6s ease-out;}
   @keyframes nt-flash{0%,30%{box-shadow:inset 0 0 0 1px var(--st-green);background-color:color-mix(in srgb, var(--st-green) 12%, transparent);}}
+
+  /* ===== Project window (a tab's location icon; chrome.js "Project window") =====
+     ENCY's TPrjOptionsForm in the frame of the project's floating windows (the Approach window, .arw):
+     300px, padding 8, radius 10, the overlay surface (--pop-bg, fg 12 % border, the panels' shadow); it drops
+     from the tab (+4, left edges aligned); it closes on a click outside or Esc. Head 20: the name (500 12/20
+     fg 96) and Share (a 20px button). Blocks split by hairlines with 8px on both sides; a section head is 24 — its title 12/16 fg 96
+     4px in, 24px icon buttons on the right (SVG 16, ENCY's sprite 20). The busy project's section shows only while something
+     runs: what runs + percent, a 4px bar (the calculation bar's), what it is on 12/16 fg 56. Location: the path 12/16 fg 56 under its head, wrapping anywhere. Snapshots: the count fg 48
+     after the title; rows radius 4, padding 4 — "caption - when" 12/16 fg 80 (current green), "Project saved
+     by …" 11/14 fg 48, the pin (24) 4px in from the row's right edge: unpinned only on the row's hover, pinned
+     always, ENCY's two pin glyphs. Only the list scrolls (5 rows and the first line of the next); its bar sits
+     in a 6px lane in the window's right padding (the tree's recipe: 2px bar, 2px from the rows and the edge),
+     so the rows keep their width and end under the section buttons. */
+  .pj-pop{position:fixed;z-index:80;width:300px;max-width:calc(100vw - 16px);box-sizing:border-box;
+    padding:8px;border-radius:10px;display:flex;flex-direction:column;
+    background:var(--pop-bg, var(--ec-popover, #1e2223));border:1px solid var(--ec-fg-12);
+    box-shadow:0 8px 28px var(--th-shadow, rgba(0,0,0,.5));
+    color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);user-select:none;
+    --pj-spr:url(assets/ency/menu-dark.svg);}
+  [data-theme$="-light"] .pj-pop{--pj-spr:url(assets/ency/menu.svg);}
+  .pj-pop [hidden]{display:none !important;}
+  .pj-ic{--s:16px;width:var(--s);height:var(--s);flex:0 0 var(--s);opacity:.9;
+    background:var(--pj-spr) no-repeat;background-size:calc(var(--s) * 10) calc(var(--s) * 7);
+    background-position:calc(var(--c, 0) * var(--s) * -1) calc(var(--r, 0) * var(--s) * -1);}
+  .pj-ib .pj-ic{--s:20px;}
+  .pj-head{display:flex;align-items:center;gap:4px;height:20px;flex:0 0 20px;padding-left:4px;}
+  .pj-title{flex:1 1 0;min-width:0;color:var(--ec-fg-96);font:500 12px/20px var(--ec-font);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pj-share{height:20px;display:flex;align-items:center;gap:4px;padding:0 8px 0 6px;border-radius:4px;cursor:pointer;
+    background:var(--ec-fg-8);color:var(--ec-fg-72);white-space:nowrap;}
+  .pj-share:hover{background:var(--ec-fg-12);color:var(--ec-fg-96);}
+  .pj-share:hover .pj-ic,.pj-ib:hover .pj-ic{opacity:1;}
+  .pj-div{height:1px;flex:0 0 1px;margin:8px 0;background:var(--ec-fg-8);}
+  .pj-sec{display:flex;align-items:center;gap:2px;height:24px;flex:0 0 24px;padding-left:4px;}
+  .pj-sec-t{flex:1 1 0;min-width:0;color:var(--ec-fg-96);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pj-cnt{margin-left:6px;color:var(--ec-fg-48);font-variant-numeric:tabular-nums;}
+  .pj-ib{width:24px;height:24px;flex:0 0 24px;display:grid;place-items:center;border-radius:4px;cursor:pointer;color:var(--ec-fg-72);}
+  .pj-ib svg{width:16px;height:16px;}
+  .pj-ib:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+  .pj-ib.dis{opacity:.32;pointer-events:none;}
+  /* the busy project */
+  .pj-pct{padding:0 6px;color:var(--ec-fg-96);font-variant-numeric:tabular-nums;}
+  .pj-track{height:4px;flex:0 0 4px;margin:4px 4px 0;border-radius:2px;background:var(--ec-fg-12);overflow:hidden;}
+  .pj-track i{display:block;height:100%;width:0;border-radius:2px;background:var(--st-green);transition:width .2s linear;}
+  .pj-rd{margin-top:6px;padding:0 4px;color:var(--ec-fg-56);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pj-rd:empty{display:none;}
+  /* Location */
+  .pj-path{margin-top:2px;padding:0 4px;color:var(--ec-fg-56);overflow-wrap:anywhere;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;user-select:text;}
+  .pj-path.none{color:var(--ec-fg-48);user-select:none;}
+  /* Snapshots */
+  .pj-list{display:flex;flex-direction:column;gap:2px;margin-top:4px;max-height:220px;overflow-y:auto;
+    overscroll-behavior:contain;margin-right:-6px;scrollbar-gutter:stable;}
+  .pj-list::-webkit-scrollbar{width:6px;}
+  .pj-list::-webkit-scrollbar-track{background:transparent;}
+  .pj-list::-webkit-scrollbar-thumb{border:solid transparent;border-width:0 2px;border-radius:3px;
+    background-color:var(--ec-fg-24);background-clip:content-box;}
+  .pj-list::-webkit-scrollbar-thumb:hover{border-width:0 1px;background-color:var(--ec-fg-48);}
+  .pj-snap{display:flex;align-items:center;gap:4px;padding:4px;border-radius:4px;cursor:pointer;flex:0 0 auto;}
+  .pj-snap:hover{background:var(--ec-fg-8);}
+  .pj-snap.cur{cursor:default;}
+  .pj-sb{flex:1 1 0;min-width:0;display:flex;flex-direction:column;}
+  .pj-st,.pj-sd{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pj-st{color:var(--ec-fg-80);}
+  .pj-snap:hover .pj-st{color:var(--ec-fg-96);}
+  .pj-snap.cur .pj-st{color:var(--st-green);}
+  .pj-sd{color:var(--ec-fg-48);font:400 11px/14px var(--ec-font);}
+  .pj-pin{visibility:hidden;}
+  .pj-pin .pj-ic{--c:4;--r:4;}
+  .pj-snap.pin .pj-pin .pj-ic{--c:5;}
+  .pj-snap:hover .pj-pin,.pj-snap.pin .pj-pin{visibility:visible;}
+  .pj-snap .pj-pin:hover{background:var(--ec-fg-12);}
+  /* a tab in trouble (CAM-882): a card in the Status panel's problem look (tint 8–10 %, border 25 %, radius 6, padding 2;
+     rows 24, padding 0 6, radius 4) — amber while it does not respond (it may come back: Wait), red once its process is
+     gone (Terminated, Crashed). The head: the warning / error glyph, the state 500 in the card's colour, since when on
+     the right; then what it was doing — the process and its percent (or Idle), the operation and its group / part —
+     names fg 96, the right side fg 48, lined up with the head's text (6 + 16 + 6); last, quieter, the latest snapshot.
+     Under the card, 4px down, right-aligned, the ways out: 24px buttons sized to their labels (icon 16 + text, padding
+     0 8 0 6) — Wait and Restart quiet, Terminate red. */
+  .pj-card{display:flex;flex-direction:column;gap:2px;padding:2px;border-radius:6px;
+    background:color-mix(in srgb, var(--ec-amber, #ebc14a) 8%, transparent);
+    border:1px solid color-mix(in srgb, var(--ec-amber, #ebc14a) 25%, transparent);}
+  .pj-card.err{background:rgba(255,112,114,.1);border-color:rgba(255,112,114,.25);}
+  .pj-crow{display:flex;align-items:center;gap:6px;height:24px;padding:0 6px 0 28px;border-radius:4px;}
+  .pj-chead{padding-left:6px;}
+  .pj-cic{width:16px;height:16px;flex:0 0 16px;background:url(assets/nt-warn.svg) no-repeat center/16px;}
+  .pj-card.err .pj-cic{background-image:url(assets/nt-error.svg);}
+  [data-theme$="-light"] .pj-cic{background-image:url(assets/light/nt-warn.svg);}
+  [data-theme$="-light"] .pj-card.err .pj-cic{background-image:url(assets/light/nt-error.svg);}
+  .pj-chead b{flex:1 1 0;min-width:0;font-weight:500;color:var(--ec-amber, #ebc14a);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pj-card.err .pj-chead b{color:var(--th-red-text, #ff8384);}
+  .pj-cn{color:var(--ec-fg-72);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .pj-cname{flex:0 1 auto;min-width:0;color:var(--ec-fg-96);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pj-cwhere{flex:1 1 0;min-width:0;text-align:right;color:var(--ec-fg-48);font-variant-numeric:tabular-nums;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pj-cq .pj-cname{color:var(--ec-fg-56);}
+  .pj-acts{display:flex;justify-content:flex-end;gap:4px;margin-top:4px;}
+  .pj-fb{flex:0 0 auto;height:24px;display:flex;align-items:center;gap:4px;padding:0 8px 0 6px;
+    border-radius:4px;background:var(--ec-fg-8);color:var(--ec-fg-72);cursor:pointer;white-space:nowrap;}
+  .pj-fb:not(:has(svg)){padding:0 8px;}
+  .pj-fb svg{width:16px;height:16px;flex:0 0 16px;}
+  .pj-fb:hover{background:var(--ec-fg-12);color:var(--ec-fg-96);}
+  .pj-fb.danger{color:var(--th-red-text, #ff8384);}
+  .pj-fb.danger:hover{background:var(--tpe-danger-bg, rgba(255,112,114,.12));color:var(--th-red-text, #ff8384);}
+  /* busy but no progress for a while: the bar turns amber, a quiet amber note with how long, the ways out */
+  .pj-run.stuck .pj-track i{background:var(--ec-amber, #ebc14a);}
+  .pj-note{display:flex;align-items:center;gap:6px;margin-top:6px;padding:0 4px;color:var(--ec-amber, #ebc14a);}
+  .pj-note .pj-sv{font-variant-numeric:tabular-nums;margin-left:-2px;}
+  /* restarting: an indeterminate bar */
+  .pj-track.ind i{width:30%;animation:pj-ind 1.2s ease-in-out infinite;}
+  @keyframes pj-ind{from{transform:translateX(-100%);}to{transform:translateX(340%);}}
+  /* the active tab in trouble: its area — frozen and faded while it does not respond, empty once its process is gone or
+     restarting — gets the card over it, in the project window's frame, centred 12 % down (Chrome's "page unresponsive";
+     the placeholder is its sad tab). The veil is the workspace's rectangle and lets the pointer through but for the card */
+  .app.tab-hung .workspace{pointer-events:none;opacity:.72;transition:opacity .2s;}
+  /* (opacity, not visibility: rows that set visibility:visible would show through) */
+  .app.tab-down .workspace{opacity:0;pointer-events:none;}
+  .pj-veil{position:fixed;z-index:60;display:flex;justify-content:center;align-items:flex-start;padding-top:12vh;
+    box-sizing:border-box;pointer-events:none;}
+  .pj-veil .pj-ov{position:relative;pointer-events:auto;animation:nt-in .16s ease-out;}
+  /* the tab's context menu: the logo menu's look; icons 16 in a 20px column (the check column takes the same 20) */
+  .pj-menu{min-width:220px;}
+  .pj-menu .hm-ic svg{width:16px;height:16px;}
+  .pj-menu .hm-ck{width:20px;flex:0 0 20px;}
+  .pj-menu .hm-opt{padding:0 8px 0 2px;}
+  .pj-menu .hm-opt.danger{color:var(--th-red-text, #ff8384);}
+  .pj-menu .hm-head{padding-left:24px;}
+  .pj-msep{height:1px;margin:2px 4px;background:var(--ec-fg-8);}
 
   /* ===== Content ===== */
   .content{flex:1 1 0;min-width:0;min-height:0;background:var(--ec-fg-4);border-radius:8px;

@@ -17,6 +17,7 @@ each marked with the same comment title.
 | Panel / feature | HTML id / class | CSS prefix | JS anchor (comment or function) |
 |---|---|---|---|
 | Operation tree (Machining tab) | `#tree`, rows `.trow` | `.trow`, `.tlayer`, `.pslot`, `.opic` | `tree.addEventListener` |
+| Sort row (the toolbar's left button; ENCY's `TechInspectorBuilder_rsTechReorder*`: Sort · Approach/Return: Auto): Sort ▾, then the **Approach/return** caption (fg 56) with its hint — an "i" in a circle (16px, currentColor); hover / focus shows a short tooltip in the function bar's look (`.etb-tip.sr-tip`), a click pins it — then **Auto** + Core's toggle (ENCY's Links toggle, one borderless control, on by default; while on, Calculate builds the links = the lines between status circles, `.tree.linked`) and two square buttons **Link approach/return** / **Remove links** — "Calculates selected operations with / without links" (ENCY 3 docs, Sequencing mode): draw / drop the lines. A narrow dock (row < 320px, a container query) leaves Sort an icon with its chevron, the rest kept to the right edge; under 300px the row closes up (gaps 4, Auto's padding 4). (`showMenu` items also take `toggle` + `onToggle` — a switch row — and `title`.) | `#sortRow`, `#srSort`, `#srHint`, `#srAuto`, `#srLink`, `#srUnlink` | `.sortrow`, `.sr-*`, `.dd-tg` ("Sort row") | "Sort dropdown", "Approach/return", `linksAuto` |
 | **Tree navigation** (big projects: search row under the toolbar, toggled by `#searchBtn` next to Sort / Ctrl+F; sticky Setup/Part/Group, selection pin (off for now: `TREE_PIN = false`), folded-branch op counts; error/warning statuses roll up op → Group → Part → Setup) | `#searchBtn`, `#treeTools`, `#treeSticky`, `#treeGhost` | `.tt-*`, `.tsticky`, `.tghost`, `.tsum` ("Tree navigation") | "Tree navigation", `treeSearchRun`, `treeNavDraw`, `treeRollup`, `treeSummaries`, `treeReveal` |
 | ENCY393 stress project (391 ops, header tab `data-proj="ency393"`, `?project=ency393`) | generated into `#tree` | — | `BIG_PROJECT`, `bigProjectHTML`, `swapTree` |
 | Group menu (right-click on a group row or its sticky head; Del / Ctrl+Shift+G on a selected group): Ungroup — the operations stay in place and move up to the group's parent (indent one step less); Delete — a warning window "All N operations in this group will be deleted with it" (Cancel / Delete, Esc and the veil cancel, Enter deletes), an empty group goes at once; the selection moves to the next row of that level | `.tconf-scrim` > `.tconf` | `.tconf-*` ("Tree: the group's delete warning") | "a group's menu", `groupMenu`, `treeUngroup`, `treeDeleteGroup`, `treeConfirm`, `treeDrop` |
@@ -66,6 +67,30 @@ operation icons in both trees and in the NC block panel.
   `#id` lands and flashes, `.nt-flash`); invites are answered in the card; a new one shows 6 s as a card under the bell
   (`.nt-toast`). Sources: project `calcNotify` (errors a Calculate found), License manager (maintenance ≤ 7 days,
   rows `#lic-<n>`), plus samples for Clouds. chrome.js "Notifications"; chrome.css `.nt-*`.
+- **Project window** (a click on a project tab's location icon `.htab-loc` — the computer = a local project, Core's
+  `local_16` = `hdr-tabicn.svg`, left of the tab's ✕; opens for that tab without switching to it, in every section):
+  ENCY's `TPrjOptionsForm` (`Bin64/ency_prime.exe`, strings in `cam_prime_Eng.lng`) in the Approach window's frame
+  (`.arw`: 300px, padding 8, radius 10, head 20, sections 24, hairlines with 8px around) — head: name and Share (no ✕: it closes on a click outside or Esc); a
+  section only while the project is busy (`.pj-run`: Calculation / Machining simulation + percent, 4px bar, the current
+  operation · n of N, from `window.ENCY_PROJECT.process()` in project/app.js; the active tab draws it too, `.htab-prog`
+  along its bottom); Location (the file, Explore; a new project: "Not saved yet"); Snapshots — "caption - when" (Today
+  at / Yesterday at / dd.mm.yyyy, ENCY's wording) + "Project saved by …", the current one green, a click selects another
+  as current, the pin makes one persistent (ENCY's SnapPin glyphs), Snapshot manager.
+  **The tab's health (CAM-882, "Closing and reopening cam-app tab")** — each tab hosts a cam-app process:
+  run (busy: the progress line; **no progress for 8 s** in the prototype — "responding is not working" — the line and
+  the bar turn amber, the window says "No progress for m:ss" with Restart / Terminate) · **hung** (Not responding: an
+  amber dot on the icon, the active tab's area freezes under a card like Chrome's "page unresponsive" — `.pj-veil`
+  over the workspace: amber `.pj-card` with since when, what it was doing, the operation, the latest snapshot — and
+  Wait (hides it 30 s) / Restart / Terminate; the window shows the same card) · **dead** (Terminated / Crashed: a red
+  dot, the tab keeps its place, its area is a placeholder with the red card and Restart — the sad-tab pattern) ·
+  **restart** (a spinner in the icon's place, 1.5 s, then the newest snapshot is current). Restart / Terminate are
+  **always in the tab's context menu** (right-click a tab) with Details (opens the window); both ask first and say what
+  is lost (after the latest snapshot / since the last save / everything for a never-saved project), Restart of a dead
+  tab does not. The menu's **Prototype** group simulates Not responding, Stuck progress (while busy;
+  `ENCY_PROJECT.stall()`) and Crash. Sample data per tab in `PJ`, in memory. Share, Explore and Snapshot manager are
+  not built; the Cam Manager list of the ticket is not either. chrome.js "Project window and the tab's health"
+  (`ts` states, `act`, `confirmWin`, `veilHTML`, `cardHTML`); chrome.css `.pj-*`, `.htab-loc`, `.htab-prog`,
+  `.htab.stuck / .hung / .dead / .restarting`, `.app.tab-hung / .tab-down`.
 - **Online / Offline** (prototype switch, `#connSeg`): in License manager's page header; the state (`.app.offline`,
   `localStorage['ency.net']`) applies to every section — chrome.js `setNet`, `ENCY_CHROME.setNet`.
 - **System setup** (Settings): ENCY's `TASetupFrm` (in `Bin64/SCKernel.dll`), drawn in the v2 settings style — the
