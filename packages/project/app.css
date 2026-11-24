@@ -211,12 +211,12 @@
    the inset edge; 4px under the pointer */
 #tree,#simTree,#irows{margin-right:-6px;}
 /* the same thin bar for the problem lists of the Status panel (.stp-probs) */
-:is(#tree,#simTree,#irows,#stpProbs,#eqList)::-webkit-scrollbar{width:6px;}
+:is(#tree,#simTree,#irows,#stpProbs,#eqList,#thrList)::-webkit-scrollbar{width:6px;}
 /* background-color, not the shorthand: `background` would reset background-clip and paint
    under the transparent side borders, i.e. across the whole lane */
-:is(#tree,#simTree,#irows,#stpProbs,#eqList)::-webkit-scrollbar-thumb{border-width:0 2px;border-radius:3px;
+:is(#tree,#simTree,#irows,#stpProbs,#eqList,#thrList)::-webkit-scrollbar-thumb{border-width:0 2px;border-radius:3px;
   background-color:var(--ec-fg-24);background-clip:content-box;}
-:is(#tree,#simTree,#irows,#stpProbs,#eqList)::-webkit-scrollbar-thumb:hover{border-width:0 1px;
+:is(#tree,#simTree,#irows,#stpProbs,#eqList,#thrList)::-webkit-scrollbar-thumb:hover{border-width:0 1px;
   background-color:var(--ec-fg-48);background-clip:content-box;}
 
 /* ===== Simulate tab: code tree + the simulation bar on the 3D view ===== */
@@ -2314,3 +2314,117 @@ img.mc-ftgl{width:24px;height:14px;flex:none;}
   color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);white-space:nowrap;}
 .tpe-toast[hidden]{display:none;}
 .tpe-toast .tact{color:var(--st-green);}
+
+/* ===== Thread library window (threads.js) — the thread of a threading operation, picked from a library.
+   Opens from the "Thread library" row of the operation's Cycle parameters and stands level with it at the left
+   edge of the free view (the smart hint's place), rising to fit. The Links window's frame (.arw: padding 8,
+   radius 10, head 20, hairlines with 8px around), 360px for the table, opaque like the NC block window ===== */
+.thr{width:360px;z-index:55;}
+.thr .arw-head{padding:0;cursor:grab;touch-action:none;}   /* the head drags the window */
+.thr .arw-close{margin-left:auto;}
+/* the title is the library: a dropdown's states on the title text; a click lists the libraries */
+.thr-lib{flex:0 1 auto;min-width:0;display:flex;align-items:center;gap:2px;height:20px;padding:0 2px 0 4px;
+  border:0;border-radius:4px;background:transparent;cursor:pointer;color:var(--ec-fg-96);font:500 12px/20px var(--ec-font);}
+.thr-lib span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.thr-lib .i16{flex:0 0 16px;}
+.thr-lib:hover{background:var(--ec-fg-8);}
+.thr-lib.dd-open{background:var(--ec-fg-8);box-shadow:inset 0 0 0 1px var(--ec-fg-16);}
+/* the tree's search field (28px, "n of N" in it while there is a query) */
+/* the search row: the field, the model's diameter as a filter (the tree toolbar's toggle: on = fg-8 + inset fg-16), the units
+   (Core's segmented control, .cseg — 28px tall, as the row) */
+.thr-tools{display:flex;align-items:center;gap:4px;flex:0 0 28px;margin-top:8px;}
+.thr .thr-search{flex:1 1 0;min-width:0;}
+.thr-search.has-f .tt-count{display:block;}
+.thr-fit{flex:0 0 auto;height:28px;padding:0 8px;border:0;border-radius:4px;background:transparent;cursor:pointer;
+  color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.thr-fit[hidden]{display:none;}
+.thr-fit:hover{background:var(--ec-fg-8);color:var(--ec-fg-96);}
+.thr-fit.on{background:var(--ec-fg-8);box-shadow:inset 0 0 0 1px var(--ec-fg-16);color:var(--ec-fg-100);}
+.thr-units{flex:0 0 auto;}
+.thr-units .ci{width:28px;}
+/* the table: one grid for the head and the rows — the name, then 3–4 number columns (no Tap drill where the
+   library has none); the list's scrollbar lane in the window's padding. A wider window widens the number columns
+   first — 52px up to 72px, where "Tap drill mm" fits on one line — then the names take the rest */
+.thr-hd,.thr-row{display:grid;grid-template-columns:minmax(104px, 1fr) repeat(var(--thr-n, 4), minmax(52px, 72px));
+  column-gap:4px;align-items:center;}
+/* a column's unit once, right of its name while the column has room, under it while not; the names on one line */
+.thr-hd{flex:0 0 auto;margin-top:8px;padding:0 4px;align-items:start;}
+.thr-c{display:flex;flex-wrap:wrap;justify-content:flex-end;column-gap:4px;font:400 11px/14px var(--ec-font);white-space:nowrap;}
+.thr-c:first-child{justify-content:flex-start;}
+.thr-c b{font-weight:500;color:var(--ec-fg-56);}
+.thr-c i{font-style:normal;color:var(--ec-fg-48);}
+/* the list keeps its height while a search narrows it (no jump): whole rows, 12 by default (--thr-list-h, threads.js) */
+.thr-list{position:relative;flex:0 1 auto;min-height:49px;height:var(--thr-list-h, 299px);margin:4px -6px 0 0;
+  overflow-y:auto;scrollbar-gutter:stable;display:flex;flex-direction:column;gap:1px;outline:none;}
+/* rows as the tree's: no lines between them; hover fg-4, the operation's thread lit fg-12 */
+.thr-row{height:24px;flex:0 0 24px;box-sizing:border-box;padding:0 4px;border-radius:4px;cursor:pointer;
+  color:var(--ec-fg-72);font:400 12px/16px var(--ec-font);font-variant-numeric:tabular-nums;}
+.thr-row > span{text-align:right;white-space:nowrap;overflow:hidden;}
+.thr-row > .thr-n{text-align:left;text-overflow:ellipsis;color:var(--ec-fg-96);}
+.thr-row i{font-style:normal;visibility:hidden;}   /* the zeros that put the decimal points in line: in place, unseen */
+.thr-row:hover,.thr-row.dd-open{background:var(--ec-fg-4);}
+.thr-row.cur{background:var(--ec-fg-12);color:var(--ec-fg-96);}
+.thr-row > span.fit{color:var(--st-green);}   /* a diameter that fits the model: the tree's T# green */
+.thr-row.cur .thr-n{color:var(--ec-fg-100);}
+.thr-none{padding:4px;color:var(--ec-fg-48);font:400 12px/16px var(--ec-font);}
+/* what every thread of the library shares — quiet, under the table */
+.thr-note{flex:0 0 auto;margin-top:8px;padding:0 4px;color:var(--ec-fg-48);font:400 11px/14px var(--ec-font);}
+/* the checks: the model's diameter and the insert, a 20px line each, always there; fine — the done glyph and a quiet
+   line, off — the warning glyph and the amber text of the status window's note (.stp-mod); the full text in the tooltip */
+.thr-checks{display:flex;flex-direction:column;gap:2px;flex:0 0 auto;margin-bottom:4px;}
+.thr-chk{display:flex;align-items:center;gap:8px;height:20px;min-width:0;padding:0 4px;color:var(--ec-fg-56);font:400 12px/16px var(--ec-font);}
+.thr-chk .i16{flex:0 0 16px;width:16px;height:16px;}
+.thr-chk span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;}
+.thr-chk.warn span{color:var(--ec-amber,#ebc14a);}
+.thr-chk.none span{color:var(--ec-fg-48);}
+/* the last line: the operation's thread; off the library, Save to library */
+.thr-op{display:flex;align-items:center;gap:8px;height:24px;flex:0 0 24px;padding:0 0 0 4px;border-radius:4px;
+  font:400 12px/16px var(--ec-font);white-space:nowrap;}
+.thr-op.in-lib{cursor:pointer;}
+.thr-op.in-lib:hover{background:var(--ec-fg-4);}
+.thr-op-l{flex:0 0 auto;color:var(--ec-fg-48);}
+.thr-op-v{flex:1 1 auto;min-width:0;display:flex;gap:8px;overflow:hidden;color:var(--ec-fg-72);font-variant-numeric:tabular-nums;}
+.thr-op-v b{min-width:0;font-weight:500;color:var(--ec-fg-96);overflow:hidden;text-overflow:ellipsis;}
+.thr-op-v span{flex:0 0 auto;}
+.thr-save{flex:0 0 auto;display:flex;align-items:center;gap:4px;height:24px;padding:0 8px 0 6px;border:0;border-radius:4px;
+  background:var(--ec-fg-8);color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);cursor:pointer;}
+.thr-save:hover{background:var(--ec-fg-12);}
+.thr-save svg{width:12px;height:12px;}
+/* Save to library: the name (prefilled), then Cancel / Save — the warning window's buttons, Save as Calculate */
+.thr-op.saving{padding:0;}
+.thr-name{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:6px;height:24px;box-sizing:border-box;padding:0 4px;
+  border-radius:4px;background:var(--ec-fg-8);box-shadow:inset 0 0 0 1px var(--ec-green);cursor:text;}
+.thr-name span{flex:0 0 auto;color:var(--ec-fg-48);}
+.thr-name input{flex:1 1 auto;min-width:0;padding:0;border:0;outline:0;background:transparent;
+  color:var(--ec-fg-96);font:400 12px/16px var(--ec-font);}
+.thr-op .tconf-btn{flex:0 0 auto;min-width:56px;}
+.thr-op .tconf-btn.thr-ok{background:color-mix(in srgb, var(--ec-green) 10%, transparent);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--ec-green) 25%, transparent);color:var(--ec-fg-100);}
+.thr-op .tconf-btn.thr-ok:hover{background:color-mix(in srgb, var(--ec-green) 16%, transparent);}
+/* the inspector's side: Thread library is a dropdown of the libraries with the window's own square button next to
+   it (.rowbtn, lit while the window is open); a value typed in */
+.irow .input.editing{background:var(--ec-fg-8);box-shadow:inset 0 0 0 1px var(--ec-green);}
+.irow .input.editing .v{outline:none;color:var(--ec-fg-96);text-overflow:clip;}
+/* moved and resized as any window: the head drags it; the edges (6px, half outside the frame) and corners (12px)
+   resize it with only the resize cursors showing, no marks — as the Automation window. The cursor holds while
+   the pointer runs off the edge */
+.thr-g{position:absolute;z-index:6;touch-action:none;}
+.thr-g-n,.thr-g-s{left:10px;right:10px;height:6px;cursor:ns-resize;}
+.thr-g-n{top:-3px;}
+.thr-g-s{bottom:-3px;}
+.thr-g-e,.thr-g-w{top:10px;bottom:10px;width:6px;cursor:ew-resize;}
+.thr-g-e{right:-3px;}
+.thr-g-w{left:-3px;}
+.thr-g-nw,.thr-g-ne,.thr-g-sw,.thr-g-se{z-index:7;width:12px;height:12px;}
+.thr-g-nw{top:-3px;left:-3px;cursor:nwse-resize;}
+.thr-g-se{right:-3px;bottom:-3px;cursor:nwse-resize;}
+.thr-g-ne{top:-3px;right:-3px;cursor:nesw-resize;}
+.thr-g-sw{bottom:-3px;left:-3px;cursor:nesw-resize;}
+body:is(.thr-moving, .thr-rs),body:is(.thr-moving, .thr-rs) *{user-select:none;}
+body.thr-moving,body.thr-moving *{cursor:grabbing !important;}
+body.thr-rs-ns,body.thr-rs-ns *{cursor:ns-resize !important;}
+body.thr-rs-ew,body.thr-rs-ew *{cursor:ew-resize !important;}
+body.thr-rs-nwse,body.thr-rs-nwse *{cursor:nwse-resize !important;}
+body.thr-rs-nesw,body.thr-rs-nesw *{cursor:nesw-resize !important;}
+.thr-hd.stack .thr-c{flex-direction:column;flex-wrap:nowrap;align-items:flex-end;}
+.thr-hd.stack .thr-c:first-child{align-items:flex-start;}

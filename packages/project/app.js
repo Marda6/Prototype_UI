@@ -516,6 +516,7 @@
     /* --- parameter rows --- */
     var row = document.createElement('div');
     row.className = 'irow' + (p.sel ? ' sel' : '') + (p.ghead && toolCollapsed[p.ghead] ? ' collapsed' : '') + (p.ctl==='readonly' ? ' roparam' : '') + (p.lock ? ' lockable' : '');
+    if(p.key) row.dataset.key = p.key;     // a parameter another block reads or writes (threads.js)
     if(p.ghead) row.dataset.ghead = p.ghead;
     if(p.gchild){ row.dataset.group = p.gchild; if(toolCollapsed[p.gchild]) row.style.display = 'none'; }
     var itlClass = 'itl' + (p.indent===1?' i1':p.indent===2?' i2':'');
@@ -544,6 +545,9 @@
     }
     var trail;
     if(p.editBtn)      trail = '<button class="rowbtn'+(editComp && editComp===p.ghead ? ' on' : '')+'" data-act="'+p.editBtn+'" title="Edit">'+SVG_EDIT+'</button>';
+    // a square button next to the control that opens a window to pick the value in (the thread library):
+    // window.ENCY_PICKERS[pick] opens / closes it, the button is lit (on) while it is open
+    else if(p.pickBtn) trail = '<button class="rowbtn" data-pick="'+p.pickBtn.pick+'" title="'+(p.pickBtn.tip||'')+'">'+p.pickBtn.icon+'</button>';
     else if(p.plus)    trail = '<button class="rowbtn" title="Add point">'+SVG_PLUS+'</button>';
     else if(p.minus)   trail = '<button class="rowbtn" title="Remove">'+SVG_MINUS+'</button>';
     else               trail = p.nomore ? '' : '<img class="icn11" src="'+A.icn11+'">';
@@ -672,8 +676,12 @@
     irows.classList.remove('ro');
     var cfg = PARAMS[tab] || [];
     var list = Array.isArray(cfg) ? cfg : (cfg.rows || []);
+    // a threading operation: Parameters is ENCY's "Cycle parameters" — the cycle and its thread form (threads.js)
+    var T = window.ENCY_THREADS, thr = tab === 'Parameters' && railCtx === 'operation:thread' && T;
+    if(thr){ list = T.rows(tree.querySelector('.trow.tsel')); inspTitle.textContent = 'Cycle parameters'; }
     irows.innerHTML = '';
     list.forEach(function(p){ irows.appendChild(buildRow(p)); });
+    if(T) T.rendered(!!thr);
   }
   /* the title names the inspector tab; some tabs carry a fuller name */
   var TAB_TITLES = { Tool: 'Tool Assembly', Edits: 'Toolpath edits' };
@@ -706,8 +714,9 @@
   // everything else follows the context
   var RAIL_OPT = {Transformation:false, Macro:false, Part:false, Workpiece:false};
   var DRILL_RE = /drill|tapping|reaming|countersink/i;
+  var THREAD_RE = /thread/i;   // a threading operation: its Parameters tab is the cycle with the thread form
   var railTabs = document.getElementById('railTabs'), railMore = document.getElementById('railMore');
-  var railCur = 'Tool', railCtx = '', railOver = [];
+  var railCur = 'Tool', railCtx = '', railOver = [], railSel = null;
   function railTitle(id){ return RAIL[id].t || id; }
   function railIcon(id){
     return RAIL[id].icon ? '<img class="ricn" src="assets/' + RAIL[id].icon + '.svg" alt="">' : '<span class="ricn opic"></span>';
@@ -743,11 +752,18 @@
   function railSync(force){
     var sel = tree.querySelector('.trow.tsel'), t = sel ? sel.dataset.type : 'machine';
     var ctx = !RAIL_CTX[t] ? 'machine' : t !== 'operation' ? t
-      : DRILL_RE.test(rowName(sel)) ? 'operation:drill' : 'operation';
-    if(ctx === railCtx && !force) return;
+      : DRILL_RE.test(rowName(sel)) ? 'operation:drill' : THREAD_RE.test(rowName(sel)) ? 'operation:thread' : 'operation';
+    // one threading operation to another: the same set of tabs, but Parameters shows that operation's thread
+    // (the observer below fires on any class change in the tree — only a new selection counts)
+    var selNow = sel || null, moved = selNow !== railSel;
+    railSel = selNow;
+    if(ctx === railCtx && !force){ if(moved && ctx === 'operation:thread' && railCur === 'Parameters') railOpen(railCur); return; }
+    var was = railCtx;
     railCtx = ctx;
     var list = railList();
-    if(list.indexOf(railCur) < 0) railOpen(list[0]); else railDraw();
+    if(list.indexOf(railCur) < 0) railOpen(list[0]);
+    else if(railCur === 'Parameters' && (was === 'operation:thread') !== (ctx === 'operation:thread')) railOpen(railCur);
+    else railDraw();
   }
   railTabs.addEventListener('click', function(e){
     var b = e.target.closest('.rbtn[data-tab]'); if(b) railOpen(b.dataset.tab);
@@ -850,6 +866,16 @@
       e.stopPropagation(); var on = tgl.classList.toggle('on'); tgl.src = on ? A['tgl-on'] : A['tgl-off'];
       var tr = tgl.closest('.irow'), tl = tr && tr.querySelector('.rlabel span');
       if(tl) emitAction(tl.textContent, on ? 'On' : 'Off', 'OP.PARAM "' + tl.textContent + '" ' + (on ? 'TRUE' : 'FALSE'), {ctl:'toggle'});
+      return;
+    }
+    // a row's pick button opens its own window (the thread library)
+    var pk = e.target.closest('.rowbtn[data-pick]');
+    if(pk){
+      e.stopPropagation(); closeMenu();
+      var pkRow = pk.closest('.irow');
+      irows.querySelectorAll('.irow').forEach(function(x){ x.classList.toggle('sel', x === pkRow); });
+      var open = window.ENCY_PICKERS && window.ENCY_PICKERS[pk.dataset.pick];
+      if(open) open(pk);
       return;
     }
     /* .selbox is not a menu anymore — it navigates to the full-panel picker (data-act=pickAsm), so let it bubble */
